@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Art Recommendation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50">
+    <div id="root" class="min-h-screen">
+        <!-- Loading placeholder -->
+        <div class="container mx-auto px-4 py-8">
+            <h1 class="text-4xl font-bold text-center text-gray-800 mb-8">
+                AI Art Recommendation
+            </h1>
+            <div class="max-w-md mx-auto bg-white rounded-lg shadow-lg p-6 text-center">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                <p class="text-gray-600">로딩 중...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load the bundled app -->
+    <script type="module" src="./dist/app.js"></script>
+</body>
+</html>

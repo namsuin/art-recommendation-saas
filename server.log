@@ -1,0 +1,45 @@
+
+🔧 Environment Configuration:
+
+⚠️  WARNINGS:
+  - Replicate API not configured (REPLICATE_API_TOKEN missing)
+
+✅ Basic configuration is valid
+
+📋 Configured Services:
+  - Supabase: ✅
+  - Google Vision: ✅
+  - Replicate: ⚠️
+  - Clarifai: ✅
+  - Stripe: ⚠️
+
+🚀 AI Art Recommendation Server running at http://localhost:3000
+📱 WebSocket endpoint: ws://localhost:3000
+🎨 Frontend: http://localhost:3000
+❤️  Health check: http://localhost:3000/api/health
+🔐 Authentication: Login/Signup available
+Profile creation failed: {
+  message: "<html>\r\n<head><title>400 Request Header Or Cookie Too Large</title></head>\r\n<body>\r\n<center><h1>400 Bad Request</h1></center>\r\n<center>Request Header Or Cookie Too Large</center>\r\n<hr><center>cloudflare</center>\r\n</body>\r\n</html>\r\n",
+}
+Default taste group creation failed: {
+  message: "<html>\r\n<head><title>400 Request Header Or Cookie Too Large</title></head>\r\n<body>\r\n<center><h1>400 Bad Request</h1></center>\r\n<center>Request Header Or Cookie Too Large</center>\r\n<hr><center>cloudflare</center>\r\n</body>\r\n</html>\r\n",
+}
+📧 Email service not configured, logging email instead:
+To: aspirenova@naver.com
+Subject: 🎨 AI Art Recommendation에 오신 것을 환영합니다!
+Content: 
+안녕하세요, aspirenova님!
+
+AI Art Recommendation 서비스에 가입해 주셔서 감사합니다.
+이제 AI 기술을 활용하여 개인 맞춤형 예술 작품 추천을 받으실 수 있습니다.
+
+시작하기:
+- 이미지를 업로드하여 AI 분석을 받아보세요
+- 개인화된 작품 추천을 확인해보세요  
+- 프리미엄 구독으로 더 많은 기능을 이용해보세요
+
+지금 시작하기: http://localhost:3000
+
+궁금한 점이 있으시면 언제든 문의해 주세요.
+감사합니다!
+    

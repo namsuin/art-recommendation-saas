@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Art Recommendation - 간단한 버전</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React CDN -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+</head>
+<body class="bg-gray-50">
+    <div id="root" class="min-h-screen"></div>
+
+    <script>
+        const { useState } = React;
+        const { createRoot } = ReactDOM;
+
+        function App() {
+            const [uploadedImage, setUploadedImage] = useState(null);
+            const [isAnalyzing, setIsAnalyzing] = useState(false);
+            const [analysisResult, setAnalysisResult] = useState(null);
+            const [recommendations, setRecommendations] = useState([]);
+            const [error, setError] = useState(null);
+
+            const handleImageUpload = async (event) => {
+                const file = event.target.files?.[0];
+                if (!file) return;
+
+                // Reset state
+                setError(null);
+                setRecommendations([]);
+                setAnalysisResult(null);
+                
+                const imageUrl = URL.createObjectURL(file);
+                setUploadedImage(imageUrl);
+                setIsAnalyzing(true);
+
+                try {
+                    const formData = new FormData();
+                    formData.append('image', file);
+
+                    const response = await fetch('/api/analyze', {
+                        method: 'POST',
+                        body: formData,
+                    });
+
+                    const result = await response.json();
+                    console.log('🔍 API Response:', result);
+
+                    if (!response.ok) {
+                        throw new Error(result.error || '서버 오류');
+                    }
+
+                    // 분석 결과 저장
+                    if (result.analysis) {
+                        console.log('📊 Setting analysis result:', result.analysis);
+                        setAnalysisResult(result.analysis);
+                    }
+                    
+                    if (result.recommendations && result.recommendations.length > 0) {
+                        setRecommendations(result.recommendations);
+                    } else {
+                        setError('추천할 작품을 찾을 수 없습니다.');
+                    }
+                } catch (error) {
+                    console.error('Image analysis failed:', error);
+                    setError(error.message || '이미지 분석 중 오류가 발생했습니다.');
+                } finally {
+                    setIsAnalyzing(false);
+                }
+            };
+
+            return React.createElement('div', { className: 'container mx-auto px-4 py-8 max-w-4xl' },
+                React.createElement('h1', { className: 'text-4xl font-bold text-center text-gray-800 mb-8' },
+                    '🎨 AI 아트 추천 서비스'
+                ),
+                
+                // 이미지 업로드
+                React.createElement('div', { className: 'bg-white rounded-lg shadow-lg p-6 mb-6' },
+                    React.createElement('h2', { className: 'text-xl font-semibold mb-4' }, '이미지 업로드'),
+                    React.createElement('input', {
+                        type: 'file',
+                        accept: 'image/*',
+                        onChange: handleImageUpload,
+                        className: 'w-full p-3 border border-gray-300 rounded-lg',
+                        disabled: isAnalyzing
+                    })
+                ),
+
+                // 업로드된 이미지
+                uploadedImage && React.createElement('div', { className: 'bg-white rounded-lg shadow-lg p-6 mb-6' },
+                    React.createElement('h2', { className: 'text-xl font-semibold mb-4' }, '업로드된 이미지'),
+                    React.createElement('img', {
+                        src: uploadedImage,
+                        alt: 'Uploaded',
+                        className: 'max-w-full h-auto rounded-lg mx-auto',
+                        style: { maxHeight: '400px' }
+                    })
+                ),
+
+                // 분석 진행 중
+                isAnalyzing && React.createElement('div', { className: 'bg-white rounded-lg shadow-md p-6 mb-6' },
+                    React.createElement('div', { className: 'flex items-center space-x-3' },
+                        React.createElement('div', { className: 'animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600' }),
+                        React.createElement('div', null,
+                            React.createElement('h3', { className: 'text-lg font-semibold text-gray-800' }, 'AI가 이미지를 분석하고 있습니다...'),
+                            React.createElement('p', { className: 'text-sm text-gray-600' }, 'Google Vision, Clarifai 등 여러 AI 모델이 작동 중입니다')
+                        )
+                    )
+                ),
+
+                // 분석 결과
+                analysisResult && React.createElement('div', { className: 'bg-white rounded-lg shadow-md p-6 mb-6' },
+                    React.createElement('h3', { className: 'text-xl font-bold text-gray-800 mb-4' },
+                        '🔍 AI 이미지 분석 결과'
+                    ),
+                    React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-4' },
+                        // 키워드
+                        React.createElement('div', { className: 'space-y-2' },
+                            React.createElement('h4', { className: 'font-semibold text-gray-700' }, '🏷️ 감지된 키워드'),
+                            React.createElement('div', { className: 'flex flex-wrap gap-2' },
+                                analysisResult.keywords?.map((keyword, idx) =>
+                                    React.createElement('span', {
+                                        key: idx,
+                                        className: 'px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm'
+                                    }, keyword)
+                                )
+                            )
+                        ),
+                        // 스타일 & 분위기
+                        React.createElement('div', { className: 'space-y-2' },
+                            React.createElement('h4', { className: 'font-semibold text-gray-700' }, '🎭 스타일 & 분위기'),
+                            React.createElement('div', { className: 'text-sm text-gray-600' },
+                                React.createElement('p', null, `스타일: ${analysisResult.style}`),
+                                React.createElement('p', null, `분위기: ${analysisResult.mood}`),
+                                React.createElement('p', null, `신뢰도: ${(analysisResult.confidence * 100).toFixed(1)}%`)
+                            )
+                        )
+                    )
+                ),
+
+                // 에러 메시지
+                error && React.createElement('div', { className: 'bg-red-50 border border-red-200 rounded-lg p-4 mb-6' },
+                    React.createElement('p', { className: 'text-red-600' }, `⚠️ ${error}`)
+                ),
+
+                // 추천 결과
+                recommendations.length > 0 && React.createElement('div', { className: 'bg-white rounded-lg shadow-lg p-6' },
+                    React.createElement('h2', { className: 'text-xl font-semibold mb-4' }, '🎨 추천 작품'),
+                    React.createElement('div', { className: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4' },
+                        recommendations.slice(0, 6).map((rec, idx) =>
+                            React.createElement('div', {
+                                key: idx,
+                                className: 'border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow'
+                            },
+                                React.createElement('img', {
+                                    src: rec.artwork.thumbnail_url || rec.artwork.image_url,
+                                    alt: rec.artwork.title,
+                                    className: 'w-full h-48 object-cover rounded-lg mb-2'
+                                }),
+                                React.createElement('h3', { className: 'font-semibold text-sm mb-1' }, rec.artwork.title),
+                                React.createElement('p', { className: 'text-gray-600 text-xs mb-2' }, rec.artwork.artist),
+                                React.createElement('p', { className: 'text-blue-600 text-xs' }, `유사도: ${(rec.similarity * 100).toFixed(1)}%`)
+                            )
+                        )
+                    )
+                )
+            );
+        }
+
+        // 앱 렌더링
+        const root = createRoot(document.getElementById('root'));
+        root.render(React.createElement(App));
+        
+        console.log('✅ React app rendered successfully');
+    </script>
+</body>
+</html>
