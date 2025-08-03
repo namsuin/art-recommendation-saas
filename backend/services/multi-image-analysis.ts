@@ -1,5 +1,6 @@
 import { AIAnalysisService } from './ai-analysis';
 import { supabase } from './supabase';
+import { ExpandedArtSearchService } from './expanded-art-search';
 
 interface ImageAnalysisResult {
   keywords: string[];
@@ -52,9 +53,11 @@ export const MULTI_IMAGE_PRICING = {
 
 export class MultiImageAnalysisService {
   private aiService: AIAnalysisService;
+  private expandedSearchService: ExpandedArtSearchService;
 
   constructor() {
     this.aiService = new AIAnalysisService();
+    this.expandedSearchService = new ExpandedArtSearchService();
   }
 
   /**
@@ -129,6 +132,64 @@ export class MultiImageAnalysisService {
   }
 
   /**
+   * 다중 이미지와 추천 작품 간의 유사도 계산
+   */
+  calculateSimilarityScore(
+    sourceKeywords: string[],
+    targetKeywords: string[],
+    confidence: number
+  ): {
+    total: number;
+    keywordMatch: number;
+    matchedKeywords: string[];
+    confidence: number;
+  } {
+    if (sourceKeywords.length === 0 || targetKeywords.length === 0) {
+      return {
+        total: 0,
+        keywordMatch: 0,
+        matchedKeywords: [],
+        confidence: 0
+      };
+    }
+
+    // 키워드 정규화 (소문자, 공백 제거)
+    const normalizeKeyword = (keyword: string) => 
+      keyword.toLowerCase().trim().replace(/[^\w\s]/g, '');
+
+    const normalizedSource = sourceKeywords.map(normalizeKeyword);
+    const normalizedTarget = targetKeywords.map(normalizeKeyword);
+
+    // 정확한 매칭 키워드 찾기 (한 글자 키워드 제외)
+    const exactMatches = normalizedSource.filter(keyword => 
+      normalizedTarget.includes(keyword) && keyword.length > 1
+    );
+
+    // 부분 매칭 키워드 찾기 (포함 관계)
+    const partialMatches = normalizedSource.filter(sourceKeyword => 
+      normalizedTarget.some(targetKeyword => 
+        (targetKeyword.includes(sourceKeyword) || sourceKeyword.includes(targetKeyword)) &&
+        sourceKeyword.length > 3 && !exactMatches.includes(sourceKeyword)
+      )
+    );
+
+    const totalMatches = exactMatches.length + (partialMatches.length * 0.5);
+    const keywordMatchPercent = Math.round((totalMatches / normalizedSource.length) * 100);
+
+    // 전체 유사도 계산
+    const baseScore = totalMatches / Math.max(normalizedSource.length, normalizedTarget.length);
+    const confidenceBoost = confidence * 0.3; // 신뢰도에 따른 가중치
+    const totalScore = Math.min(1.0, baseScore + confidenceBoost);
+
+    return {
+      total: totalScore,
+      keywordMatch: keywordMatchPercent,
+      matchedKeywords: [...exactMatches, ...partialMatches].slice(0, 10),
+      confidence: Math.round(confidence * 100)
+    };
+  }
+
+  /**
    * 여러 이미지에서 공통 키워드 추출
    */
   extractCommonKeywords(analyses: ImageAnalysisResult[]): CommonKeywords {
@@ -159,7 +220,8 @@ export class MultiImageAnalysisService {
     const commonKeywords: string[] = [];
 
     Object.entries(keywordFrequency).forEach(([keyword, frequency]) => {
-      if (frequency >= threshold) {
+      // 한 글자 키워드는 제외하고, threshold 이상인 것만 선택
+      if (frequency >= threshold && keyword.length > 1) {
         commonKeywords.push(keyword);
       }
     });
@@ -259,12 +321,38 @@ export class MultiImageAnalysisService {
         console.log(`📊 Found ${commonKeywords.keywords.length} common keywords`);
       }
 
-      // 공통 키워드 기반 추천 생성
+      // 공통 키워드 기반 추천 생성 (유사도 포함)
       let recommendations: any[] = [];
       if (commonKeywords && commonKeywords.keywords.length > 0) {
         try {
           const combinedKeywords = commonKeywords.keywords.slice(0, 10); // 상위 10개 키워드 사용
           recommendations = await this.getRecommendationsByKeywords(combinedKeywords, 20);
+          
+          // 각 추천 작품에 대해 유사도 계산
+          console.log(`🎯 Calculating similarity for ${recommendations.length} artworks`);
+          recommendations = recommendations.map(artwork => {
+            const similarity = this.calculateSimilarityScore(
+              combinedKeywords,
+              artwork.keywords || [],
+              commonKeywords.confidence
+            );
+            
+            console.log(`📊 ${artwork.title}: ${Math.round(similarity.total * 100)}% similarity`);
+            
+            return {
+              ...artwork,
+              similarity_score: similarity,
+              reasoning: [
+                `공통 키워드 매칭: ${similarity.keywordMatch}%`,
+                `전체 유사도: ${Math.round(similarity.total * 100)}%`,
+                `주요 매칭 키워드: ${similarity.matchedKeywords.slice(0, 3).join(', ')}`
+              ]
+            };
+          });
+          
+          // 유사도 순으로 정렬
+          recommendations.sort((a, b) => b.similarity_score.total - a.similarity_score.total);
+          
         } catch (error) {
           console.error('Failed to get recommendations:', error);
         }
@@ -308,45 +396,175 @@ export class MultiImageAnalysisService {
   }
 
   /**
-   * 키워드 기반 추천 검색
+   * 키워드 기반 추천 검색 (확장된 소스 포함)
    */
   private async getRecommendationsByKeywords(keywords: string[], limit: number = 20): Promise<any[]> {
-    if (!supabase) {
-      return [];
-    }
-
     try {
-      // keywords 배열에서 OR 검색 사용 (text[] 타입에 적합)
-      const { data: artworks, error } = await supabase
-        .from('artworks')
-        .select('*')
-        .or(keywords.map(keyword => `keywords.cs.{${keyword}}`).join(','))
-        .eq('available', true)
-        .limit(limit);
+      // 1. 확장된 아트 검색 서비스를 통해 다양한 소스에서 검색 (한국 창작 플랫폼 제외, 새로운 국제 플랫폼들 추가)
+      const expandedResults = await this.expandedSearchService.searchAllSources(keywords, {
+        sources: ['met', 'chicago', 'rijksmuseum', 'korea', 'korean-cultural', 'artsonia', 'academy-art', 'bluethumb', 'degreeart', 'sva-bfa'],
+        limit: Math.floor(limit / 2), // 절반은 확장 소스에서
+        includeKorean: true,
+        includeStudentArt: true, // 학생 작품 포함 (Academy of Art University, SVA BFA)
+        includeInternational: true // 국제 플랫폼 포함 (Bluethumb, DegreeArt)
+      });
 
-      if (error) {
-        console.error('Keyword search error:', error);
-        return [];
+      let allArtworks: any[] = [];
+
+      // 확장 검색 결과를 통합 (텀블벅 필터링)
+      if (expandedResults.success) {
+        expandedResults.results.forEach(result => {
+          const sourceArtworks = result.artworks
+            .filter(artwork => {
+              // 텀블벅, 그라폴리오, 국내 대학교 관련 데이터 완전 제거
+              const isTumblbug = artwork.platform === 'tumblbug' || 
+                                artwork.source === '텀블벅' || 
+                                artwork.search_source === '텀블벅' ||
+                                (artwork.source_url && artwork.source_url.includes('tumblbug.com'));
+              
+              const isGrafolio = artwork.platform === 'grafolio' || 
+                               artwork.source === '그라폴리오' || 
+                               artwork.search_source === '그라폴리오' ||
+                               (artwork.source_url && artwork.source_url.includes('grafolio.naver.com'));
+              
+              // 국내 대학교 필터링 강화
+              const isKoreanUniversity = artwork.platform === 'university' ||
+                                        artwork.source === '대학 졸업전시' ||
+                                        artwork.category === 'student_work' ||
+                                        artwork.search_source === 'graduation' ||
+                                        (artwork.university && (
+                                          artwork.university.includes('대학') ||
+                                          artwork.university.includes('대학교') ||
+                                          artwork.university.includes('University')
+                                        )) ||
+                                        (artwork.source_url && (
+                                          artwork.source_url.includes('.ac.kr') ||
+                                          artwork.source_url.includes('univ.') ||
+                                          artwork.source_url.includes('university') ||
+                                          artwork.source_url.includes('college') ||
+                                          artwork.source_url.includes('graduation')
+                                        )) ||
+                                        (artwork.source && (
+                                          artwork.source.includes('졸업전시') ||
+                                          artwork.source.includes('졸업작품') ||
+                                          artwork.source.includes('대학') ||
+                                          artwork.source.includes('University') ||
+                                          artwork.source.includes('College')
+                                        )) ||
+                                        (artwork.title && (
+                                          artwork.title.includes('졸업작품') ||
+                                          artwork.title.includes('졸업전시')
+                                        ));
+              
+              return !isTumblbug && !isGrafolio && !isKoreanUniversity;
+            })
+            .map(artwork => ({
+              ...artwork,
+              source_type: 'external',
+              search_source: result.source,
+              similarity: this.calculateKeywordSimilarity(keywords, artwork.keywords || []),
+              reasoning: [`${result.source}에서 발견`, ...keywords.slice(0, 3)]
+            }));
+          allArtworks.push(...sourceArtworks);
+        });
       }
 
-      // 키워드 매칭 점수 계산
-      return (artworks || []).map(artwork => {
-        const artworkKeywords = artwork.keywords || [];
-        const matchCount = keywords.filter(k => 
-          artworkKeywords.some((ak: string) => ak.toLowerCase().includes(k.toLowerCase()))
-        ).length;
-        
-        return {
-          ...artwork,
-          similarity: matchCount / keywords.length,
-          reasoning: [`공통 키워드 ${matchCount}개 매칭`, ...keywords.slice(0, 3)]
-        };
-      }).sort((a, b) => b.similarity - a.similarity);
+      // 2. 기존 Supabase 데이터베이스에서도 검색 (호환성 유지)
+      if (supabase) {
+        try {
+          const { data: dbArtworks, error } = await supabase
+            .from('artworks')
+            .select('*')
+            .or(keywords.map(keyword => `keywords.cs.{${keyword}}`).join(','))
+            .eq('available', true)
+            .limit(Math.ceil(limit / 2)); // 나머지 절반은 DB에서
+
+          if (!error && dbArtworks) {
+            const dbArtworksWithMeta = dbArtworks
+              .filter(artwork => {
+                // 데이터베이스에서도 텀블벅, 그라폴리오, 국내 대학교 관련 데이터 완전 제거
+                const isTumblbug = artwork.platform === 'tumblbug' || 
+                                  artwork.source === '텀블벅' || 
+                                  artwork.search_source === '텀블벅' ||
+                                  (artwork.source_url && artwork.source_url.includes('tumblbug.com'));
+                
+                const isGrafolio = artwork.platform === 'grafolio' || 
+                                 artwork.source === '그라폴리오' || 
+                                 artwork.search_source === '그라폴리오' ||
+                                 (artwork.source_url && artwork.source_url.includes('grafolio.naver.com'));
+                
+                // 국내 대학교 완전 제거
+                const isKoreanUniversity = artwork.platform === 'university' ||
+                                          artwork.source === '대학 졸업전시' ||
+                                          artwork.category === 'student_work' ||
+                                          artwork.search_source === 'graduation' ||
+                                          (artwork.university && (
+                                            artwork.university.includes('대학') ||
+                                            artwork.university.includes('대학교') ||
+                                            artwork.university.includes('University')
+                                          )) ||
+                                          (artwork.source_url && (
+                                            artwork.source_url.includes('.ac.kr') ||
+                                            artwork.source_url.includes('univ.') ||
+                                            artwork.source_url.includes('university') ||
+                                            artwork.source_url.includes('college') ||
+                                            artwork.source_url.includes('graduation')
+                                          )) ||
+                                          (artwork.source && (
+                                            artwork.source.includes('졸업전시') ||
+                                            artwork.source.includes('졸업작품') ||
+                                            artwork.source.includes('대학') ||
+                                            artwork.source.includes('University') ||
+                                            artwork.source.includes('College')
+                                          )) ||
+                                          (artwork.title && (
+                                            artwork.title.includes('졸업작품') ||
+                                            artwork.title.includes('졸업전시')
+                                          ));
+                
+                return !isTumblbug && !isGrafolio && !isKoreanUniversity;
+              })
+              .map(artwork => ({
+                ...artwork,
+                source_type: 'database',
+                search_source: 'Internal Database',
+                similarity: this.calculateKeywordSimilarity(keywords, artwork.keywords || []),
+                reasoning: [`내부 DB에서 발견`, ...keywords.slice(0, 3)]
+              }));
+            allArtworks.push(...dbArtworksWithMeta);
+          }
+        } catch (error) {
+          console.error('Database search error:', error);
+        }
+      }
+
+      // 유사도 순으로 정렬하고 제한
+      return allArtworks
+        .sort((a, b) => b.similarity - a.similarity)
+        .slice(0, limit);
 
     } catch (error) {
       console.error('Failed to get recommendations by keywords:', error);
       return [];
     }
+  }
+
+  /**
+   * 키워드 유사도 계산
+   */
+  private calculateKeywordSimilarity(sourceKeywords: string[], targetKeywords: string[]): number {
+    if (sourceKeywords.length === 0 || targetKeywords.length === 0) {
+      return 0;
+    }
+
+    const matchCount = sourceKeywords.filter(sourceKeyword => 
+      targetKeywords.some(targetKeyword => 
+        targetKeyword.toLowerCase().includes(sourceKeyword.toLowerCase()) ||
+        sourceKeyword.toLowerCase().includes(targetKeyword.toLowerCase())
+      )
+    ).length;
+
+    return matchCount / sourceKeywords.length;
   }
 
   /**

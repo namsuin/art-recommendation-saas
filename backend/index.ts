@@ -2368,6 +2368,107 @@ const server = Bun.serve({
       POST: async (req) => {
         return await getMultiImageAPI().searchExternalPlatforms(req);
       }
+    },
+
+    "/api/artsonia/search": {
+      GET: async (req) => {
+        try {
+          const { handleArtsoniaSearch } = await import('./api/artsonia-search');
+          return await handleArtsoniaSearch(req);
+        } catch (error) {
+          console.error('Artsonia search route error:', error);
+          return new Response(JSON.stringify({
+            success: false,
+            error: "Artsonia 검색 서비스를 불러올 수 없습니다."
+          }), {
+            status: 500,
+            headers: { "Content-Type": "application/json" }
+          });
+        }
+      }
+    },
+
+    "/api/artsonia/availability": {
+      GET: async (req) => {
+        try {
+          const { handleArtsoniaAvailability } = await import('./api/artsonia-search');
+          return await handleArtsoniaAvailability(req);
+        } catch (error) {
+          console.error('Artsonia availability route error:', error);
+          return new Response(JSON.stringify({
+            available: false,
+            error: "Artsonia 가용성 확인 서비스를 불러올 수 없습니다."
+          }), {
+            status: 500,
+            headers: { "Content-Type": "application/json" }
+          });
+        }
+      }
+    },
+
+    "/api/admin/clean-tumblbug": {
+      POST: async (req) => {
+        try {
+          const { TumblbugDataCleaner } = await import('./utils/clean-tumblbug-data');
+          const cleaner = new TumblbugDataCleaner();
+          
+          const result = await cleaner.cleanAllTumblbugData();
+          
+          return new Response(JSON.stringify({
+            success: result.success,
+            message: result.success ? '텀블벅 데이터 정리가 완료되었습니다.' : '텀블벅 데이터 정리 중 오류가 발생했습니다.',
+            summary: result.summary,
+            error: result.error
+          }), {
+            status: result.success ? 200 : 500,
+            headers: { "Content-Type": "application/json" }
+          });
+
+        } catch (error) {
+          console.error('Clean Tumblbug data error:', error);
+          return new Response(JSON.stringify({
+            success: false,
+            error: "텀블벅 데이터 정리 서비스를 불러올 수 없습니다."
+          }), {
+            status: 500,
+            headers: { "Content-Type": "application/json" }
+          });
+        }
+      }
+    },
+
+    "/api/admin/check-tumblbug": {
+      GET: async (req) => {
+        try {
+          const { TumblbugDataCleaner } = await import('./utils/clean-tumblbug-data');
+          const cleaner = new TumblbugDataCleaner();
+          
+          const result = await cleaner.findTumblbugData();
+          
+          return new Response(JSON.stringify({
+            found: result.found,
+            count: result.count,
+            message: result.found ? 
+              `${result.count}개의 텀블벅 관련 데이터가 발견되었습니다.` : 
+              '텀블벅 관련 데이터가 없습니다.',
+            error: result.error
+          }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" }
+          });
+
+        } catch (error) {
+          console.error('Check Tumblbug data error:', error);
+          return new Response(JSON.stringify({
+            found: false,
+            count: 0,
+            error: "텀블벅 데이터 확인 서비스를 불러올 수 없습니다."
+          }), {
+            status: 500,
+            headers: { "Content-Type": "application/json" }
+          });
+        }
+      }
     }
   },
 

@@ -1,6 +1,7 @@
 import { MultiImageAnalysisService, MULTI_IMAGE_PRICING } from '../services/multi-image-analysis';
 import { ArtsyIntegration } from '../services/artsy-integration';
 import { SocialMediaIntegration } from '../services/social-media-integration';
+import { ExpandedArtSearchService } from '../services/expanded-art-search';
 import { StripeService } from '../services/stripe';
 import { supabase } from '../services/supabase';
 import { mockDB } from '../services/mock-database';
@@ -9,11 +10,13 @@ export class MultiImageAPI {
   private multiImageService: MultiImageAnalysisService;
   private artsyIntegration: ArtsyIntegration;
   private socialMediaIntegration: SocialMediaIntegration;
+  private expandedArtSearch: ExpandedArtSearchService;
 
   constructor() {
     this.multiImageService = new MultiImageAnalysisService();
     this.artsyIntegration = new ArtsyIntegration();
     this.socialMediaIntegration = new SocialMediaIntegration();
+    this.expandedArtSearch = new ExpandedArtSearchService();
   }
 
   /**
@@ -21,18 +24,23 @@ export class MultiImageAPI {
    */
   async analyzeMultipleImages(req: Request): Promise<Response> {
     try {
+      console.log('🚀 Starting multi-image analysis...');
       const formData = await req.formData();
       const userId = formData.get('userId') as string | null;
+      console.log('📋 User ID:', userId);
 
       // 이미지 파일들 추출
       const imageFiles: File[] = [];
       const entries = Array.from(formData.entries());
       
       for (const [key, value] of entries) {
-        if (key === 'images' && value instanceof File) {
+        if (key.startsWith('image') && value instanceof File) {
           imageFiles.push(value);
+          console.log(`📷 Found image: ${key} - ${value.name} (${value.size} bytes)`);
         }
       }
+      
+      console.log(`🖼️ Total images found: ${imageFiles.length}`);
 
       if (imageFiles.length === 0) {
         return new Response(JSON.stringify({
@@ -67,31 +75,56 @@ export class MultiImageAPI {
       }
 
       // 이미지를 버퍼로 변환
+      console.log('🔄 Converting images to buffers...');
       const imageBuffers = await Promise.all(
         imageFiles.map(async (file) => Buffer.from(await file.arrayBuffer()))
       );
+      console.log('✅ Buffer conversion complete');
 
       // 다중 이미지 분석 실행
+      console.log('🎯 Starting AI analysis...');
       const analysisResult = await this.multiImageService.analyzeMultipleImages(imageBuffers, {
         userId,
         analysisType: 'batch',
         findCommonKeywords: true
       });
 
+      console.log('📊 Analysis result:', analysisResult.success ? 'SUCCESS' : 'FAILED');
+      
       if (!analysisResult.success) {
+        console.error('❌ Analysis failed:', analysisResult.error);
         return new Response(JSON.stringify(analysisResult), {
           status: 500,
           headers: { 'Content-Type': 'application/json' }
         });
       }
 
-      // 외부 플랫폼에서 추가 추천 검색
+      // 외부 플랫폼에서 추가 추천 검색 (확장된 소스 포함)
       let externalRecommendations: any[] = [];
       if (analysisResult.commonKeywords && analysisResult.commonKeywords.keywords.length > 0) {
         const topKeywords = analysisResult.commonKeywords.keywords.slice(0, 5);
         
-        // Artsy 검색
-        const artsyResults = await this.artsyIntegration.searchByKeywords(topKeywords, 10);
+        console.log('🌍 Searching expanded art sources...');
+        
+        // 확장된 미술관 검색 (Chicago, Rijksmuseum, 국립중앙박물관 포함)
+        const expandedSearchResults = await this.expandedArtSearch.searchAllSources(
+          topKeywords,
+          {
+            sources: ['chicago', 'rijksmuseum', 'korea'],
+            limit: 5,
+            includeKorean: true
+          }
+        );
+
+        if (expandedSearchResults.success) {
+          expandedSearchResults.results.forEach(sourceResult => {
+            console.log(`📍 ${sourceResult.source}: Found ${sourceResult.artworks.length} artworks`);
+            externalRecommendations.push(...sourceResult.artworks);
+          });
+        }
+
+        // 기존 Artsy 검색도 유지
+        const artsyResults = await this.artsyIntegration.searchByKeywords(topKeywords, 5);
         externalRecommendations.push(...artsyResults.artworks.map(artwork => 
           this.artsyIntegration.formatForDisplay(artwork)
         ));
@@ -100,9 +133,30 @@ export class MultiImageAPI {
         const socialResults = await this.socialMediaIntegration.searchAllPlatforms(
           topKeywords,
           ['behance'],
-          10
+          5
         );
         externalRecommendations.push(...socialResults.results);
+      }
+
+      // 외부 추천에도 유사도 추가
+      if (analysisResult.commonKeywords && externalRecommendations.length > 0) {
+        const multiImageService = this.multiImageService;
+        externalRecommendations = externalRecommendations.map(artwork => {
+          const similarity = multiImageService.calculateSimilarityScore(
+            analysisResult.commonKeywords!.keywords,
+            artwork.keywords || artwork.tags || [],
+            analysisResult.commonKeywords!.confidence
+          );
+          
+          return {
+            ...artwork,
+            similarity_score: similarity.total,
+            similarity_details: similarity
+          };
+        });
+        
+        // 유사도 순으로 정렬
+        externalRecommendations.sort((a, b) => b.similarity_score - a.similarity_score);
       }
 
       return new Response(JSON.stringify({
@@ -110,12 +164,26 @@ export class MultiImageAPI {
         imageCount: imageFiles.length,
         tier: tier.name,
         results: analysisResult.results,
-        commonKeywords: analysisResult.commonKeywords,
+        commonKeywords: {
+          ...analysisResult.commonKeywords,
+          totalSimilarityScore: analysisResult.commonKeywords ? 
+            Math.round(analysisResult.commonKeywords.confidence * 100) : 0
+        },
         recommendations: {
           internal: analysisResult.recommendations || [],
           external: externalRecommendations
         },
-        processingTime: analysisResult.processingTime
+        processingTime: analysisResult.processingTime,
+        similarityAnalysis: {
+          averageSimilarity: analysisResult.recommendations?.length > 0 ? 
+            Math.round((analysisResult.recommendations.reduce((sum: number, rec: any) => 
+              sum + (rec.similarity_score?.total || 0), 0) / analysisResult.recommendations.length) * 100) : 0,
+          topMatches: analysisResult.recommendations?.slice(0, 3).map((rec: any) => ({
+            title: rec.title,
+            similarity: Math.round((rec.similarity_score?.total || 0) * 100),
+            matchedKeywords: rec.similarity_score?.matchedKeywords || []
+          })) || []
+        }
       }), {
         headers: { 'Content-Type': 'application/json' }
       });
