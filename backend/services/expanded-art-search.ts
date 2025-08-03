@@ -67,6 +67,7 @@ export class ExpandedArtSearchService {
   }> {
     const {
       sources = ['met', 'chicago', 'rijksmuseum', 'korea', 'artsy', 'korean-cultural', 'artsonia', 'academy-art', 'bluethumb', 'degreeart', 'sva-bfa'],
+      // NOTE: 'korean-creative' 기본 목록에서 완전 제거됨 - 한국 대학교 졸업전시 방지
       limit = 10,
       includeKorean = true,
       includeStudentArt = false,
@@ -109,11 +110,11 @@ export class ExpandedArtSearchService {
       searchSources.push('korean-cultural');
     }
 
-    // 한국 창작 플랫폼들 (비활성화됨 - 텀블벅, 그라폴리오, 대학 졸업전시 모두 제외)
-    // NOTE: 사용자 요청에 따라 모든 한국 창작 플랫폼 제외
+    // 한국 창작 플랫폼들 (완전 제거됨)
+    // NOTE: 사용자 요청에 따라 한국 창작 플랫폼 완전 제거 - 검색 자체를 하지 않음
     if (sources.includes('korean-creative') && includeKorean) {
-      console.log('📝 한국 창작 플랫폼 검색이 비활성화되었습니다 (사용자 요청)');
-      // 빈 결과를 반환하는 Promise 추가하지 않음 (검색 자체를 건너뜀)
+      console.log('🚫 한국 창작 플랫폼이 완전히 제거되었습니다. 검색하지 않음.');
+      // 어떤 검색도 하지 않음 - 완전히 건너뜀
     }
 
     // Artsy

@@ -20,8 +20,8 @@ export class KoreanCreativePlatformsAPI {
   }
 
   /**
-   * 한국 대학 졸업전시 아카이브 검색 (비활성화됨)
-   * NOTE: 사용자 요청에 따라 대학 졸업전시 제외
+   * 한국 대학 졸업전시 아카이브 검색 (완전 비활성화)
+   * NOTE: 사용자 요청에 따라 대학 졸업전시 완전 제외 - 데이터 생성 없음
    */
   async searchGraduationWorks(
     keywords: string[], 
@@ -33,10 +33,11 @@ export class KoreanCreativePlatformsAPI {
     artworks: any[];
     error?: string;
   }> {
-    console.log('📝 대학 졸업전시 검색이 비활성화되었습니다 (사용자 요청)');
+    // 데이터 생성 자체를 중단 - Mock 데이터도 생성하지 않음
+    console.log('🚫 대학 졸업전시 검색이 완전히 비활성화되었습니다. 데이터 생성 없음.');
     return {
       success: true,
-      artworks: []
+      artworks: [] // 빈 배열만 반환, Mock 데이터 생성 안함
     };
   }
 
@@ -89,7 +90,8 @@ export class KoreanCreativePlatformsAPI {
   }
 
   /**
-   * 모든 한국 창작 플랫폼에서 통합 검색 (텀블벅, 그라폴리오, 대학 졸업전시 제외)
+   * 모든 한국 창작 플랫폼에서 통합 검색 (완전 비활성화)
+   * NOTE: 사용자 요청에 따라 모든 한국 창작 플랫폼 완전 제외 - 데이터 생성 없음
    */
   async searchAllKoreanPlatforms(
     keywords: string[], 
@@ -101,12 +103,13 @@ export class KoreanCreativePlatformsAPI {
     totalCount: number;
     error?: string;
   }> {
-    console.log('📝 한국 창작 플랫폼 검색: 모든 플랫폼이 비활성화되었습니다 (사용자 요청)');
+    // 완전 비활성화 - 어떤 데이터도 생성하지 않음
+    console.log('🚫 한국 창작 플랫폼 검색이 완전히 비활성화되었습니다. 모든 데이터 생성 중단.');
     
-    // 텀블벅, 그라폴리오, 대학 졸업전시 모두 제외되어 빈 결과 반환
+    // 빈 결과만 반환, Mock 데이터 생성 안함
     return {
       success: true,
-      results: [],
+      results: [], // 완전히 빈 배열
       totalCount: 0
     };
   }

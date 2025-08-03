@@ -400,12 +400,13 @@ export class MultiImageAnalysisService {
    */
   private async getRecommendationsByKeywords(keywords: string[], limit: number = 20): Promise<any[]> {
     try {
-      // 1. 확장된 아트 검색 서비스를 통해 다양한 소스에서 검색 (한국 창작 플랫폼 제외, 새로운 국제 플랫폼들 추가)
+      // 1. 확장된 아트 검색 서비스를 통해 다양한 소스에서 검색 (한국 창작 플랫폼 완전 제거)
       const expandedResults = await this.expandedSearchService.searchAllSources(keywords, {
-        sources: ['met', 'chicago', 'rijksmuseum', 'korea', 'korean-cultural', 'artsonia', 'academy-art', 'bluethumb', 'degreeart', 'sva-bfa'],
+        sources: ['met', 'chicago', 'rijksmuseum', 'korea', 'korean-cultural', 'artsonia', 'academy-art', 'bluethumb', 'degreeart', 'sva-bfa'], 
+        // NOTE: 'korean-creative' 완전 제거됨 - 한국 대학교 졸업전시 데이터 생성 방지
         limit: Math.floor(limit / 2), // 절반은 확장 소스에서
-        includeKorean: true,
-        includeStudentArt: true, // 학생 작품 포함 (Academy of Art University, SVA BFA)
+        includeKorean: true, // 한국문화정보원만 포함 (문화재 데이터)
+        includeStudentArt: true, // 해외 학생 작품 포함 (Academy of Art University, SVA BFA)
         includeInternational: true // 국제 플랫폼 포함 (Bluethumb, DegreeArt)
       });
 
