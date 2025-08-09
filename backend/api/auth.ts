@@ -1,10 +1,22 @@
 import { supabase, supabaseAdmin, auth } from '../services/supabase';
 import { mockDB } from '../services/mock-database';
 import { EmailService } from '../services/email';
+import { RoleAuthService, UserRole } from '../services/role-auth';
 
 export class AuthAPI {
   // 회원가입
-  static async signUp(email: string, password: string, displayName?: string) {
+  static async signUp(
+    email: string, 
+    password: string, 
+    displayName?: string, 
+    role?: UserRole,
+    additionalInfo?: {
+      artistBio?: string;
+      portfolioUrl?: string;
+      instagramUrl?: string;
+      websiteUrl?: string;
+    }
+  ) {
     try {
       // Use mock database if Supabase is not configured
       if (!supabase) {
@@ -44,17 +56,47 @@ export class AuthAPI {
 
       // 사용자 프로필 생성
       if (data.user && supabase) {
+        const profileData: any = {
+          id: data.user.id,
+          email: data.user.email!,
+          display_name: displayName || email.split('@')[0],
+          subscription_tier: 'free',
+          role: role || 'user'
+        };
+
+        // 예술가 추가 정보
+        if (role === 'artist' && additionalInfo) {
+          profileData.artist_bio = additionalInfo.artistBio;
+          profileData.artist_portfolio_url = additionalInfo.portfolioUrl;
+          profileData.artist_verified = false; // 초기에는 미인증 상태
+        }
+
         const { error: profileError } = await supabase
           .from('users')
-          .insert({
-            id: data.user.id,
-            email: data.user.email!,
-            display_name: displayName || email.split('@')[0],
-            subscription_tier: 'free'
-          });
+          .insert(profileData);
 
         if (profileError) {
           console.error('Profile creation failed:', profileError);
+        }
+
+        // 예술가인 경우 자동으로 인증 요청 생성
+        if (role === 'artist') {
+          const { error: verificationError } = await supabase
+            .from('artist_verification_requests')
+            .insert({
+              user_id: data.user.id,
+              real_name: displayName || email.split('@')[0],
+              email: email,
+              portfolio_url: additionalInfo?.portfolioUrl,
+              instagram_url: additionalInfo?.instagramUrl,
+              website_url: additionalInfo?.websiteUrl,
+              artist_statement: additionalInfo?.artistBio,
+              status: 'pending'
+            });
+
+          if (verificationError) {
+            console.error('Verification request creation failed:', verificationError);
+          }
         }
 
         // 기본 취향 그룹 생성
@@ -312,6 +354,32 @@ export class AuthAPI {
     }
   }
 
+  // 토큰 검증 (임시 구현)
+  static async validateToken(token: string): Promise<{ success: boolean; user?: any }> {
+    try {
+      // 실제 구현에서는 JWT 검증 또는 Supabase 토큰 검증을 수행
+      // 현재는 간단한 모의 구현
+      if (!token || token === 'invalid') {
+        return { success: false };
+      }
+      
+      // 모의 사용자 데이터 반환
+      return {
+        success: true,
+        user: {
+          id: 'mock-user-id',
+          email: 'user@example.com',
+          display_name: 'Mock User',
+          role: 'user',
+          is_active: true
+        }
+      };
+    } catch (error) {
+      console.error('Token validation error:', error);
+      return { success: false };
+    }
+  }
+
   // 업로드 카운트 증가 (사용할 때마다 사용한 수에 1 더하기)
   static async incrementUploadCount(userId: string) {
     if (!supabase) {
@@ -370,5 +438,204 @@ export class AuthAPI {
         error: error instanceof Error ? error.message : '이메일 확인 실패' 
       };
     }
+  }
+
+  // HTTP 요청 처리 메서드들
+  static async handleSignUp(req: Request): Promise<Response> {
+    try {
+      const { email, password, displayName } = await req.json();
+      
+      if (!email || !password) {
+        return new Response(JSON.stringify({
+          success: false,
+          error: '이메일과 비밀번호는 필수입니다.'
+        }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      const result = await this.signUp(email, password, displayName);
+      
+      return new Response(JSON.stringify(result), {
+        status: result.success ? 200 : 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    } catch (error) {
+      return new Response(JSON.stringify({
+        success: false,
+        error: '잘못된 요청입니다.'
+      }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+  }
+
+  static async handleSignIn(req: Request): Promise<Response> {
+    try {
+      const { email, password } = await req.json();
+      
+      if (!email || !password) {
+        return new Response(JSON.stringify({
+          success: false,
+          error: '이메일과 비밀번호는 필수입니다.'
+        }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      const result = await this.signIn(email, password);
+      
+      return new Response(JSON.stringify(result), {
+        status: result.success ? 200 : 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    } catch (error) {
+      return new Response(JSON.stringify({
+        success: false,
+        error: '잘못된 요청입니다.'
+      }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+  }
+
+  static async handleSignOut(req: Request): Promise<Response> {
+    try {
+      const result = await this.signOut();
+      
+      return new Response(JSON.stringify(result), {
+        status: result.success ? 200 : 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    } catch (error) {
+      return new Response(JSON.stringify({
+        success: false,
+        error: '로그아웃 실패'
+      }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+  }
+
+  static async getUser(req: Request): Promise<Response> {
+    try {
+      const authHeader = req.headers.get('Authorization');
+      if (!authHeader) {
+        // 게스트 사용자의 경우 401 대신 성공 응답으로 user: null 반환
+        return new Response(JSON.stringify({
+          success: true,
+          user: null
+        }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      // 토큰에서 사용자 정보 추출하는 로직 필요
+      return new Response(JSON.stringify({
+        success: false,
+        error: '구현 필요'
+      }), {
+        status: 501,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    } catch (error) {
+      return new Response(JSON.stringify({
+        success: false,
+        error: '사용자 정보 조회 실패'
+      }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+  }
+
+  // 역할 기반 회원가입 처리
+  async handleRequest(req: Request): Promise<Response> {
+    const url = new URL(req.url);
+    const method = req.method;
+
+    if (url.pathname === '/api/auth/signup' && method === 'POST') {
+      try {
+        const body = await req.json();
+        const { 
+          email, 
+          password, 
+          displayName, 
+          role = 'user',
+          artistBio,
+          portfolioUrl,
+          instagramUrl,
+          websiteUrl
+        } = body;
+
+        const result = await AuthAPI.signUp(
+          email, 
+          password, 
+          displayName, 
+          role as UserRole,
+          {
+            artistBio,
+            portfolioUrl,
+            instagramUrl,
+            websiteUrl
+          }
+        );
+
+        return new Response(JSON.stringify(result), {
+          status: result.success ? 200 : 400,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      } catch (error) {
+        return new Response(JSON.stringify({
+          success: false,
+          error: '회원가입 요청 처리 실패'
+        }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+    }
+
+    if (url.pathname === '/api/auth/login' && method === 'POST') {
+      try {
+        const { email, password } = await req.json();
+        const result = await AuthAPI.signIn(email, password);
+
+        return new Response(JSON.stringify(result), {
+          status: result.success ? 200 : 400,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      } catch (error) {
+        return new Response(JSON.stringify({
+          success: false,
+          error: '로그인 요청 처리 실패'
+        }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+    }
+
+    if (url.pathname === '/api/auth/logout' && method === 'POST') {
+      return this.handleLogout(req);
+    }
+
+    if (url.pathname === '/api/auth/check' && method === 'GET') {
+      return AuthAPI.getUser(req);
+    }
+
+    return new Response(JSON.stringify({
+      success: false,
+      error: 'Endpoint not found'
+    }), {
+      status: 404,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 }

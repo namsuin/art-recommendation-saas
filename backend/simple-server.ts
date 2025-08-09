@@ -98,7 +98,7 @@ if (!envValidation.isValid) {
 }
 
 const server = Bun.serve({
-  port: parseInt(process.env.PORT || '3001'),
+  port: parseInt(process.env.PORT || '3000'),
   
   async fetch(req) {
     const url = new URL(req.url);
@@ -173,6 +173,29 @@ const server = Bun.serve({
         }
       }
       
+      // Auth page
+      if (url.pathname === "/auth" && method === "GET") {
+        try {
+          const authHtmlPath = Bun.resolveSync('./frontend/auth.html', process.cwd());
+          const authHtml = await Bun.file(authHtmlPath).text();
+          
+          const response = new Response(authHtml, {
+            headers: {
+              'Content-Type': 'text/html',
+              'Cache-Control': 'no-cache',
+              ...Object.fromEntries(headers.entries())
+            }
+          });
+          return response;
+        } catch (error) {
+          console.error('Failed to serve auth page:', error);
+          return new Response('Auth page not found', { 
+            status: 404,
+            headers: Object.fromEntries(headers.entries())
+          });
+        }
+      }
+
       // Social page
       if (url.pathname === "/social" && method === "GET") {
         try {

@@ -266,6 +266,19 @@ export class AIEnsembleService {
     const style = this.determineOverallStyle(keywordArray);
     const mood = this.determineOverallMood(keywordArray);
 
+    // Extract colors from keywords if colors set is empty
+    if (colors.size === 0) {
+      const colorKeywords = ['red', 'blue', 'green', 'yellow', 'orange', 'purple', 'pink', 'brown', 'black', 'white', 'gray', 'grey'];
+      keywordArray.forEach(keyword => {
+        colorKeywords.forEach(color => {
+          if (keyword.toLowerCase().includes(color)) {
+            colors.add(color);
+          }
+        });
+      });
+      console.log(`🎨 Extracted ${colors.size} colors from keywords: ${Array.from(colors).join(', ')}`);
+    }
+
     // Calculate final confidence
     const confidence = validResults > 0 ? totalConfidence / validResults : 0;
 

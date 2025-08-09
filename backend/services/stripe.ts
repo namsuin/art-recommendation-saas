@@ -476,4 +476,124 @@ export class StripeService {
       };
     }
   }
+
+  // 다중 이미지 분석을 위한 일회성 결제 Intent 생성
+  static async createMultiImagePaymentIntent(
+    userId: string | null, 
+    tier: string, 
+    imageCount: number, 
+    amount: number // cents
+  ) {
+    if (!stripe) {
+      return { success: false, error: 'Stripe not configured' };
+    }
+
+    try {
+      // 고객 정보 가져오기 (로그인한 사용자인 경우)
+      let customerId: string | undefined;
+      if (userId && supabase) {
+        const { data: user } = await supabase
+          .from('users')
+          .select('email')
+          .eq('id', userId)
+          .single();
+
+        if (user) {
+          const customer = await this.getOrCreateCustomer(userId, user.email);
+          customerId = customer?.id;
+        }
+      }
+
+      // PaymentIntent 생성
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: 'usd',
+        customer: customerId,
+        metadata: {
+          type: 'multi_image_analysis',
+          tier: tier,
+          imageCount: imageCount.toString(),
+          userId: userId || 'guest'
+        },
+        description: `다중 이미지 분석 (${tier} - ${imageCount}장)`,
+      });
+
+      // 결제 기록을 데이터베이스에 저장
+      if (supabase) {
+        const { error: dbError } = await supabase
+          .from('multi_image_payments')
+          .insert({
+            payment_intent_id: paymentIntent.id,
+            user_id: userId,
+            tier: tier,
+            image_count: imageCount,
+            amount_cents: amount,
+            status: 'pending',
+            created_at: new Date().toISOString()
+          });
+
+        if (dbError) {
+          console.error('Failed to save payment record:', dbError);
+        }
+      }
+
+      return {
+        success: true,
+        clientSecret: paymentIntent.client_secret,
+        paymentIntentId: paymentIntent.id
+      };
+
+    } catch (error) {
+      console.error('Failed to create payment intent:', error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Payment intent creation failed' 
+      };
+    }
+  }
+
+  // 다중 이미지 결제 상태 확인 및 업데이트
+  static async confirmMultiImagePayment(paymentIntentId: string) {
+    if (!stripe) {
+      return { success: false, error: 'Stripe not configured' };
+    }
+
+    try {
+      const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+      
+      if (paymentIntent.status === 'succeeded' && supabase) {
+        // 데이터베이스에서 결제 상태 업데이트
+        const { error: updateError } = await supabase
+          .from('multi_image_payments')
+          .update({
+            status: 'completed',
+            completed_at: new Date().toISOString()
+          })
+          .eq('payment_intent_id', paymentIntentId);
+
+        if (updateError) {
+          console.error('Failed to update payment status:', updateError);
+        }
+
+        return {
+          success: true,
+          status: 'succeeded',
+          metadata: paymentIntent.metadata
+        };
+      }
+
+      return {
+        success: true,
+        status: paymentIntent.status,
+        metadata: paymentIntent.metadata
+      };
+
+    } catch (error) {
+      console.error('Failed to confirm payment:', error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Payment confirmation failed' 
+      };
+    }
+  }
 }

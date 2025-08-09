@@ -1,0 +1,90 @@
+🎨 Starting Art Recommendation SaaS Server...
+
+🔧 Environment Configuration:
+
+⚠️  WARNINGS:
+  - Replicate API not configured (REPLICATE_API_TOKEN missing)
+
+✅ Basic configuration is valid
+
+📋 Configured Services:
+  - Supabase: ✅
+  - Google Vision: ✅
+  - Replicate: ⚠️
+  - Clarifai: ✅
+  - Stripe: ⚠️
+
+
+🎉 Art Recommendation SaaS Server Started!
+🌐 URL: http://localhost:3000
+❤️  Health: http://localhost:3000/api/health
+🔧 Status: Production-ready with tech debt resolved
+📋 Features: AI Analysis, Authentication, Static Serving
+⚡ Performance: Optimized and lightweight
+📞 GET /api/health
+✅ Supabase connection successful
+📞 GET /auth
+📞 GET /analyze
+📞 GET /analyze
+📞 GET /analyze
+📞 GET /analyze
+📞 GET /analyze
+📞 GET /analyze
+📞 GET /
+📞 GET /apple-touch-icon-precomposed.png
+📞 GET /apple-touch-icon.png
+📞 GET /favicon.ico
+📞 GET /analyze
+📞 POST /api/analyze
+🔍 Analyzing image: free-nature-images.jpg (200951 bytes)
+🚀 Initializing AI Analysis Service...
+🔑 Initializing Google Vision with key file: /Users/suin2/art-recommendation-saas/cedar-gift-467808-f9-993fe64d0376.json
+📂 Project ID: cedar-gift-467808-f9
+✅ Google Vision AI initialized with service account
+⚠️ Replicate API token not found
+✅ Clarifai API initialized
+🔄 Initializing Local CLIP service...
+🎯 AI Ensemble Service initialized
+✅ AI Ensemble Service initialized
+💊 Health check system initialized (30000ms interval)
+🎨 WikiArt API initialized
+🏛️ Harvard Art Museums API initialized
+🏛️ Europeana API initialized
+🎨 All art source APIs initialized
+🔍 Starting optimized image analysis...
+🔧 AI Ensemble status: initialized
+🔧 Performance Optimizer status: initialized
+🔄 Running 5 services in parallel: google_vision, replicate, clarifai, local_clip, style_transfer
+🎨 Extracted 3 colors from keywords: green, yellow, white
+🔍 Image analysis completed in 3154ms
+📈 Confidence boosted to 0.875
+💾 Cached analysis result (1/500)
+🚀 Optimized analysis completed in 3156ms
+📊 Analysis complete. Found 27 keywords
+🎯 Style: mixed, Confidence: 0.875
+🔍 Using keyword-based search fallback...
+🔍 Searching for artworks with keywords: green, grass, nature, natural landscape, grassland, plain, landscape, cloud, field, meadow, yellow, golf, countryside, sky, rural, soil, sun, country, tree, summer, pasture, lawn, fair weather, farmland, cloudy, hayfield, white
+🔍 Searching multiple art sources in parallel...
+🏛️ Searching Met Museum for: green, grass, nature, natural landscape, grassland, plain, landscape, cloud, field, meadow, yellow, golf, countryside, sky, rural, soil, sun, country, tree, summer, pasture, lawn, fair weather, farmland, cloudy, hayfield, white
+🔍 WikiArt: Searching for green, grass, nature, natural landscape, grassland...
+🔍 Harvard: Searching for green, grass, nature, natural landscape, grassland...
+🔍 Europeana: Searching for green, grass, nature, natural landscape, grassland...
+✅ Harvard: Found 0 artworks
+✅ Europeana: Found 1 cultural items
+✅ WikiArt: Found 3 artworks
+🔍 Found 5 potential artworks
+🎨 Got 3 artworks from getArtworkDetails
+📊 Ranked artworks: 3
+🎯 First artwork: Ia Orana Maria (Hail Mary) by Paul Gauguin
+✅ Retrieved 3 Met Museum artworks
+🏛️ Found 3 Met Museum artworks
+🎨 Found 3 WikiArt artworks
+🎓 Found 0 Harvard artworks
+🇪🇺 Found 1 Europeana items
+📚 Found 3 local artworks
+✅ Returning 10 total recommendations from Met Museum, WikiArt, Europeana, Local DB (Bluethumb filtered)
+🔑 Supabase admin client: initialized
+📊 Storage failed (non-critical): 22P02 invalid input syntax for type uuid: "anonymous-1754566252693"
+✅ Analysis and recommendation complete in 6952ms
+📞 GET /analyze
+📞 GET /analyze

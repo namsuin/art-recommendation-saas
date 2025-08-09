@@ -42,7 +42,7 @@ export interface ChatResponse {
 }
 
 export interface ConversationContext {
-  intent: 'recommendation' | 'education' | 'analysis' | 'general' | 'greeting';
+  intent: 'recommendation' | 'education' | 'analysis' | 'general' | 'greeting' | 'quiz' | 'comparison' | 'technique' | 'museum';
   entities: {
     styles?: string[];
     artists?: string[];
@@ -50,16 +50,25 @@ export interface ConversationContext {
     techniques?: string[];
     colors?: string[];
     emotions?: string[];
+    museums?: string[];
+    mediums?: string[];
+    themes?: string[];
   };
   confidence: number;
+  followUpType?: 'quiz' | 'detail' | 'comparison' | 'related' | 'technique';
 }
 
 export class AICuratorChatbotService {
   private artKnowledgeBase: Map<string, any> = new Map();
   private conversationHistory: Map<string, ChatMessage[]> = new Map();
+  private quizState: Map<string, any> = new Map();
+  private userLearningProgress: Map<string, any> = new Map();
 
   constructor() {
     this.initializeKnowledgeBase();
+    this.initializeArtistDatabase();
+    this.initializeTechniquesDatabase();
+    this.initializeMuseumDatabase();
   }
 
   /**
@@ -117,30 +126,65 @@ export class AICuratorChatbotService {
     // 의도 분류
     let intent: ConversationContext['intent'] = 'general';
     let confidence = 0.5;
+    let followUpType: ConversationContext['followUpType'];
+
+    // 퀴즈 관련 키워드
+    const quizKeywords = ['퀴즈', '문제', '테스트', '맞춰', '게임', '도전'];
+    if (quizKeywords.some(keyword => lowercaseMessage.includes(keyword))) {
+      intent = 'quiz';
+      confidence = 0.9;
+    }
+
+    // 비교 관련 키워드
+    const comparisonKeywords = ['비교', '차이점', '공통점', '다른점', '유사점', 'vs', '대비'];
+    if (comparisonKeywords.some(keyword => lowercaseMessage.includes(keyword))) {
+      intent = 'comparison';
+      confidence = 0.85;
+    }
+
+    // 기법/재료 관련 키워드
+    const techniqueKeywords = ['기법', '그리는', '만드는', '재료', '도구', '방법', '과정', '단계'];
+    if (techniqueKeywords.some(keyword => lowercaseMessage.includes(keyword))) {
+      intent = 'technique';
+      confidence = 0.8;
+    }
+
+    // 박물관/전시 관련 키워드
+    const museumKeywords = ['박물관', '미술관', '전시', '갤러리', '컬렉션', '소장품', '관람'];
+    if (museumKeywords.some(keyword => lowercaseMessage.includes(keyword))) {
+      intent = 'museum';
+      confidence = 0.8;
+    }
 
     // 추천 관련 키워드
-    const recommendationKeywords = ['추천', '좋아할', '비슷한', '맞는', '어울리는', '취향'];
+    const recommendationKeywords = ['추천', '좋아할', '비슷한', '맞는', '어울리는', '취향', '선호', '관심'];
     if (recommendationKeywords.some(keyword => lowercaseMessage.includes(keyword))) {
       intent = 'recommendation';
       confidence = 0.8;
     }
 
     // 교육/설명 관련 키워드
-    const educationKeywords = ['설명', '알려', '차이', '역사', '특징', '기법', '의미'];
+    const educationKeywords = ['설명', '알려', '차이', '역사', '특징', '의미', '개념', '정의', '이해'];
     if (educationKeywords.some(keyword => lowercaseMessage.includes(keyword))) {
       intent = 'education';
       confidence = 0.9;
+      // 후속 질문 유형 결정
+      if (lowercaseMessage.includes('더') || lowercaseMessage.includes('자세히')) {
+        followUpType = 'detail';
+      } else if (lowercaseMessage.includes('비교') || lowercaseMessage.includes('차이')) {
+        followUpType = 'comparison';
+      }
     }
 
     // 분석 관련 키워드
-    const analysisKeywords = ['분석', '해석', '평가', '비평', '의견'];
+    const analysisKeywords = ['분석', '해석', '평가', '비평', '의견', '감상', '비판'];
     if (analysisKeywords.some(keyword => lowercaseMessage.includes(keyword))) {
       intent = 'analysis';
       confidence = 0.7;
     }
 
     // 인사 관련 키워드
-    const greetingKeywords = ['안녕', '반가', '처음', '시작', '도움'];
+    const greetingKeywords = ['안녕', '반가', '처음', '시작', '도움', '소개'];
     if (greetingKeywords.some(keyword => lowercaseMessage.includes(keyword))) {
       intent = 'greeting';
       confidence = 0.9;
@@ -149,7 +193,7 @@ export class AICuratorChatbotService {
     // 엔티티 추출
     const entities = this.extractEntities(message);
 
-    return { intent, entities, confidence };
+    return { intent, entities, confidence, followUpType };
   }
 
   /**
@@ -158,21 +202,103 @@ export class AICuratorChatbotService {
   private extractEntities(message: string): ConversationContext['entities'] {
     const entities: ConversationContext['entities'] = {};
 
-    // 스타일 추출
-    const styles = ['인상주의', '표현주의', '큐비즘', '초현실주의', '팝아트', '미니멀리즘', '바로크', '로코코'];
+    // 스타일/운동 추출 (대폭 확장)
+    const styles = [
+      // 고전/전통
+      '고대', '그리스', '로마', '비잔틴', '고딕', '르네상스', '바로크', '로코코', '신고전주의',
+      // 근현대 주요 운동
+      '로맨티즘', '사실주의', '인상주의', '후기인상주의', '신인상주의', '상징주의',
+      '표현주의', '야수파', '큐비즘', '미래주의', '다다이즘', '초현실주의',
+      '추상표현주의', '팝아트', '옵아트', '미니멀리즘', '개념미술', '포스트모던',
+      // 동양 미술
+      '한국화', '수묵화', '민화', '불화', '일본화', '중국화', '서예',
+      // 기타
+      '스트리트아트', '디지털아트', '설치미술', '비디오아트', '퍼포먼스'
+    ];
     entities.styles = styles.filter(style => message.includes(style));
 
-    // 아티스트 추출
-    const artists = ['피카소', '반고흐', '모네', '다빈치', '미켈란젤로', '달리', '워홀', '잭슨폴록'];
+    // 아티스트 추출 (대폭 확장)
+    const artists = [
+      // 르네상스
+      '레오나르도 다 빈치', '다빈치', '미켈란젤로', '라파엘로', '보티첼리', '도나텔로',
+      // 바로크
+      '카라바조', '베르니니', '루벤스', '렘브란트', '베르메르', '벨라스케스',
+      // 인상주의
+      '모네', '클로드 모네', '르누아르', '드가', '에드가 드가', '마네', '피사로', '시슬레',
+      // 후기인상주의
+      '반 고흐', '반고흐', '빈센트 반 고흐', '폴 세잔', '세잔', '고갱', '폴 고갱', '툴루즈 로트렉',
+      // 표현주의
+      '뭉크', '에드바르 뭉크', '칸딘스키', '바실리 칸딘스키', '클레', '파울 클레',
+      // 큐비즘
+      '피카소', '파블로 피카소', '조르주 브라크', '브라크', '후안 그리스',
+      // 초현실주의
+      '달리', '살바도르 달리', '마그리트', '르네 마그리트', '미로', '호안 미로', '에른스트',
+      // 추상표현주의
+      '잭슨 폴록', '폴록', '마크 로스코', '로스코', '윌렘 드 쿠닝', '드 쿠닝',
+      // 팝아트
+      '앤디 워홀', '워홀', '로이 리히텐슈타인', '리히텐슈타인', '재스퍼 존스',
+      // 한국 작가
+      '김환기', '박수근', '이중섭', '천경자', '장욱진', '유영국',
+      // 기타 현대
+      '데이비드 호크니', '호크니', '제프 쿤스', '쿤스', '뱅크시'
+    ];
     entities.artists = artists.filter(artist => message.includes(artist));
 
-    // 색상 추출
-    const colors = ['빨간', '파란', '노란', '초록', '보라', '주황', '검은', '흰', '회색'];
+    // 시대/시기 추출
+    const periods = [
+      '고대', '중세', '르네상스', '바로크', '18세기', '19세기', '20세기', '21세기',
+      '근세', '근대', '현대', '동시대', '전쟁전', '전쟁후', '1900년대', '2000년대'
+    ];
+    entities.periods = periods.filter(period => message.includes(period));
+
+    // 기법/매체 추출
+    const techniques = [
+      '유화', '수채화', '아크릴', '템페라', '파스텔', '목탄', '연필', '펜화',
+      '판화', '목판화', '동판화', '석판화', '실크스크린', '조각', '청동', '대리석',
+      '도자기', '칠기', '금속공예', '직물', '태피스트리', '모자이크', '프레스코',
+      '콜라주', '아상블라주', '설치', '비디오', '사진', '디지털', 'VR'
+    ];
+    entities.techniques = techniques.filter(technique => message.includes(technique));
+
+    // 색상 추출 (확장)
+    const colors = [
+      '빨간색', '빨강', '적색', '파란색', '파랑', '청색', '노란색', '노랑', '황색',
+      '초록색', '초록', '녹색', '보라색', '보라', '자주색', '주황색', '주황', '오렌지',
+      '검은색', '검정', '흑색', '흰색', '하양', '백색', '회색', '회색', '갈색', '분홍',
+      '금색', '은색', '청록', '남색', '자홍', '라임', '올리브', '마젠타'
+    ];
     entities.colors = colors.filter(color => message.includes(color));
 
-    // 감정 추출
-    const emotions = ['행복', '슬픔', '분노', '평온', '역동', '고요', '강렬', '부드러운'];
+    // 감정/분위기 추출 (확장)
+    const emotions = [
+      '행복', '기쁨', '즐거움', '슬픔', '우울', '애수', '분노', '화남', '격정',
+      '평온', '고요', '평화', '역동', '활기', '에너지', '강렬', '격렬', '부드러운',
+      '온화', '따뜻', '차가운', '신비', '몽환', '환상', '현실', '꿈', '희망', '절망'
+    ];
     entities.emotions = emotions.filter(emotion => message.includes(emotion));
+
+    // 박물관/기관 추출
+    const museums = [
+      '루브르', '오르세', '퐁피두', 'MoMA', '메트로폴리탄', '구겐하임', '테이트',
+      '내셔널 갤러리', '에르미타주', '우피치', '국립현대미술관', '리움', '간송미술관',
+      '삼성미술관', '예술의전당', '서울시립미술관', '부산시립미술관'
+    ];
+    entities.museums = museums.filter(museum => message.includes(museum));
+
+    // 주제/테마 추출
+    const themes = [
+      '초상화', '풍경화', '정물화', '역사화', '종교화', '신화', '일상', '도시',
+      '자연', '바다', '산', '꽃', '동물', '인물', '추상', '기하학', '유기체',
+      '전쟁', '평화', '사랑', '죽음', '탄생', '성장', '변화', '시간'
+    ];
+    entities.themes = themes.filter(theme => message.includes(theme));
+
+    // 매체/재료 추출
+    const mediums = [
+      '캔버스', '종이', '나무', '금속', '돌', '점토', '유리', '직물', '플라스틱',
+      '디지털', '비디오', '사진', '설치', '조각', '회화', '드로잉', '판화', '공예'
+    ];
+    entities.mediums = mediums.filter(medium => message.includes(medium));
 
     return entities;
   }
@@ -238,6 +364,18 @@ export class AICuratorChatbotService {
       
       case 'analysis':
         return this.generateAnalysisResponse(context, request);
+      
+      case 'quiz':
+        return this.generateQuizResponse(context, request);
+      
+      case 'comparison':
+        return this.generateComparisonResponse(context, request);
+      
+      case 'technique':
+        return this.generateTechniqueResponse(context, request);
+      
+      case 'museum':
+        return this.generateMuseumResponse(context, request);
       
       default:
         return this.generateGeneralResponse(context, request);
@@ -313,76 +451,75 @@ export class AICuratorChatbotService {
     request: ChatRequest
   ): ChatResponse {
     const message = request.message.toLowerCase();
+    const entities = context.entities;
     
-    // 스타일 설명
-    if (message.includes('인상주의')) {
-      return {
-        success: true,
-        response: `# 인상주의 (Impressionism)
-
-**시대**: 19세기 후반 (1860-1890년대)
-**발원지**: 프랑스
-
-## 주요 특징
-- 빛과 색채의 순간적 변화 포착
-- 야외에서 직접 그리는 '플레인 에어(Plein Air)' 기법
-- 명확한 윤곽선보다는 색채와 붓터치로 형태 표현
-
-## 대표 작가들
-- **클로드 모네**: 수련, 루앙 대성당 연작
-- **피에르 오귀스트 르누아르**: 무도회, 인물화
-- **에드가 드가**: 발레리나 연작
-
-## 영향
-- 현대 미술의 출발점이 된 혁신적 운동
-- 사진술 발달에 대한 회화의 새로운 답변`,
-        metadata: {
-          artworks: this.getStyleExamples('impressionist'),
-          confidence: 0.9
-        }
-      };
+    // 구체적인 스타일/운동 설명
+    if (entities.styles && entities.styles.length > 0) {
+      return this.generateStyleEducation(entities.styles[0]);
     }
 
-    if (message.includes('큐비즘')) {
-      return {
-        success: true,
-        response: `# 큐비즘 (Cubism)
+    // 구체적인 작가 설명
+    if (entities.artists && entities.artists.length > 0) {
+      return this.generateArtistEducation(entities.artists[0]);
+    }
 
-**시대**: 20세기 초 (1907-1920년대)
-**창시자**: 파블로 피카소, 조르주 브라크
+    // 기법/재료 설명
+    if (entities.techniques && entities.techniques.length > 0) {
+      return this.generateTechniqueEducation(entities.techniques[0]);
+    }
 
-## 주요 특징
-- 대상을 기하학적 형태로 해체하고 재구성
-- 다각도에서 본 시점을 하나의 화면에 종합
-- 분석적 큐비즘 → 종합적 큐비즘으로 발전
+    // 색채 이론
+    if (message.includes('색채') || message.includes('색상') || message.includes('컬러')) {
+      return this.generateColorTheoryResponse();
+    }
 
-## 발전 단계
-1. **분석적 큐비즘** (1909-1912): 형태의 해체와 분석
-2. **종합적 큐비즘** (1912-1920): 콜라주와 혼합 재료 사용
+    // 구성/조형 원리
+    if (message.includes('구성') || message.includes('조형') || message.includes('원리')) {
+      return this.generateCompositionResponse();
+    }
 
-## 의의
-- 르네상스 이후 서구 회화의 전통적 재현 방식 혁신
-- 추상 미술의 토대 마련`,
-        metadata: {
-          artworks: this.getStyleExamples('cubist'),
-          confidence: 0.9
-        }
-      };
+    // 미술사
+    if (message.includes('미술사') || message.includes('역사') || entities.periods) {
+      return this.generateArtHistoryResponse(entities.periods?.[0]);
     }
 
     // 일반적인 교육 응답
     return {
       success: true,
-      response: `미술에 대해 더 구체적으로 질문해주시면 상세한 설명을 드릴 수 있습니다.
+      response: `🎨 **미술 교육 도우미입니다!** 🎨
 
-다음과 같은 주제에 대해 설명해드릴 수 있습니다:
-- 미술 운동과 스타일 (인상주의, 큐비즘, 초현실주의 등)
-- 유명 작가들의 생애와 작품 세계
-- 미술 기법과 재료
-- 색채 이론과 구성 원리
-- 미술사의 주요 시대별 특징
+저는 다음과 같은 주제에 대해 상세하고 흥미진진한 설명을 제공할 수 있습니다:
 
-어떤 것이 궁금하신가요?`
+**🎭 미술 운동과 스타일**
+- 고전부터 현대까지 모든 주요 미술 운동
+- 각 스타일의 특징과 역사적 맥락
+- 대표 작품과 작가들의 이야기
+
+**👨‍🎨 작가와 작품 세계**
+- 유명 작가들의 생애와 예술 철학
+- 작품에 담긴 의미와 기법
+- 흥미로운 일화와 숨겨진 이야기
+
+**🎨 미술 기법과 재료**
+- 전통 회화부터 현대 디지털 아트까지
+- 각 기법의 특징과 사용법
+- 작가들이 왜 특정 기법을 선택했는지
+
+**🌈 색채 이론과 구성 원리**
+- 색의 심리학과 상징성
+- 시각적 구성의 기본 원리
+- 명작들의 조형적 분석
+
+**📚 미술사의 흐름**
+- 시대별 주요 특징과 변화
+- 사회적 배경과 예술의 관계
+- 동서양 미술의 교류와 영향
+
+구체적으로 어떤 주제가 궁금하신가요? 예를 들어:
+• "르네상스에 대해 알려주세요"
+• "피카소의 작품 세계는?"
+• "유화 기법의 특징은?"
+• "색채 심리학이 뭔가요?"`
     };
   }
 
@@ -393,19 +530,49 @@ export class AICuratorChatbotService {
     context: ConversationContext,
     request: ChatRequest
   ): ChatResponse {
+    const entities = context.entities;
+    
+    // 특정 작가 분석
+    if (entities.artists && entities.artists.length > 0) {
+      return this.generateArtistAnalysis(entities.artists[0]);
+    }
+
+    // 특정 스타일 분석
+    if (entities.styles && entities.styles.length > 0) {
+      return this.generateStyleAnalysis(entities.styles[0]);
+    }
+
     return {
       success: true,
-      response: `작품 분석을 도와드리겠습니다! 🔍
+      response: `🔍 **전문적인 미술 작품 분석을 도와드리겠습니다!**
 
-구체적으로 분석하고 싶은 작품이나 작가를 알려주시면:
-- 작품의 조형 요소 분석 (색채, 구성, 형태)
-- 표현 기법과 스타일 해석
-- 역사적, 문화적 맥락 설명
-- 작가의 의도와 메시지 분석
+저는 다음과 같은 다각도 분석을 제공합니다:
 
-을 통해 작품을 깊이 있게 이해할 수 있도록 도와드립니다.
+**🎨 조형적 분석**
+• 색채 구성과 색채 대비 효과
+• 선과 형태의 사용법과 의미
+• 공간 구성과 원근법
+• 질감과 붓터치의 표현력
 
-분석하고 싶은 특정 작품이나 작가가 있으신가요?`
+**📖 내용적 분석**
+• 주제와 소재의 상징적 의미
+• 작가의 의도와 메시지
+• 문화적, 종교적 배경
+• 시대적 맥락과 사회적 영향
+
+**🎭 양식적 분석**
+• 미술사적 위치와 의의
+• 기법과 표현 방식의 혁신성
+• 다른 작품들과의 비교
+• 후대에 미친 영향
+
+**💭 감상과 해석**
+• 작품이 주는 감정과 인상
+• 다양한 관점에서의 해석
+• 현대적 의의와 가치
+
+분석하고 싶은 구체적인 작품이나 작가를 알려주세요!
+예: "모나리자 분석해주세요", "피카소 작품의 특징은?", "인상주의 작품들의 공통점은?"`
     };
   }
 
@@ -438,37 +605,79 @@ export class AICuratorChatbotService {
     entities?: ConversationContext['entities'],
     userContext?: any
   ): Promise<any[]> {
-    // Mock 추천 데이터 생성
+    // 실제 작품 이미지 URL을 포함한 추천 데이터
     const mockRecommendations = [
       {
         artworkId: 'rec_1',
-        title: '별이 빛나는 밤',
+        title: '별이 빛나는 밤 (The Starry Night)',
         artist: '빈센트 반 고흐',
-        imageUrl: 'https://example.com/starry-night.jpg',
-        thumbnailUrl: 'https://example.com/thumb/starry-night.jpg',
+        imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/ea/Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg/1280px-Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg',
+        thumbnailUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/ea/Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg/320px-Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg',
         style: '후기 인상주의',
         score: 0.92,
-        reasoning: '당신이 선호하는 색채와 역동적인 붓터치가 특징입니다'
+        reasoning: '역동적인 붓터치와 강렬한 색채가 특징인 반 고흐의 대표작입니다',
+        year: '1889',
+        museum: 'MoMA, 뉴욕'
       },
       {
         artworkId: 'rec_2',
-        title: '수련',
+        title: '수련 (Water Lilies)',
         artist: '클로드 모네',
-        imageUrl: 'https://example.com/water-lilies.jpg',
-        thumbnailUrl: 'https://example.com/thumb/water-lilies.jpg',
+        imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/68/Claude_Monet_-_Le_Bassin_Aux_Nymph%C3%A9as.jpg/1280px-Claude_Monet_-_Le_Bassin_Aux_Nymph%C3%A9as.jpg',
+        thumbnailUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/68/Claude_Monet_-_Le_Bassin_Aux_Nymph%C3%A9as.jpg/320px-Claude_Monet_-_Le_Bassin_Aux_Nymph%C3%A9as.jpg',
         style: '인상주의',
         score: 0.88,
-        reasoning: '평온한 분위기와 자연적 색감이 돋보이는 작품입니다'
+        reasoning: '빛과 색채의 순간적 변화를 포착한 모네의 연작 중 하나입니다',
+        year: '1906',
+        museum: '시카고 미술관'
       },
       {
         artworkId: 'rec_3',
-        title: '아비뇽의 처녀들',
+        title: '아비뇽의 처녀들 (Les Demoiselles d\'Avignon)',
         artist: '파블로 피카소',
-        imageUrl: 'https://example.com/les-demoiselles.jpg',
-        thumbnailUrl: 'https://example.com/thumb/les-demoiselles.jpg',
+        imageUrl: 'https://upload.wikimedia.org/wikipedia/en/thumb/4/4c/Les_Demoiselles_d%27Avignon.jpg/1024px-Les_Demoiselles_d%27Avignon.jpg',
+        thumbnailUrl: 'https://upload.wikimedia.org/wikipedia/en/thumb/4/4c/Les_Demoiselles_d%27Avignon.jpg/320px-Les_Demoiselles_d%27Avignon.jpg',
         style: '큐비즘',
         score: 0.85,
-        reasoning: '혁신적인 형태 해체와 재구성이 인상적인 작품입니다'
+        reasoning: '큐비즘의 시작을 알린 혁명적인 작품입니다',
+        year: '1907',
+        museum: 'MoMA, 뉴욕'
+      },
+      {
+        artworkId: 'rec_4',
+        title: '절규 (The Scream)',
+        artist: '에드바르 뭉크',
+        imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Edvard_Munch%2C_1893%2C_The_Scream%2C_oil%2C_tempera_and_pastel_on_cardboard%2C_91_x_73_cm%2C_National_Gallery_of_Norway.jpg/800px-Edvard_Munch%2C_1893%2C_The_Scream%2C_oil%2C_tempera_and_pastel_on_cardboard%2C_91_x_73_cm%2C_National_Gallery_of_Norway.jpg',
+        thumbnailUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Edvard_Munch%2C_1893%2C_The_Scream%2C_oil%2C_tempera_and_pastel_on_cardboard%2C_91_x_73_cm%2C_National_Gallery_of_Norway.jpg/320px-Edvard_Munch%2C_1893%2C_The_Scream%2C_oil%2C_tempera_and_pastel_on_cardboard%2C_91_x_73_cm%2C_National_Gallery_of_Norway.jpg',
+        style: '표현주의',
+        score: 0.83,
+        reasoning: '인간의 실존적 불안을 표현한 표현주의의 대표작입니다',
+        year: '1893',
+        museum: '노르웨이 국립미술관'
+      },
+      {
+        artworkId: 'rec_5',
+        title: '진주 귀걸이를 한 소녀 (Girl with a Pearl Earring)',
+        artist: '요하네스 베르메르',
+        imageUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/1665_Girl_with_a_Pearl_Earring.jpg/800px-1665_Girl_with_a_Pearl_Earring.jpg',
+        thumbnailUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/1665_Girl_with_a_Pearl_Earring.jpg/320px-1665_Girl_with_a_Pearl_Earring.jpg',
+        style: '바로크',
+        score: 0.81,
+        reasoning: '빛과 그림자의 대비가 아름다운 바로크 초상화입니다',
+        year: '1665',
+        museum: '마우리츠하위스 미술관, 헤이그'
+      },
+      {
+        artworkId: 'rec_6',
+        title: '게르니카 (Guernica)',
+        artist: '파블로 피카소',
+        imageUrl: 'https://upload.wikimedia.org/wikipedia/en/thumb/7/74/PicassoGuernica.jpg/1280px-PicassoGuernica.jpg',
+        thumbnailUrl: 'https://upload.wikimedia.org/wikipedia/en/thumb/7/74/PicassoGuernica.jpg/320px-PicassoGuernica.jpg',
+        style: '큐비즘',
+        score: 0.79,
+        reasoning: '전쟁의 참상을 큐비즘으로 표현한 피카소의 역작입니다',
+        year: '1937',
+        museum: '레이나 소피아 미술관, 마드리드'
       }
     ];
 

@@ -7,8 +7,8 @@ const mimeTypes: Record<string, string> = {
   '.html': 'text/html',
   '.js': 'text/javascript',
   '.jsx': 'text/javascript',
-  '.ts': 'text/typescript',
-  '.tsx': 'text/typescript',
+  '.ts': 'text/javascript',
+  '.tsx': 'text/javascript',
   '.css': 'text/css',
   '.json': 'application/json',
   '.png': 'image/png',
@@ -98,10 +98,46 @@ export async function serveStaticFile(filePath: string): Promise<Response> {
     }
 
     const fullPath = join(process.cwd(), 'frontend', filePath);
-    const content = await readFile(fullPath, 'utf-8');
-    
-    // Get file extension for MIME type
     const ext = filePath.substring(filePath.lastIndexOf('.'));
+    
+    // Handle TypeScript/JSX files with Bun's transpiler
+    if (ext === '.ts' || ext === '.tsx' || ext === '.jsx') {
+      try {
+        const file = Bun.file(fullPath);
+        const transpiled = await Bun.build({
+          entrypoints: [fullPath],
+          target: 'browser',
+          format: 'esm'
+        });
+        
+        if (transpiled.outputs && transpiled.outputs.length > 0) {
+          const output = transpiled.outputs[0];
+          const jsContent = await output.text();
+          
+          return new Response(jsContent, {
+            headers: {
+              'Content-Type': 'text/javascript',
+              'Cache-Control': 'no-cache',
+            },
+          });
+        } else {
+          throw new Error('Transpilation failed - no output');
+        }
+      } catch (transpileError) {
+        console.error(`Failed to transpile ${filePath}:`, transpileError);
+        // Fallback to serving raw content with JavaScript MIME type
+        const content = await readFile(fullPath, 'utf-8');
+        return new Response(content, {
+          headers: {
+            'Content-Type': 'text/javascript',
+            'Cache-Control': 'no-cache',
+          },
+        });
+      }
+    }
+    
+    // Handle other static files normally
+    const content = await readFile(fullPath, 'utf-8');
     const mimeType = mimeTypes[ext] || 'text/plain';
     
     return new Response(content, {

@@ -290,13 +290,23 @@ const AppContent: React.FC = () => {
 
           {/* Multi Image Upload */}
           {viewMode === 'multi' && (
-            <MultiImageUpload
-              userId={user?.id || null}
-              onAnalysisComplete={(results) => {
-                console.log('Multi-image analysis complete:', results);
-                // 결과 처리 로직 추가 가능
-              }}
-            />
+            (() => {
+              const finalUserId = user?.id && user.id.trim() !== '' ? user.id : null;
+              console.log('🔍 App.tsx - Passing userId to MultiImageUpload:', {
+                user: user,
+                'user?.id': user?.id,
+                finalUserId: finalUserId
+              });
+              return (
+                <MultiImageUpload
+                  userId={finalUserId}
+                  onAnalysisComplete={(results) => {
+                    console.log('Multi-image analysis complete:', results);
+                    // 결과 처리 로직 추가 가능
+                  }}
+                />
+              );
+            })()
           )}
 
           {/* AI Art Generator */}

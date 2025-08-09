@@ -218,27 +218,40 @@ export class MockDatabaseService {
 
   // Get recommendations (simple keyword matching)
   async getRecommendations(keywords: string[] = []) {
+    console.log('🎯 Mock DB getting recommendations for keywords:', keywords);
+    
     if (keywords.length === 0) {
       // Return random artworks if no keywords
       const shuffled = [...this.artworks].sort(() => 0.5 - Math.random());
-      return shuffled.slice(0, 3).map(artwork => ({
+      const recommendations = shuffled.slice(0, 3).map(artwork => ({
         artwork,
         similarity: Math.random() * 0.3 + 0.7, // 70-100% similarity
-        reasons: ["AI 분석 결과", "색상 유사성", "스타일 매치"]
+        reasons: ["AI 분석 결과", "색상 유사성", "스타일 매치"],
+        matchingKeywords: ["artwork", "creative"]
       }));
+      console.log('📊 Returning random recommendations:', recommendations.length);
+      return recommendations;
     }
 
-    // Simple keyword matching
+    // Simple keyword matching with broader matching
     const matches = this.artworks
       .map(artwork => {
         const matchingKeywords = artwork.keywords.filter(k => 
           keywords.some(keyword => 
             k.toLowerCase().includes(keyword.toLowerCase()) ||
-            keyword.toLowerCase().includes(k.toLowerCase())
+            keyword.toLowerCase().includes(k.toLowerCase()) ||
+            // More flexible matching for common art terms
+            (keyword.toLowerCase().includes('art') && k.toLowerCase().includes('art')) ||
+            (keyword.toLowerCase().includes('paint') && k.toLowerCase().includes('paint')) ||
+            (keyword.toLowerCase().includes('visual') && k.toLowerCase().includes('visual'))
           )
         );
         
-        const similarity = matchingKeywords.length / Math.max(artwork.keywords.length, keywords.length);
+        // Even if no exact keyword matches, give some similarity for art-related content
+        let similarity = matchingKeywords.length / Math.max(artwork.keywords.length, keywords.length);
+        if (similarity === 0 && keywords.some(k => k.toLowerCase().includes('art'))) {
+          similarity = 0.3; // Basic art similarity
+        }
         
         return {
           artwork,
@@ -246,14 +259,22 @@ export class MockDatabaseService {
           matchingKeywords,
           reasons: matchingKeywords.length > 0 ? 
             [`${matchingKeywords.join(', ')} 키워드 매치`] : 
-            ["스타일 유사성"]
+            ["시각적 유사성", "아트워크 추천"]
         };
       })
       .filter(match => match.similarity > 0)
       .sort((a, b) => b.similarity - a.similarity)
       .slice(0, 5);
 
-    return matches.length > 0 ? matches : this.getRecommendations(); // Fallback to random
+    console.log('📊 Keyword matches found:', matches.length);
+    
+    // Always return at least some recommendations
+    if (matches.length === 0) {
+      console.log('🔄 No matches found, using fallback recommendations');
+      return this.getRecommendations(); // Fallback to random
+    }
+    
+    return matches;
   }
 
   // Save recommendations

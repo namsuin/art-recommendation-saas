@@ -7,12 +7,12 @@ import { KoreanCulturalAPI } from './korean-cultural-api';
 import { KoreanCreativePlatformsAPI } from './korean-creative-platforms';
 import { ArtsoniaAPI } from './artsonia-api';
 import { AcademyArtAPI } from './academy-art-api';
-import { BluethumbAPI } from './bluethumb-api';
+// import { BluethumbAPI } from './bluethumb-api'; // Disabled - API errors
 import { DegreeArtAPI } from './degreeart-api';
 import { SVABfaAPI } from './sva-bfa-api';
 
 export interface ExpandedSearchOptions {
-  sources?: ('met' | 'artsy' | 'chicago' | 'rijksmuseum' | 'korea' | 'korean-cultural' | 'korean-creative' | 'artsonia' | 'academy-art' | 'bluethumb' | 'degreeart' | 'sva-bfa')[];
+  sources?: ('met' | 'artsy' | 'chicago' | 'rijksmuseum' | 'korea' | 'korean-cultural' | 'korean-creative' | 'artsonia' | 'academy-art' | 'degreeart' | 'sva-bfa')[];
   limit?: number;
   includeKorean?: boolean;
   includeStudentArt?: boolean;
@@ -30,7 +30,6 @@ export class ExpandedArtSearchService {
   private koreanCreativeAPI: KoreanCreativePlatformsAPI;
   private artsoniaAPI: ArtsoniaAPI;
   private academyArtAPI: AcademyArtAPI;
-  private bluethumbAPI: BluethumbAPI;
   private degreeArtAPI: DegreeArtAPI;
   private svaBfaAPI: SVABfaAPI;
 
@@ -44,7 +43,6 @@ export class ExpandedArtSearchService {
     this.koreanCreativeAPI = new KoreanCreativePlatformsAPI();
     this.artsoniaAPI = new ArtsoniaAPI();
     this.academyArtAPI = new AcademyArtAPI();
-    this.bluethumbAPI = new BluethumbAPI();
     this.degreeArtAPI = new DegreeArtAPI();
     this.svaBfaAPI = new SVABfaAPI();
   }
@@ -66,7 +64,7 @@ export class ExpandedArtSearchService {
     error?: string;
   }> {
     const {
-      sources = ['met', 'chicago', 'rijksmuseum', 'korea', 'artsy', 'korean-cultural', 'artsonia', 'academy-art', 'bluethumb', 'degreeart', 'sva-bfa'],
+      sources = ['met', 'chicago', 'rijksmuseum', 'korea', 'artsy', 'korean-cultural', 'artsonia', 'academy-art', 'degreeart', 'sva-bfa'],
       // NOTE: 'korean-creative' 기본 목록에서 완전 제거됨 - 한국 대학교 졸업전시 방지
       limit = 10,
       includeKorean = true,
@@ -135,11 +133,7 @@ export class ExpandedArtSearchService {
       searchSources.push('academy-art');
     }
 
-    // Bluethumb 호주 아트 마켓플레이스 (includeInternational이 true일 때)
-    if (sources.includes('bluethumb') && includeInternational) {
-      searchPromises.push(this.bluethumbAPI.searchByKeywords(keywords, limit));
-      searchSources.push('bluethumb');
-    }
+    // Bluethumb removed due to API errors
 
     // DegreeArt 영국 아트 플랫폼 (includeInternational이 true일 때)
     if (sources.includes('degreeart') && includeInternational) {
@@ -169,10 +163,57 @@ export class ExpandedArtSearchService {
             total = result.value.totalCount || result.value.results.length;
           }
           
+          // 🔍 LOGGING: Check if any source returns university data
+          const hasUniversityData = artworks.some((artwork: any) => 
+            artwork.source_url && artwork.source_url.includes('.ac.kr')
+          );
+          
+          if (hasUniversityData) {
+            console.log(`🚨 UNIVERSITY DATA DETECTED from source: ${source}`);
+            console.log(`🎓 University artworks:`, artworks.filter((artwork: any) => 
+              artwork.source_url && artwork.source_url.includes('.ac.kr')
+            ));
+          }
+          
+          // 🚫 FINAL SAFETY CHECK: Remove ALL university data at source level
+          const filteredArtworks = artworks.filter((artwork: any) => {
+            const isUniversity = artwork.source_url && (
+              artwork.source_url.includes('.ac.kr') ||
+              artwork.source_url.includes('university') ||
+              artwork.source_url.includes('univ.') ||
+              artwork.source_url.includes('college') ||
+              artwork.source_url.includes('graduation')
+            ) || 
+            artwork.platform === 'university' ||
+            artwork.source === '대학 졸업전시' ||
+            artwork.category === 'student_work' ||
+            artwork.search_source === 'graduation' ||
+            (artwork.university && (
+              artwork.university.includes('대학') ||
+              artwork.university.includes('대학교') ||
+              artwork.university.includes('University')
+            )) ||
+            (artwork.source && (
+              artwork.source.includes('졸업전시') ||
+              artwork.source.includes('졸업작품') ||
+              artwork.source.includes('대학')
+            )) ||
+            (artwork.title && (
+              artwork.title.includes('졸업작품') ||
+              artwork.title.includes('졸업전시')
+            ));
+            
+            if (isUniversity) {
+              console.log(`🚫 BLOCKED AT SOURCE LEVEL: ${artwork.title} from ${source}`);
+            }
+            
+            return !isUniversity;
+          });
+          
           return {
             source: this.getSourceDisplayName(source),
-            artworks: artworks,
-            total: total
+            artworks: filteredArtworks,
+            total: filteredArtworks.length
           };
         } else {
           console.error(`${source} search failed:`, result);
@@ -375,57 +416,6 @@ export class ExpandedArtSearchService {
     }
   }
 
-  /**
-   * Bluethumb 호주 아트 마켓플레이스 전용 검색
-   */
-  async searchBluethumb(
-    keywords: string[],
-    options: {
-      category?: string;
-      priceRange?: string;
-      aboriginalArt?: boolean;
-      limit?: number;
-    } = {}
-  ): Promise<{
-    success: boolean;
-    artworks: any[];
-    total: number;
-    marketplace: string;
-    error?: string;
-  }> {
-    try {
-      const { category, priceRange, aboriginalArt = false, limit = 20 } = options;
-      
-      let searchResult;
-      
-      if (aboriginalArt) {
-        searchResult = await this.bluethumbAPI.searchAboriginalArt(keywords, limit);
-      } else if (category) {
-        searchResult = await this.bluethumbAPI.searchByCategory(category, keywords, limit);
-      } else if (priceRange) {
-        searchResult = await this.bluethumbAPI.searchByPriceRange(priceRange, keywords, limit);
-      } else {
-        searchResult = await this.bluethumbAPI.searchByKeywords(keywords, limit);
-      }
-
-      return {
-        success: searchResult.success,
-        artworks: searchResult.artworks,
-        total: searchResult.total,
-        marketplace: 'Bluethumb Australia',
-        error: searchResult.error
-      };
-
-    } catch (error) {
-      return {
-        success: false,
-        artworks: [],
-        total: 0,
-        marketplace: 'Bluethumb Australia',
-        error: error instanceof Error ? error.message : 'Bluethumb 검색 실패'
-      };
-    }
-  }
 
   /**
    * DegreeArt 영국 아트 플랫폼 전용 검색
@@ -551,7 +541,6 @@ export class ExpandedArtSearchService {
       'korean-creative': '한국 창작 플랫폼',
       artsonia: 'Artsonia (학생 작품)',
       'academy-art': 'Academy of Art University',
-      bluethumb: 'Bluethumb (호주)',
       degreeart: 'DegreeArt (영국)',
       'sva-bfa': 'SVA BFA Fine Arts'
     };

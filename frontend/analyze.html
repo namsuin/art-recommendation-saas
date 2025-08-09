@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎨 AI 이미지 분석 | Art Recommendation SaaS</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎨</text></svg>">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .upload-area {
+            border: 3px dashed #d1d5db;
+            transition: all 0.3s ease;
+        }
+        .upload-area:hover {
+            border-color: #6366f1;
+            background-color: #f8fafc;
+        }
+        .upload-area.dragover {
+            border-color: #4f46e5;
+            background-color: #eef2ff;
+        }
+        .analysis-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .result-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+        }
+        .loading-spinner {
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #6366f1;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .recommendation-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <a href="/" class="flex items-center space-x-2">
+                        <span class="text-2xl">🎨</span>
+                        <span class="text-xl font-bold text-gray-900">Art Recommendation</span>
+                    </a>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="/" class="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">홈</a>
+                    <a href="/analyze" class="bg-indigo-600 text-white px-3 py-2 rounded-md text-sm font-medium">AI 분석</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-6xl mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-900 mb-4">🤖 AI 이미지 분석</h1>
+            <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+                이미지를 업로드하면 AI가 스타일, 색상, 분위기를 분석하고 유사한 작품을 추천해드립니다.
+            </p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- 이미지 업로드 영역 -->
+            <div class="space-y-6">
+                <div class="analysis-card rounded-2xl p-6 text-white">
+                    <h2 class="text-2xl font-bold mb-4">📸 이미지 업로드</h2>
+                    
+                    <!-- 드래그 앤 드롭 영역 -->
+                    <div id="uploadArea" class="upload-area rounded-xl p-8 text-center cursor-pointer bg-white/10 border-2 border-dashed border-white/30 hover:border-white/50 hover:bg-white/20 transition-all duration-300 transform hover:scale-105">
+                        <input type="file" id="imageInput" accept="image/*" class="hidden">
+                        <div id="uploadContent">
+                            <div class="text-6xl mb-4 animate-pulse">🎨</div>
+                            <p class="text-lg font-medium mb-2">이미지를 드래그하거나 클릭하여 선택</p>
+                            <div class="bg-white/20 rounded-lg px-4 py-2 inline-block">
+                                <p class="text-sm">📎 JPG, PNG, GIF 파일 지원 (최대 10MB)</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 이미지 미리보기 -->
+                    <div id="imagePreview" class="hidden">
+                        <div class="relative group">
+                            <img id="previewImg" src="" alt="Preview" class="w-full h-64 object-cover rounded-xl shadow-lg">
+                            <div class="absolute inset-0 bg-black bg-opacity-20 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex items-center justify-center">
+                                <div class="bg-black bg-opacity-50 text-white px-3 py-1 rounded-lg text-sm">
+                                    클릭하여 크게 보기
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <p id="imageInfo" class="text-sm opacity-80 mb-4"></p>
+                            
+                            <!-- 버튼 그룹 -->
+                            <div class="flex gap-3 mb-3">
+                                <button id="changeImageBtn" class="flex-1 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-semibold py-3 px-4 rounded-lg transition-all transform hover:scale-105 shadow-lg">
+                                    <span class="flex items-center justify-center">
+                                        📷 새 이미지 선택
+                                    </span>
+                                </button>
+                                <button id="removeImage" class="bg-red-500 hover:bg-red-600 text-white font-semibold py-3 px-4 rounded-lg transition-all transform hover:scale-105 shadow-lg">
+                                    <span class="flex items-center justify-center">
+                                        🗑️ 삭제
+                                    </span>
+                                </button>
+                            </div>
+                            
+                            <button id="analyzeBtn" class="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-4 px-6 rounded-lg transition-all transform hover:scale-105 shadow-lg border-2 border-white/20">
+                                <span class="flex items-center justify-center text-lg">
+                                    ✨ AI 분석 시작
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 로딩 상태 -->
+                    <div id="loadingState" class="hidden mt-6 text-center">
+                        <div class="loading-spinner mx-auto mb-4"></div>
+                        <p class="text-lg font-medium">AI가 이미지를 분석 중입니다...</p>
+                        <p class="text-sm opacity-80 mt-2">잠시만 기다려주세요</p>
+                    </div>
+                </div>
+
+                <!-- 사용법 안내 -->
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h3 class="text-lg font-bold text-gray-900 mb-4">💡 사용법 안내</h3>
+                    <div class="space-y-3 text-gray-600">
+                        <div class="flex items-start space-x-3">
+                            <span class="text-indigo-600 font-bold">1.</span>
+                            <span>분석하고 싶은 이미지를 업로드하세요</span>
+                        </div>
+                        <div class="flex items-start space-x-3">
+                            <span class="text-indigo-600 font-bold">2.</span>
+                            <span>AI가 자동으로 스타일과 특징을 분석합니다</span>
+                        </div>
+                        <div class="flex items-start space-x-3">
+                            <span class="text-indigo-600 font-bold">3.</span>
+                            <span>유사한 작품 추천과 상세 분석 결과를 확인하세요</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 분석 결과 영역 -->
+            <div class="space-y-6">
+                <!-- 결과 대기 상태 -->
+                <div id="waitingState" class="result-card rounded-2xl p-8 text-center border">
+                    <div class="text-6xl mb-4">🎯</div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-2">분석 결과를 기다리는 중</h3>
+                    <p class="text-gray-600">이미지를 업로드하고 분석을 시작해보세요!</p>
+                </div>
+
+                <!-- 분석 결과 -->
+                <div id="resultArea" class="hidden space-y-6">
+                    <!-- 기본 분석 정보 -->
+                    <div class="result-card rounded-2xl p-6 border">
+                        <h3 class="text-xl font-bold text-gray-900 mb-4">📊 분석 결과</h3>
+                        <div id="analysisDetails" class="space-y-4"></div>
+                    </div>
+
+                    <!-- 추천 작품 -->
+                    <div class="result-card rounded-2xl p-6 border">
+                        <h3 class="text-xl font-bold text-gray-900 mb-4">🎨 추천 작품</h3>
+                        <div id="recommendationsGrid" class="grid grid-cols-1 gap-4"></div>
+                    </div>
+                </div>
+
+                <!-- 에러 상태 -->
+                <div id="errorState" class="hidden result-card rounded-2xl p-8 text-center border border-red-200 bg-red-50">
+                    <div class="text-6xl mb-4">⚠️</div>
+                    <h3 class="text-xl font-bold text-red-900 mb-2">분석 중 오류가 발생했습니다</h3>
+                    <p id="errorMessage" class="text-red-600 mb-4"></p>
+                    <button id="retryBtn" class="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg">
+                        다시 시도
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DOM 요소들
+        const uploadArea = document.getElementById('uploadArea');
+        const imageInput = document.getElementById('imageInput');
+        const imagePreview = document.getElementById('imagePreview');
+        const previewImg = document.getElementById('previewImg');
+        const imageInfo = document.getElementById('imageInfo');
+        const removeImage = document.getElementById('removeImage');
+        const changeImageBtn = document.getElementById('changeImageBtn');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const loadingState = document.getElementById('loadingState');
+        const waitingState = document.getElementById('waitingState');
+        const resultArea = document.getElementById('resultArea');
+        const errorState = document.getElementById('errorState');
+        const errorMessage = document.getElementById('errorMessage');
+        const retryBtn = document.getElementById('retryBtn');
+
+        let currentFile = null;
+
+        // 드래그 앤 드롭 이벤트
+        uploadArea.addEventListener('click', () => imageInput.click());
+        uploadArea.addEventListener('dragover', handleDragOver);
+        uploadArea.addEventListener('dragleave', handleDragLeave);
+        uploadArea.addEventListener('drop', handleDrop);
+
+        // 파일 선택 이벤트
+        imageInput.addEventListener('change', handleFileSelect);
+        removeImage.addEventListener('click', clearImage);
+        changeImageBtn.addEventListener('click', () => imageInput.click());
+        previewImg.addEventListener('click', openImageModal);
+        analyzeBtn.addEventListener('click', analyzeImage);
+        retryBtn.addEventListener('click', () => {
+            hideError();
+            analyzeImage();
+        });
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        }
+
+        function handleDragLeave(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        }
+
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (file) {
+                handleFile(file);
+            }
+        }
+
+        function handleFile(file) {
+            // 파일 검증
+            if (!file.type.startsWith('image/')) {
+                alert('이미지 파일만 업로드 가능합니다.');
+                return;
+            }
+
+            if (file.size > 10 * 1024 * 1024) {
+                alert('파일 크기는 10MB 이하여야 합니다.');
+                return;
+            }
+
+            currentFile = file;
+
+            // 이미지 미리보기 생성
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                previewImg.src = e.target.result;
+                imageInfo.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+                
+                document.getElementById('uploadContent').classList.add('hidden');
+                imagePreview.classList.remove('hidden');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function clearImage() {
+            currentFile = null;
+            imagePreview.classList.add('hidden');
+            document.getElementById('uploadContent').classList.remove('hidden');
+            imageInput.value = '';
+            hideStates();
+            waitingState.classList.remove('hidden');
+        }
+
+        function openImageModal() {
+            if (!previewImg.src) return;
+            
+            // 모달 생성
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4';
+            modal.onclick = () => modal.remove();
+            
+            const img = document.createElement('img');
+            img.src = previewImg.src;
+            img.className = 'max-w-full max-h-full object-contain rounded-lg shadow-2xl';
+            img.onclick = (e) => e.stopPropagation();
+            
+            const closeBtn = document.createElement('button');
+            closeBtn.innerHTML = '✕';
+            closeBtn.className = 'absolute top-4 right-4 bg-white bg-opacity-20 hover:bg-opacity-30 text-white rounded-full w-10 h-10 flex items-center justify-center text-xl';
+            closeBtn.onclick = () => modal.remove();
+            
+            modal.appendChild(img);
+            modal.appendChild(closeBtn);
+            document.body.appendChild(modal);
+        }
+
+        async function analyzeImage() {
+            if (!currentFile) {
+                alert('이미지를 먼저 선택해주세요.');
+                return;
+            }
+
+            showLoading();
+
+            const formData = new FormData();
+            formData.append('image', currentFile);
+            formData.append('userId', 'anonymous-' + Date.now());
+
+            try {
+                console.log('🔍 이미지 분석 시작...');
+                
+                const response = await fetch('/api/analyze', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                console.log('📊 분석 결과:', data);
+
+                hideLoading();
+
+                if (data.success) {
+                    displayResults(data);
+                } else {
+                    showError(data.error || '분석 중 오류가 발생했습니다.');
+                }
+            } catch (error) {
+                console.error('분석 에러:', error);
+                hideLoading();
+                showError('서버와의 연결에 문제가 발생했습니다. 다시 시도해주세요.');
+            }
+        }
+
+        function showLoading() {
+            hideStates();
+            loadingState.classList.remove('hidden');
+        }
+
+        function hideLoading() {
+            loadingState.classList.add('hidden');
+        }
+
+        function hideStates() {
+            waitingState.classList.add('hidden');
+            resultArea.classList.add('hidden');
+            errorState.classList.add('hidden');
+            loadingState.classList.add('hidden');
+        }
+
+        function showError(message) {
+            hideStates();
+            errorMessage.textContent = message;
+            errorState.classList.remove('hidden');
+        }
+
+        function hideError() {
+            errorState.classList.add('hidden');
+        }
+
+        function displayResults(data) {
+            hideStates();
+
+            // 기본 분석 정보 표시
+            const analysisDetails = document.getElementById('analysisDetails');
+            analysisDetails.innerHTML = `
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-blue-50 rounded-lg p-4">
+                        <h4 class="font-bold text-blue-900 mb-2">🎨 스타일</h4>
+                        <p class="text-blue-700">${data.analysis.style || '분석 중...'}</p>
+                    </div>
+                    <div class="bg-green-50 rounded-lg p-4">
+                        <h4 class="font-bold text-green-900 mb-2">🌈 주요 색상</h4>
+                        <p class="text-green-700">${(() => {
+                            // Try to get colors from analysis.colors first
+                            if (data.analysis.colors && data.analysis.colors.length > 0) {
+                                return data.analysis.colors.join(', ');
+                            }
+                            
+                            // If no colors, extract from keywords
+                            if (data.analysis.keywords && data.analysis.keywords.length > 0) {
+                                const colorKeywords = ['red', 'blue', 'green', 'yellow', 'orange', 'purple', 'pink', 'brown', 'black', 'white', 'gray', 'grey'];
+                                const extractedColors = [];
+                                
+                                data.analysis.keywords.forEach(keyword => {
+                                    colorKeywords.forEach(color => {
+                                        if (keyword.toLowerCase().includes(color) && !extractedColors.includes(color)) {
+                                            extractedColors.push(color);
+                                        }
+                                    });
+                                });
+                                
+                                return extractedColors.length > 0 ? extractedColors.join(', ') : '분석 중...';
+                            }
+                            
+                            return '분석 중...';
+                        })()}</p>
+                    </div>
+                    <div class="bg-purple-50 rounded-lg p-4">
+                        <h4 class="font-bold text-purple-900 mb-2">😊 분위기</h4>
+                        <p class="text-purple-700">${data.analysis.mood || '분석 중...'}</p>
+                    </div>
+                    <div class="bg-orange-50 rounded-lg p-4">
+                        <h4 class="font-bold text-orange-900 mb-2">🎯 정확도</h4>
+                        <p class="text-orange-700">${Math.round(data.analysis.confidence * 100)}%</p>
+                    </div>
+                </div>
+                <div class="mt-4 bg-gray-50 rounded-lg p-4">
+                    <h4 class="font-bold text-gray-900 mb-2">🏷️ 키워드</h4>
+                    <div class="flex flex-wrap gap-2">
+                        ${data.analysis.keywords?.map(keyword => 
+                            `<span class="bg-white px-3 py-1 rounded-full text-sm text-gray-700 border">${keyword}</span>`
+                        ).join('') || '분석 중...'}
+                    </div>
+                </div>
+                <div class="mt-4 text-sm text-gray-600">
+                    <p>⏱️ 처리 시간: ${data.processing_time}ms</p>
+                    <p>📏 이미지 크기: ${(data.image_size / 1024 / 1024).toFixed(2)} MB</p>
+                </div>
+            `;
+
+            // 추천 작품 표시
+            const recommendationsGrid = document.getElementById('recommendationsGrid');
+            if (data.recommendations && data.recommendations.length > 0) {
+                recommendationsGrid.innerHTML = data.recommendations.map(rec => {
+                    const artwork = rec.artwork || rec; // 호환성을 위해 두 구조 모두 지원
+                    const imageUrl = artwork.image_url || artwork.thumbnail_url || '';
+                    const title = artwork.title || '제목 없음';
+                    const artist = artwork.artist || '작가 미상';
+                    
+                    // 소스 결정 로직 개선
+                    let source = 'Local DB';
+                    if (artwork.metadata?.source) {
+                        source = artwork.metadata.source;
+                    } else if (artwork.source) {
+                        source = artwork.source;
+                    } else if (artwork.id?.startsWith('met_')) {
+                        source = 'Met Museum';
+                    } else if (artwork.id?.startsWith('wikiart_')) {
+                        source = 'WikiArt';  
+                    } else if (artwork.id?.startsWith('harvard_')) {
+                        source = 'Harvard';
+                    } else if (artwork.id?.startsWith('europeana_')) {
+                        source = 'Europeana';
+                    }
+                    
+                    const similarity = rec.similarity || 0;
+                    
+                    return `
+                    <div class="recommendation-item bg-white rounded-lg p-4 border hover:shadow-md transition-all cursor-pointer"
+                         onclick="window.open('${artwork.source_url || '#'}', '_blank')">
+                        <div class="flex items-start space-x-4">
+                            ${imageUrl ? 
+                                `<img src="${imageUrl}" alt="${title}" class="w-20 h-20 object-cover rounded-lg" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                 <div class="w-20 h-20 bg-gradient-to-br from-purple-100 to-blue-100 rounded-lg flex items-center justify-center text-purple-400 text-2xl" style="display:none;">🎨</div>` : 
+                                `<div class="w-20 h-20 bg-gradient-to-br from-purple-100 to-blue-100 rounded-lg flex items-center justify-center text-purple-400 text-2xl">🎨</div>`
+                            }
+                            <div class="flex-1">
+                                <h4 class="font-bold text-gray-900 mb-1 line-clamp-2">${title}</h4>
+                                <p class="text-sm text-gray-600 mb-2">${artist}</p>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs px-2 py-1 bg-gray-100 rounded-full text-gray-600">${source}</span>
+                                    <span class="text-xs text-blue-600 font-medium">${Math.round(similarity * 100)}% 일치</span>
+                                </div>
+                                ${rec.reasons ? `<div class="mt-2">
+                                    <p class="text-xs text-gray-500">${rec.reasons[0] || ''}</p>
+                                </div>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                    `;
+                }).join('');
+            } else {
+                recommendationsGrid.innerHTML = `
+                    <div class="text-center py-8 text-gray-500">
+                        <div class="text-4xl mb-2">🔍</div>
+                        <p>유사한 작품을 찾지 못했습니다.</p>
+                        <p class="text-sm mt-1">다른 이미지로 시도해보세요.</p>
+                    </div>
+                `;
+            }
+
+            resultArea.classList.remove('hidden');
+        }
+
+        // 페이지 로드 시 초기화
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🎨 AI 이미지 분석 페이지 로드 완료');
+        });
+    </script>
+</body>
+</html>

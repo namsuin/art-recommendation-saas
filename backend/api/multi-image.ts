@@ -5,6 +5,7 @@ import { ExpandedArtSearchService } from '../services/expanded-art-search';
 import { StripeService } from '../services/stripe';
 import { supabase } from '../services/supabase';
 import { mockDB } from '../services/mock-database';
+import { ImageUrlValidator } from '../utils/image-url-validator';
 
 export class MultiImageAPI {
   private multiImageService: MultiImageAnalysisService;
@@ -26,8 +27,39 @@ export class MultiImageAPI {
     try {
       console.log('🚀 Starting multi-image analysis...');
       const formData = await req.formData();
-      const userId = formData.get('userId') as string | null;
-      console.log('📋 User ID:', userId);
+      let rawUserId = formData.get('userId') as string | null;
+      
+      // Authorization 헤더 확인
+      const authorization = req.headers.get('authorization');
+      console.log('🔍 Authorization header:', authorization ? 'present' : 'missing');
+      
+      // Bearer 토큰으로 사용자 확인
+      if (authorization && authorization.startsWith('Bearer ')) {
+        try {
+          const accessToken = authorization.slice(7);
+          const { supabaseAdmin } = await import('../services/supabase');
+          const { data: { user }, error } = await supabaseAdmin.auth.getUser(accessToken);
+          
+          if (!error && user) {
+            rawUserId = user.id;
+            console.log('✅ User authenticated via token:', user.email);
+          } else {
+            console.log('❌ Token validation failed:', error);
+          }
+        } catch (tokenError) {
+          console.log('❌ Token processing error:', tokenError);
+        }
+      }
+      
+      // 빈 문자열이나 null을 모두 null로 처리
+      const userId = rawUserId && rawUserId.trim() !== '' ? rawUserId : null;
+      
+      // 디버깅: FormData의 모든 키를 확인
+      const formDataKeys = Array.from(formData.keys());
+      console.log('📋 FormData keys:', formDataKeys);
+      console.log('📋 Raw User ID received:', rawUserId, typeof rawUserId);
+      console.log('📋 Processed User ID:', userId, typeof userId);
+      console.log('📋 User ID is null?', userId === null);
 
       // 이미지 파일들 추출
       const imageFiles: File[] = [];
@@ -54,6 +86,7 @@ export class MultiImageAPI {
 
       // Mock 모드일 때 간단한 처리
       if (!supabase) {
+        console.log('🎭 Running in Mock mode - using mock recommendations');
         return this.handleMockMultiImageAnalysis(userId || 'anonymous', imageFiles);
       }
 
@@ -99,6 +132,19 @@ export class MultiImageAPI {
         });
       }
 
+      // Mock 데이터를 추가하여 최소한의 추천 작품 보장
+      console.log('🎯 Adding mock recommendations as fallback');
+      const mockRecommendations = await mockDB.getRecommendations(
+        analysisResult.commonKeywords?.keywords || ['artwork', 'creative', 'visual']
+      );
+      console.log('📊 Mock recommendations retrieved:', mockRecommendations.length);
+      
+      // Mock 추천을 internal 배열에 추가
+      if (!analysisResult.recommendations) {
+        analysisResult.recommendations = [];
+      }
+      analysisResult.recommendations.push(...mockRecommendations);
+
       // 외부 플랫폼에서 추가 추천 검색 (확장된 소스 포함)
       let externalRecommendations: any[] = [];
       if (analysisResult.commonKeywords && analysisResult.commonKeywords.keywords.length > 0) {
@@ -106,36 +152,40 @@ export class MultiImageAPI {
         
         console.log('🌍 Searching expanded art sources...');
         
-        // 확장된 미술관 검색 (Chicago, Rijksmuseum, 국립중앙박물관 포함)
-        const expandedSearchResults = await this.expandedArtSearch.searchAllSources(
-          topKeywords,
-          {
-            sources: ['chicago', 'rijksmuseum', 'korea'],
-            limit: 5,
-            includeKorean: true
+        try {
+          // 확장된 미술관 검색 (Chicago, Rijksmuseum, 국립중앙박물관 포함)
+          const expandedSearchResults = await this.expandedArtSearch.searchAllSources(
+            topKeywords,
+            {
+              sources: ['chicago', 'rijksmuseum', 'korea'],
+              limit: 5,
+              includeKorean: true
+            }
+          );
+
+          if (expandedSearchResults.success) {
+            expandedSearchResults.results.forEach(sourceResult => {
+              console.log(`📍 ${sourceResult.source}: Found ${sourceResult.artworks.length} artworks`);
+              externalRecommendations.push(...sourceResult.artworks);
+            });
           }
-        );
 
-        if (expandedSearchResults.success) {
-          expandedSearchResults.results.forEach(sourceResult => {
-            console.log(`📍 ${sourceResult.source}: Found ${sourceResult.artworks.length} artworks`);
-            externalRecommendations.push(...sourceResult.artworks);
-          });
+          // 기존 Artsy 검색도 유지
+          const artsyResults = await this.artsyIntegration.searchByKeywords(topKeywords, 5);
+          externalRecommendations.push(...artsyResults.artworks.map(artwork => 
+            this.artsyIntegration.formatForDisplay(artwork)
+          ));
+
+          // 소셜 미디어 검색
+          const socialResults = await this.socialMediaIntegration.searchAllPlatforms(
+            topKeywords,
+            ['behance'],
+            5
+          );
+          externalRecommendations.push(...socialResults.results);
+        } catch (error) {
+          console.error('🚫 External search failed, using mock data only:', error);
         }
-
-        // 기존 Artsy 검색도 유지
-        const artsyResults = await this.artsyIntegration.searchByKeywords(topKeywords, 5);
-        externalRecommendations.push(...artsyResults.artworks.map(artwork => 
-          this.artsyIntegration.formatForDisplay(artwork)
-        ));
-
-        // 소셜 미디어 검색
-        const socialResults = await this.socialMediaIntegration.searchAllPlatforms(
-          topKeywords,
-          ['behance'],
-          5
-        );
-        externalRecommendations.push(...socialResults.results);
       }
 
       // 외부 추천에도 유사도 추가
@@ -159,6 +209,17 @@ export class MultiImageAPI {
         externalRecommendations.sort((a, b) => b.similarity_score - a.similarity_score);
       }
 
+      // 이미지 URL 유효성 검증 및 필터링
+      console.log('🔍 Validating recommendation image URLs...');
+      const validatedInternalRecommendations = await ImageUrlValidator.filterValidRecommendations(
+        analysisResult.recommendations || []
+      );
+      const validatedExternalRecommendations = await ImageUrlValidator.filterValidRecommendations(
+        externalRecommendations
+      );
+
+      console.log(`📊 Image validation complete - Internal: ${validatedInternalRecommendations.length}/${(analysisResult.recommendations || []).length}, External: ${validatedExternalRecommendations.length}/${externalRecommendations.length}`);
+
       return new Response(JSON.stringify({
         success: true,
         imageCount: imageFiles.length,
@@ -170,19 +231,19 @@ export class MultiImageAPI {
             Math.round(analysisResult.commonKeywords.confidence * 100) : 0
         },
         recommendations: {
-          internal: analysisResult.recommendations || [],
-          external: externalRecommendations
+          internal: validatedInternalRecommendations,
+          external: validatedExternalRecommendations
         },
         processingTime: analysisResult.processingTime,
         similarityAnalysis: {
-          averageSimilarity: analysisResult.recommendations?.length > 0 ? 
-            Math.round((analysisResult.recommendations.reduce((sum: number, rec: any) => 
-              sum + (rec.similarity_score?.total || 0), 0) / analysisResult.recommendations.length) * 100) : 0,
-          topMatches: analysisResult.recommendations?.slice(0, 3).map((rec: any) => ({
-            title: rec.title,
-            similarity: Math.round((rec.similarity_score?.total || 0) * 100),
-            matchedKeywords: rec.similarity_score?.matchedKeywords || []
-          })) || []
+          averageSimilarity: validatedInternalRecommendations.length > 0 ? 
+            Math.round((validatedInternalRecommendations.reduce((sum: number, rec: any) => 
+              sum + (rec.similarity_score?.total || rec.similarity || 0), 0) / validatedInternalRecommendations.length) * 100) : 0,
+          topMatches: validatedInternalRecommendations.slice(0, 3).map((rec: any) => ({
+            title: (rec.artwork || rec).title || '제목 없음',
+            similarity: Math.round(((rec.similarity_score?.total || rec.similarity || 0)) * 100),
+            matchedKeywords: rec.similarity_score?.matchedKeywords || rec.matchingKeywords || []
+          }))
         }
       }), {
         headers: { 'Content-Type': 'application/json' }
@@ -410,31 +471,62 @@ export class MultiImageAPI {
    */
   private async handleMockMultiImageAnalysis(userId: string, imageFiles: File[]): Promise<Response> {
     try {
+      console.log(`🎭 Mock analysis for ${imageFiles.length} images`);
+      
       // 기본 키워드 생성 (이미지 개수에 따라)
-      const commonKeywords = ['art', 'painting', 'creative', 'visual', 'aesthetic'];
-      if (imageFiles.length > 3) {
-        commonKeywords.push('collection', 'series');
-      }
-      if (imageFiles.length > 5) {
-        commonKeywords.push('portfolio', 'exhibition');
+      const commonKeywords = ['artwork', 'visual-art', 'creative', 'painting', 'aesthetic'];
+      if (imageFiles.length > 2) {
+        commonKeywords.push('collection', 'series', 'exhibition');
       }
 
       // Mock 추천 결과 생성
-      const recommendations = await mockDB.getRecommendations(commonKeywords);
+      console.log('🎯 Getting mock recommendations with keywords:', commonKeywords);
+      const mockRecommendations = await mockDB.getRecommendations(commonKeywords);
+      console.log('📊 Mock recommendations found:', mockRecommendations.length);
 
-      // 결과 반환
+      // 결제 티어 계산
+      const tier = MultiImageAnalysisService.calculatePaymentTier(imageFiles.length);
+      
+      // Mock 추천에 대해서도 이미지 URL 유효성 검증
+      console.log('🔍 Validating mock recommendation image URLs...');
+      const validatedMockRecommendations = await ImageUrlValidator.filterValidRecommendations(mockRecommendations);
+      console.log(`📊 Mock image validation complete: ${validatedMockRecommendations.length}/${mockRecommendations.length}`);
+      
+      // 정상적인 API 응답 형식에 맞춤
       return new Response(JSON.stringify({
         success: true,
-        analysisResults: {
-          imageCount: imageFiles.length,
-          commonKeywords,
-          tier: imageFiles.length <= 3 ? 'free' : imageFiles.length <= 10 ? 'standard' : 'premium',
-          totalSimilarityScore: Math.random() * 0.3 + 0.7 // 70-100%
+        imageCount: imageFiles.length,
+        tier: tier.name,
+        results: imageFiles.map((_, index) => ({
+          keywords: ['artwork', 'visual-art', 'creative'],
+          colors: ['blue', 'red'],
+          style: 'mixed',
+          mood: 'balanced',
+          confidence: 0.85,
+          embeddings: [],
+          ai_sources: {
+            clarifai: { concepts: [], colors: [] }
+          }
+        })),
+        commonKeywords: {
+          keywords: commonKeywords,
+          confidence: 0.85,
+          frequency: commonKeywords.reduce((freq, keyword) => ({ ...freq, [keyword]: 1 }), {}),
+          totalSimilarityScore: Math.round(Math.random() * 30 + 70) // 70-100%
         },
-        recommendations,
-        externalSources: [],
+        recommendations: {
+          internal: validatedMockRecommendations,
+          external: []
+        },
         processingTime: Math.random() * 2000 + 1000, // 1-3초
-        message: `${imageFiles.length}개 이미지 분석이 완료되었습니다.`
+        similarityAnalysis: {
+          averageSimilarity: Math.round(Math.random() * 30 + 70),
+          topMatches: validatedMockRecommendations.slice(0, 3).map(rec => ({
+            title: rec.artwork.title,
+            similarity: Math.round((rec.similarity || 0.8) * 100),
+            matchedKeywords: rec.matchingKeywords || commonKeywords.slice(0, 3)
+          }))
+        }
       }), {
         headers: { 'Content-Type': 'application/json' }
       });
@@ -450,4 +542,14 @@ export class MultiImageAPI {
       });
     }
   }
+}
+
+// 싱글톤 인스턴스
+let multiImageAPIInstance: MultiImageAPI | null = null;
+
+export function getMultiImageAPI(): MultiImageAPI {
+  if (!multiImageAPIInstance) {
+    multiImageAPIInstance = new MultiImageAPI();
+  }
+  return multiImageAPIInstance;
 }

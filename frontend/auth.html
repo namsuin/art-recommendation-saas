@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>로그인 & 회원가입 - AI Art Community</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .auth-transition {
+            transition: all 0.3s ease-in-out;
+        }
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full space-y-8">
+        <div class="text-center">
+            <h1 class="text-4xl font-bold text-white mb-2">AI Art Community</h1>
+            <p class="text-blue-100">예술과 AI가 만나는 특별한 공간</p>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-2xl p-8">
+            <!-- 탭 버튼 -->
+            <div class="flex mb-6 bg-gray-100 rounded-lg p-1">
+                <button 
+                    id="login-tab" 
+                    class="flex-1 py-2 px-4 rounded-md text-sm font-medium auth-transition bg-white text-blue-600 shadow-sm"
+                >
+                    로그인
+                </button>
+                <button 
+                    id="signup-tab" 
+                    class="flex-1 py-2 px-4 rounded-md text-sm font-medium auth-transition text-gray-500 hover:text-gray-700"
+                >
+                    회원가입
+                </button>
+            </div>
+
+            <!-- 로그인 폼 -->
+            <div id="login-form" class="auth-transition">
+                <form id="login-form-element" class="space-y-6">
+                    <div>
+                        <label for="login-email" class="block text-sm font-medium text-gray-700 mb-2">
+                            이메일
+                        </label>
+                        <input 
+                            id="login-email" 
+                            name="email" 
+                            type="email" 
+                            required 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="이메일을 입력하세요"
+                        >
+                    </div>
+
+                    <div>
+                        <label for="login-password" class="block text-sm font-medium text-gray-700 mb-2">
+                            비밀번호
+                        </label>
+                        <input 
+                            id="login-password" 
+                            name="password" 
+                            type="password" 
+                            required 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="비밀번호를 입력하세요"
+                        >
+                    </div>
+
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <input 
+                                id="remember-me" 
+                                name="remember-me" 
+                                type="checkbox" 
+                                class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                            >
+                            <label for="remember-me" class="ml-2 block text-sm text-gray-700">
+                                로그인 상태 유지
+                            </label>
+                        </div>
+                        <div class="text-sm">
+                            <a href="#" class="font-medium text-blue-600 hover:text-blue-500">
+                                비밀번호 찾기
+                            </a>
+                        </div>
+                    </div>
+
+                    <button 
+                        type="submit" 
+                        id="login-submit"
+                        class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 auth-transition"
+                    >
+                        로그인
+                    </button>
+                </form>
+            </div>
+
+            <!-- 회원가입 폼 -->
+            <div id="signup-form" class="auth-transition hidden">
+                <form id="signup-form-element" class="space-y-6">
+                    <div>
+                        <label for="signup-name" class="block text-sm font-medium text-gray-700 mb-2">
+                            이름
+                        </label>
+                        <input 
+                            id="signup-name" 
+                            name="displayName" 
+                            type="text" 
+                            required 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="이름을 입력하세요"
+                        >
+                    </div>
+
+                    <div>
+                        <label for="signup-email" class="block text-sm font-medium text-gray-700 mb-2">
+                            이메일
+                        </label>
+                        <input 
+                            id="signup-email" 
+                            name="email" 
+                            type="email" 
+                            required 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="이메일을 입력하세요"
+                        >
+                    </div>
+
+                    <div>
+                        <label for="signup-password" class="block text-sm font-medium text-gray-700 mb-2">
+                            비밀번호
+                        </label>
+                        <input 
+                            id="signup-password" 
+                            name="password" 
+                            type="password" 
+                            required 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="비밀번호를 입력하세요 (최소 6자)"
+                            minlength="6"
+                        >
+                    </div>
+
+                    <div>
+                        <label for="signup-confirm-password" class="block text-sm font-medium text-gray-700 mb-2">
+                            비밀번호 확인
+                        </label>
+                        <input 
+                            id="signup-confirm-password" 
+                            name="confirmPassword" 
+                            type="password" 
+                            required 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="비밀번호를 다시 입력하세요"
+                        >
+                    </div>
+
+                    <div class="flex items-center">
+                        <input 
+                            id="terms-agree" 
+                            name="terms-agree" 
+                            type="checkbox" 
+                            required
+                            class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        >
+                        <label for="terms-agree" class="ml-2 block text-sm text-gray-700">
+                            <a href="#" class="text-blue-600 hover:text-blue-500">이용약관</a> 및 
+                            <a href="#" class="text-blue-600 hover:text-blue-500">개인정보처리방침</a>에 동의합니다
+                        </label>
+                    </div>
+
+                    <button 
+                        type="submit" 
+                        id="signup-submit"
+                        class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 auth-transition"
+                    >
+                        회원가입
+                    </button>
+                </form>
+            </div>
+
+            <!-- 소셜 로그인 -->
+            <div class="mt-6">
+                <div class="relative">
+                    <div class="absolute inset-0 flex items-center">
+                        <div class="w-full border-t border-gray-300"></div>
+                    </div>
+                    <div class="relative flex justify-center text-sm">
+                        <span class="px-2 bg-white text-gray-500">또는</span>
+                    </div>
+                </div>
+
+                <div class="mt-6 grid grid-cols-2 gap-3">
+                    <button 
+                        type="button" 
+                        class="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 auth-transition"
+                    >
+                        <svg class="w-5 h-5 text-gray-400" viewBox="0 0 24 24">
+                            <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                            <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                            <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                            <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                        </svg>
+                        <span class="ml-2">Google</span>
+                    </button>
+
+                    <button 
+                        type="button" 
+                        class="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 auth-transition"
+                    >
+                        <svg class="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 5.079 3.158 9.417 7.618 11.174-.105-.949-.199-2.403.041-3.439.219-.937 1.406-5.957 1.406-5.957s-.359-.72-.359-1.781c0-1.663.967-2.911 2.168-2.911 1.024 0 1.518.769 1.518 1.688 0 1.029-.653 2.567-.992 3.992-.285 1.193.6 2.165 1.775 2.165 2.128 0 3.768-2.245 3.768-5.487 0-2.861-2.063-4.869-5.008-4.869-3.41 0-5.409 2.562-5.409 5.199 0 1.033.394 2.143.889 2.741.098.119.112.224.083.345-.09.375-.293 1.199-.334 1.363-.053.225-.172.271-.402.165-1.495-.69-2.433-2.878-2.433-4.646 0-3.776 2.748-7.252 7.92-7.252 4.158 0 7.392 2.967 7.392 6.923 0 4.135-2.607 7.462-6.233 7.462-1.214 0-2.357-.629-2.751-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146C9.57 23.812 10.763 24.009 12.017 24.009c6.624 0 11.99-5.367 11.99-11.988C24.007 5.367 18.641.001.012.001z"/>
+                        </svg>
+                        <span class="ml-2">카카오</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 홈으로 돌아가기 -->
+        <div class="text-center">
+            <a href="/" class="text-blue-100 hover:text-white text-sm auth-transition">
+                ← 홈으로 돌아가기
+            </a>
+        </div>
+    </div>
+
+    <!-- 메시지 토스트 -->
+    <div id="toast" class="fixed top-4 right-4 max-w-sm w-full bg-white rounded-lg shadow-lg p-4 transform translate-x-full transition-transform duration-300 ease-in-out z-50">
+        <div class="flex items-start">
+            <div class="flex-shrink-0">
+                <div id="toast-icon" class="w-6 h-6 rounded-full flex items-center justify-center">
+                    <!-- 아이콘이 여기에 동적으로 추가됩니다 -->
+                </div>
+            </div>
+            <div class="ml-3 w-0 flex-1">
+                <p id="toast-title" class="text-sm font-medium text-gray-900"></p>
+                <p id="toast-message" class="mt-1 text-sm text-gray-500"></p>
+            </div>
+            <div class="ml-4 flex-shrink-0 flex">
+                <button id="toast-close" class="bg-white rounded-md inline-flex text-gray-400 hover:text-gray-500 focus:outline-none">
+                    <span class="sr-only">Close</span>
+                    <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 전역 변수
+        let currentUser = null;
+
+        // DOM 요소들
+        const loginTab = document.getElementById('login-tab');
+        const signupTab = document.getElementById('signup-tab');
+        const loginForm = document.getElementById('login-form');
+        const signupForm = document.getElementById('signup-form');
+        const loginFormElement = document.getElementById('login-form-element');
+        const signupFormElement = document.getElementById('signup-form-element');
+        const toast = document.getElementById('toast');
+        const toastIcon = document.getElementById('toast-icon');
+        const toastTitle = document.getElementById('toast-title');
+        const toastMessage = document.getElementById('toast-message');
+        const toastClose = document.getElementById('toast-close');
+
+        // 탭 전환 기능
+        function switchToLogin() {
+            loginTab.classList.add('bg-white', 'text-blue-600', 'shadow-sm');
+            loginTab.classList.remove('text-gray-500');
+            signupTab.classList.remove('bg-white', 'text-blue-600', 'shadow-sm');
+            signupTab.classList.add('text-gray-500');
+            
+            loginForm.classList.remove('hidden');
+            signupForm.classList.add('hidden');
+        }
+
+        function switchToSignup() {
+            signupTab.classList.add('bg-white', 'text-blue-600', 'shadow-sm');
+            signupTab.classList.remove('text-gray-500');
+            loginTab.classList.remove('bg-white', 'text-blue-600', 'shadow-sm');
+            loginTab.classList.add('text-gray-500');
+            
+            signupForm.classList.remove('hidden');
+            loginForm.classList.add('hidden');
+        }
+
+        // 토스트 메시지 표시
+        function showToast(title, message, type = 'info') {
+            const icons = {
+                success: '✓',
+                error: '✕',
+                info: 'ℹ',
+                warning: '⚠'
+            };
+
+            const colors = {
+                success: 'bg-green-100 text-green-600',
+                error: 'bg-red-100 text-red-600',
+                info: 'bg-blue-100 text-blue-600',
+                warning: 'bg-yellow-100 text-yellow-600'
+            };
+
+            toastIcon.className = `w-6 h-6 rounded-full flex items-center justify-center ${colors[type] || colors.info}`;
+            toastIcon.textContent = icons[type] || icons.info;
+            toastTitle.textContent = title;
+            toastMessage.textContent = message;
+
+            toast.classList.remove('translate-x-full');
+            toast.classList.add('translate-x-0');
+
+            setTimeout(() => {
+                hideToast();
+            }, 5000);
+        }
+
+        function hideToast() {
+            toast.classList.remove('translate-x-0');
+            toast.classList.add('translate-x-full');
+        }
+
+        // 비밀번호 확인 검증
+        function validatePasswords() {
+            const password = document.getElementById('signup-password').value;
+            const confirmPassword = document.getElementById('signup-confirm-password').value;
+            
+            if (password !== confirmPassword) {
+                showToast('오류', '비밀번호가 일치하지 않습니다.', 'error');
+                return false;
+            }
+            return true;
+        }
+
+        // 로그인 처리
+        async function handleLogin(formData) {
+            const email = formData.get('email');
+            const password = formData.get('password');
+
+            console.log('🔐 로그인 시도:', { email, password: password ? '***' : 'empty' });
+
+            try {
+                const response = await fetch('/api/auth/signin', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email,
+                        password
+                    })
+                });
+
+                console.log('📡 서버 응답 상태:', response.status);
+                const result = await response.json();
+                console.log('📋 서버 응답 데이터:', result);
+
+                if (result.success) {
+                    showToast('성공', '로그인되었습니다!', 'success');
+                    currentUser = result.user;
+                    
+                    // 로그인 정보를 localStorage에 저장 (전체 결과 저장)
+                    const authData = {
+                        user: result.user,
+                        profile: result.profile,
+                        session: result.session,
+                        isLoggedIn: true,
+                        loginTime: Date.now()
+                    };
+                    
+                    localStorage.setItem('auth', JSON.stringify(authData));
+                    console.log('💾 인증 정보 저장됨:', authData);
+                    
+                    // 메인 페이지로 즉시 이동 (토스트와 함께)
+                    setTimeout(() => {
+                        console.log('🔄 메인 페이지로 이동 중...');
+                        window.location.href = '/';
+                    }, 1500);
+                } else {
+                    console.error('❌ 로그인 실패:', result.error);
+                    showToast('로그인 실패', result.error || '로그인에 실패했습니다.', 'error');
+                }
+            } catch (error) {
+                console.error('💥 Login error:', error);
+                showToast('오류', '로그인 중 오류가 발생했습니다.', 'error');
+            }
+        }
+
+        // 회원가입 처리
+        async function handleSignup(formData) {
+            if (!validatePasswords()) return;
+
+            const email = formData.get('email');
+            const password = formData.get('password');
+            const displayName = formData.get('displayName');
+
+            try {
+                const response = await fetch('/api/auth/signup', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email,
+                        password,
+                        displayName
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast('성공', result.message || '회원가입이 완료되었습니다!', 'success');
+                    
+                    // 회원가입 성공 후 로그인 탭으로 전환
+                    setTimeout(() => {
+                        switchToLogin();
+                        document.getElementById('login-email').value = email;
+                    }, 2000);
+                } else {
+                    showToast('회원가입 실패', result.error || '회원가입에 실패했습니다.', 'error');
+                }
+            } catch (error) {
+                console.error('Signup error:', error);
+                showToast('오류', '회원가입 중 오류가 발생했습니다.', 'error');
+            }
+        }
+
+        // 페이지 로드 시 기존 인증 데이터 정리
+        function clearOldAuthData() {
+            // 기존 'user' 키로 저장된 데이터 삭제
+            if (localStorage.getItem('user')) {
+                console.log('🧹 기존 user 데이터 정리 중...');
+                localStorage.removeItem('user');
+            }
+            
+            // 잘못된 auth 데이터 정리
+            const auth = localStorage.getItem('auth');
+            if (auth) {
+                try {
+                    const authData = JSON.parse(auth);
+                    if (!authData.isLoggedIn || !authData.user) {
+                        console.log('🧹 잘못된 auth 데이터 정리 중...');
+                        localStorage.removeItem('auth');
+                    }
+                } catch (error) {
+                    console.log('🧹 손상된 auth 데이터 정리 중...');
+                    localStorage.removeItem('auth');
+                }
+            }
+        }
+
+        // 이벤트 리스너 등록
+        document.addEventListener('DOMContentLoaded', function() {
+            // 페이지 로드 시 기존 데이터 정리
+            clearOldAuthData();
+            // 탭 전환
+            loginTab.addEventListener('click', switchToLogin);
+            signupTab.addEventListener('click', switchToSignup);
+
+            // 토스트 닫기
+            toastClose.addEventListener('click', hideToast);
+
+            // 로그인 폼 제출
+            loginFormElement.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const submitBtn = document.getElementById('login-submit');
+                submitBtn.disabled = true;
+                submitBtn.textContent = '로그인 중...';
+
+                const formData = new FormData(e.target);
+                await handleLogin(formData);
+
+                submitBtn.disabled = false;
+                submitBtn.textContent = '로그인';
+            });
+
+            // 회원가입 폼 제출
+            signupFormElement.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const submitBtn = document.getElementById('signup-submit');
+                submitBtn.disabled = true;
+                submitBtn.textContent = '가입 중...';
+
+                const formData = new FormData(e.target);
+                await handleSignup(formData);
+
+                submitBtn.disabled = false;
+                submitBtn.textContent = '회원가입';
+            });
+
+            // 비밀번호 확인 실시간 검증
+            document.getElementById('signup-confirm-password').addEventListener('input', function() {
+                const password = document.getElementById('signup-password').value;
+                const confirmPassword = this.value;
+                
+                if (confirmPassword && password !== confirmPassword) {
+                    this.classList.add('border-red-500');
+                    this.classList.remove('border-gray-300');
+                } else {
+                    this.classList.remove('border-red-500');
+                    this.classList.add('border-gray-300');
+                }
+            });
+
+            // 이미 로그인된 사용자 체크
+            const savedAuth = localStorage.getItem('auth');
+            if (savedAuth) {
+                try {
+                    const authData = JSON.parse(savedAuth);
+                    if (authData.isLoggedIn && authData.user) {
+                        currentUser = authData.user;
+                        showToast('알림', '이미 로그인되어 있습니다.', 'info');
+                        setTimeout(() => {
+                            window.location.href = '/';
+                        }, 2000);
+                    }
+                } catch (error) {
+                    localStorage.removeItem('auth');
+                }
+            }
+        });
+    </script>
+</body>
+</html>

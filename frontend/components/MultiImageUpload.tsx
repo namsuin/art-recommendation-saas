@@ -73,10 +73,14 @@ export default function MultiImageUpload({ userId, onAnalysisComplete }: MultiIm
 
   // 분석 시작
   const handleAnalyze = async () => {
-    if (!userId) {
-      setError('로그인이 필요합니다.');
-      return;
-    }
+    console.log('🔍 handleAnalyze called with:', {
+      userId: userId,
+      userIdType: typeof userId,
+      userIdIsNull: userId === null,
+      userIdIsUndefined: userId === undefined,
+      userIdIsEmptyString: userId === '',
+      imageCount: images.length
+    });
 
     if (images.length === 0) {
       setError('분석할 이미지를 업로드해주세요.');
@@ -84,8 +88,37 @@ export default function MultiImageUpload({ userId, onAnalysisComplete }: MultiIm
     }
 
     const tier = calculateTier(images.length);
+    console.log('📊 Calculated tier:', tier);
     
-    // 유료 티어인 경우 결제 필요 여부 확인
+    // 게스트 사용자 체크 - null, undefined, 빈 문자열 모두 게스트로 처리
+    if (!userId || userId.trim() === '') {
+      console.log('👤 Guest user detected');
+      if (images.length > 3) {
+        console.log('❌ Guest user with >3 images - login required');
+        setError('게스트는 최대 3장까지만 분석할 수 있습니다. 더 많은 이미지를 분석하려면 로그인해주세요.');
+        return;
+      }
+      // 3장 이하는 게스트도 분석 가능
+      console.log('✅ Guest user with ≤3 images - analysis allowed');
+      await performAnalysis();
+      return;
+    }
+    
+    // 결제 완료 여부 확인 (localStorage에서)
+    const paymentCompleted = localStorage.getItem('paymentCompleted');
+    if (paymentCompleted) {
+      const paymentData = JSON.parse(paymentCompleted);
+      const isRecentPayment = Date.now() - paymentData.timestamp < 24 * 60 * 60 * 1000; // 24시간 이내
+      
+      if (isRecentPayment && paymentData.tier === tier && paymentData.imageCount >= images.length) {
+        // 결제 완료된 상태, 분석 진행
+        localStorage.removeItem('paymentCompleted'); // 사용 후 제거
+        await performAnalysis();
+        return;
+      }
+    }
+    
+    // 로그인 사용자 - 유료 티어인 경우 결제 필요 여부 확인
     if (PRICING_TIERS[tier].price > 0) {
       setShowPaymentModal(true);
       return;
@@ -97,13 +130,27 @@ export default function MultiImageUpload({ userId, onAnalysisComplete }: MultiIm
 
   // 실제 분석 수행
   const performAnalysis = async () => {
+    console.log('🚀 performAnalysis started');
     setIsAnalyzing(true);
     setError(null);
     setAnalysisProgress({ current: 0, total: images.length });
 
     try {
       const formData = new FormData();
-      formData.append('userId', userId!);
+      // userId가 있으면 추가, 없으면 게스트로 처리
+      console.log('📤 Preparing FormData with userId:', userId, typeof userId);
+      
+      if (userId && userId.trim() !== '') {
+        console.log('📤 Adding userId to FormData:', userId);
+        formData.append('userId', userId);
+      } else {
+        console.log('📤 No userId added to FormData (guest mode)');
+      }
+      
+      console.log('📤 FormData entries before sending:');
+      for (const [key, value] of formData.entries()) {
+        console.log(`  ${key}:`, value);
+      }
       
       images.forEach((image, index) => {
         formData.append(`image${index}`, image.file);
@@ -124,6 +171,12 @@ export default function MultiImageUpload({ userId, onAnalysisComplete }: MultiIm
         });
       }, 2000); // 2초마다 진행 상황 업데이트
 
+      console.log('🚀 Sending multi-image analysis request:', {
+        imageCount: images.length,
+        userId: userId,
+        hasUserId: !!userId
+      });
+
       const response = await fetch('/api/multi-image/analyze', {
         method: 'POST',
         body: formData
@@ -133,14 +186,29 @@ export default function MultiImageUpload({ userId, onAnalysisComplete }: MultiIm
       setAnalysisProgress({ current: images.length, total: images.length });
       setCurrentAnalyzingImage(null);
 
+      console.log('📡 API Response:', {
+        status: response.status,
+        ok: response.ok,
+        statusText: response.statusText
+      });
+
       const result = await response.json();
+      console.log('📊 API Result:', result);
 
       if (!response.ok) {
+        console.error('❌ API Error:', {
+          status: response.status,
+          statusText: response.statusText,
+          result: result
+        });
         if (result.paymentRequired) {
+          console.log('💳 Payment required, showing payment modal');
           setShowPaymentModal(true);
           return;
         }
-        throw new Error(result.error || '분석에 실패했습니다.');
+        const errorMessage = result.error || '분석에 실패했습니다.';
+        console.error('❌ Setting error message:', errorMessage);
+        throw new Error(errorMessage);
       }
 
       setAnalysisResults(result);
@@ -168,6 +236,22 @@ export default function MultiImageUpload({ userId, onAnalysisComplete }: MultiIm
       <div className="bg-white rounded-lg shadow-lg p-8">
         <h2 className="text-2xl font-bold mb-6">다중 이미지 분석</h2>
         
+        {/* 게스트 모드 안내 */}
+        {!userId && (
+          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-green-800">
+                  <strong>🎉 게스트 모드:</strong> 로그인 없이도 최대 3장까지 무료로 분석할 수 있습니다!
+                </p>
+                <p className="text-xs text-green-600 mt-1">
+                  💡 4장 이상 분석하려면 로그인 후 결제가 필요합니다. 로그인하면 분석 결과도 저장됩니다.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+        
         {/* 가격 정보 */}
         <div className="mb-6 p-4 bg-blue-50 rounded-lg">
           <h3 className="font-semibold mb-2">가격 안내</h3>
@@ -175,14 +259,17 @@ export default function MultiImageUpload({ userId, onAnalysisComplete }: MultiIm
             <div className={`p-2 rounded ${currentTier === 'free' ? 'bg-blue-100 font-semibold' : ''}`}>
               <div>무료</div>
               <div className="text-gray-600">최대 3장</div>
+              {!userId && <div className="text-xs text-green-600 mt-1">게스트 가능</div>}
             </div>
             <div className={`p-2 rounded ${currentTier === 'standard' ? 'bg-blue-100 font-semibold' : ''}`}>
               <div>$5</div>
               <div className="text-gray-600">4-10장</div>
+              {!userId && <div className="text-xs text-red-600 mt-1">로그인 필요</div>}
             </div>
             <div className={`p-2 rounded ${currentTier === 'premium' ? 'bg-blue-100 font-semibold' : ''}`}>
               <div>$10</div>
               <div className="text-gray-600">11장 이상</div>
+              {!userId && <div className="text-xs text-red-600 mt-1">로그인 필요</div>}
             </div>
           </div>
         </div>
@@ -408,8 +495,51 @@ export default function MultiImageUpload({ userId, onAnalysisComplete }: MultiIm
             <div>
               <h4 className="font-semibold mb-4">추천 작품</h4>
               
+              {/* 내부 추천 작품 */}
+              {analysisResults.recommendations?.internal?.length > 0 && (
+                <div className="mb-6">
+                  <h5 className="text-sm font-medium text-gray-600 mb-3">AI 추천 작품</h5>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {analysisResults.recommendations.internal.slice(0, 8).map((artwork: any, index: number) => {
+                      const imageUrl = artwork.image_url || artwork.thumbnail_url || artwork.primaryImage || 'https://via.placeholder.com/300x300/f0f0f0/666666?text=No+Image';
+                      const sourceUrl = artwork.source_url || artwork.objectURL || artwork.eventSite;
+                      
+                      return (
+                        <div key={`internal-${index}`} className="relative group cursor-pointer">
+                          <div className="relative overflow-hidden rounded-lg">
+                            <img
+                              src={imageUrl}
+                              alt={artwork.title || '작품'}
+                              className="w-full h-32 object-cover rounded-lg transition-transform duration-200 group-hover:scale-105"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.src = 'https://via.placeholder.com/300x300/e5e7eb/6b7280?text=Image+Error';
+                              }}
+                            />
+                          </div>
+                          
+                          {/* 유사도 점수 표시 */}
+                          {(artwork.similarity_score || artwork.similarity) && (
+                            <div className="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full shadow-lg">
+                              {typeof artwork.similarity_score === 'object' 
+                                ? Math.round(artwork.similarity_score.total * 100)
+                                : Math.round((artwork.similarity_score || artwork.similarity) * 100)}%
+                            </div>
+                          )}
+                          
+                          <div className="mt-2 p-2">
+                            <p className="text-xs font-medium truncate">{artwork.title || '제목 없음'}</p>
+                            <p className="text-xs text-gray-500 truncate">{artwork.artist || artwork.artistDisplayName || '작가 미상'}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              
               {/* 갤러리 추천 (외부 플랫폼만, 학생 작품 제외) */}
-              {analysisResults.recommendations.external?.length > 0 && (
+              {analysisResults.recommendations?.external?.length > 0 && (
                 <div className="mb-6">
                   <div className="flex justify-between items-center mb-2">
                     <h5 className="text-sm font-medium text-gray-600">갤러리 추천 (외부 플랫폼)</h5>
@@ -713,6 +843,64 @@ export default function MultiImageUpload({ userId, onAnalysisComplete }: MultiIm
                       프리미엄으로 업그레이드 💎
                     </button>
                   </div>
+                </div>
+              )}
+              
+              {/* Flat array 형식 지원 (backward compatibility) */}
+              {Array.isArray(analysisResults.recommendations) && 
+               !analysisResults.recommendations.internal && 
+               !analysisResults.recommendations.external && 
+               analysisResults.recommendations.length > 0 && (
+                <div className="mb-6">
+                  <h5 className="text-sm font-medium text-gray-600 mb-3">추천 작품</h5>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {analysisResults.recommendations.slice(0, 12).map((artwork: any, index: number) => {
+                      const imageUrl = artwork.image_url || artwork.thumbnail_url || artwork.primaryImage || 'https://via.placeholder.com/300x300/f0f0f0/666666?text=No+Image';
+                      
+                      return (
+                        <div key={`flat-${index}`} className="relative group cursor-pointer">
+                          <div className="relative overflow-hidden rounded-lg">
+                            <img
+                              src={imageUrl}
+                              alt={artwork.title || '작품'}
+                              className="w-full h-32 object-cover rounded-lg transition-transform duration-200 group-hover:scale-105"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.src = 'https://via.placeholder.com/300x300/e5e7eb/6b7280?text=Image+Error';
+                              }}
+                            />
+                          </div>
+                          
+                          {/* 유사도 점수 표시 */}
+                          {(artwork.similarity_score || artwork.similarity) && (
+                            <div className="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full shadow-lg">
+                              {typeof artwork.similarity_score === 'object' 
+                                ? Math.round(artwork.similarity_score.total * 100)
+                                : Math.round((artwork.similarity_score || artwork.similarity) * 100)}%
+                            </div>
+                          )}
+                          
+                          <div className="mt-2 p-2">
+                            <p className="text-xs font-medium truncate">{artwork.title || '제목 없음'}</p>
+                            <p className="text-xs text-gray-500 truncate">{artwork.artist || artwork.artistDisplayName || '작가 미상'}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              
+              {/* 추천 작품이 전혀 없는 경우 */}
+              {(!analysisResults.recommendations || 
+                (typeof analysisResults.recommendations === 'object' && 
+                 (!analysisResults.recommendations.internal || analysisResults.recommendations.internal.length === 0) &&
+                 (!analysisResults.recommendations.external || analysisResults.recommendations.external.length === 0)) ||
+                (Array.isArray(analysisResults.recommendations) && analysisResults.recommendations.length === 0)) && (
+                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <p className="text-sm text-yellow-800">
+                    추천 작품을 찾을 수 없습니다. 다른 이미지로 다시 시도해보세요.
+                  </p>
                 </div>
               )}
             </div>

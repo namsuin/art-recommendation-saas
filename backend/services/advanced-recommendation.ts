@@ -496,6 +496,13 @@ export class AdvancedRecommendationService {
     const seen = new Set<string>();
     const unique = recommendations.filter(rec => {
       if (seen.has(rec.artworkId)) return false;
+      
+      // Filter out Bluethumb artworks
+      if (this.isBluethumbArtwork(rec)) {
+        console.log(`🚫 Filtering out Bluethumb artwork from advanced recommendations: ${rec.artworkId}`);
+        return false;
+      }
+      
       seen.add(rec.artworkId);
       return true;
     });
@@ -748,5 +755,25 @@ export class AdvancedRecommendationService {
         }
       ]
     };
+  }
+
+  private isBluethumbArtwork(recommendation: SmartRecommendation): boolean {
+    const rec = recommendation;
+    
+    // Check various fields that might contain Bluethumb references
+    const isBluethumb = 
+      // Check artwork ID patterns
+      (rec.artworkId && rec.artworkId.toString().includes('bluethumb')) ||
+      // Check artwork URL or source URL patterns (if available in metadata)
+      (rec.metadata && rec.metadata.source_url && rec.metadata.source_url.includes('bluethumb.com.au')) ||
+      (rec.metadata && rec.metadata.url && rec.metadata.url.includes('bluethumb.com.au')) ||
+      (rec.metadata && rec.metadata.image_url && rec.metadata.image_url.includes('bluethumb.com.au')) ||
+      // Check source/platform fields in metadata
+      (rec.metadata && rec.metadata.source && rec.metadata.source.toLowerCase().includes('bluethumb')) ||
+      (rec.metadata && rec.metadata.platform && rec.metadata.platform.toLowerCase().includes('bluethumb')) ||
+      // Check any Bluethumb reference in explanation
+      (rec.explanation && rec.explanation.toLowerCase().includes('bluethumb'));
+    
+    return isBluethumb;
   }
 }

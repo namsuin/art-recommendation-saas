@@ -1,5 +1,6 @@
 import { supabase } from '../services/supabase';
 import { EmailService } from '../services/email';
+import { StripeService } from '../services/stripe';
 
 export class PurchaseAPI {
   
@@ -483,5 +484,131 @@ export class PurchaseAPI {
     `;
 
     await EmailService.sendEmail(email, subject, htmlContent);
+  }
+
+  // HTTP 요청 핸들러
+  static async handleRequest(req: Request): Promise<Response> {
+    const url = new URL(req.url);
+    const pathname = url.pathname.replace('/api/purchase/', '');
+    const method = req.method;
+
+    try {
+      if (pathname === 'create-payment-intent' && method === 'POST') {
+        return this.handleCreatePaymentIntent(req);
+      }
+
+      if (pathname === 'confirm-payment' && method === 'POST') {
+        return this.handleConfirmPayment(req);
+      }
+
+      // 기존 구매 요청 관련 라우팅도 여기에 추가할 수 있습니다
+      
+      return new Response(JSON.stringify({ error: 'Not found' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+    } catch (error) {
+      console.error('Purchase API error:', error);
+      return new Response(JSON.stringify({ 
+        error: 'Internal server error' 
+      }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+  }
+
+  // 다중 이미지 분석을 위한 결제 Intent 생성
+  static async handleCreatePaymentIntent(req: Request): Promise<Response> {
+    try {
+      const { tier, imageCount, amount, userId } = await req.json();
+
+      if (!tier || !imageCount || !amount) {
+        return new Response(JSON.stringify({
+          error: '필수 매개변수가 누락되었습니다.'
+        }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      const result = await StripeService.createMultiImagePaymentIntent(
+        userId || null,
+        tier,
+        imageCount,
+        amount
+      );
+
+      if (!result.success) {
+        return new Response(JSON.stringify({
+          error: result.error
+        }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      return new Response(JSON.stringify({
+        clientSecret: result.clientSecret,
+        paymentIntentId: result.paymentIntentId
+      }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+    } catch (error) {
+      console.error('Create payment intent error:', error);
+      return new Response(JSON.stringify({
+        error: '결제 생성에 실패했습니다.'
+      }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+  }
+
+  // 결제 확인
+  static async handleConfirmPayment(req: Request): Promise<Response> {
+    try {
+      const { paymentIntentId } = await req.json();
+
+      if (!paymentIntentId) {
+        return new Response(JSON.stringify({
+          error: 'Payment Intent ID가 필요합니다.'
+        }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      const result = await StripeService.confirmMultiImagePayment(paymentIntentId);
+
+      if (!result.success) {
+        return new Response(JSON.stringify({
+          error: result.error
+        }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      return new Response(JSON.stringify({
+        status: result.status,
+        metadata: result.metadata
+      }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+    } catch (error) {
+      console.error('Confirm payment error:', error);
+      return new Response(JSON.stringify({
+        error: '결제 확인에 실패했습니다.'
+      }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
   }
 }

@@ -4,12 +4,12 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "bun scripts/dev-check.ts && bun --hot backend/index.ts",
-    "dev:unsafe": "bun --hot backend/index.ts",
+    "dev": "bun scripts/dev-check.ts && bun --hot server.ts",
+    "start": "bun server.ts",
     "build": "bun build frontend/index.html --outdir dist --minify",
     "test": "bun test",
-    "start": "bun backend/index.ts",
-    "env:check": "bun scripts/dev-check.ts"
+    "env:check": "bun scripts/dev-check.ts",
+    "legacy:complex": "bun --hot backend/index.ts"
   },
   "dependencies": {
     "@google-cloud/vision": "^4.3.2",
@@ -29,11 +29,12 @@
     "stripe": "^18.4.0"
   },
   "devDependencies": {
+    "@tailwindcss/typography": "^0.5.16",
     "@types/bun": "latest",
-    "typescript": "^5.8.3",
-    "tailwindcss": "^3.4.14",
-    "autoprefixer": "^10.4.20",
-    "postcss": "^8.5.1"
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.11",
+    "typescript": "^5.8.3"
   },
   "peerDependencies": {
     "typescript": "^5"

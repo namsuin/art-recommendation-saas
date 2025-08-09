@@ -247,7 +247,14 @@ export class MetMuseumAPI {
       return this.formatArtwork(artwork);
 
     } catch (error) {
-      console.warn(`Failed to get artwork ${objectID}:`, error);
+      // 기술 부채 해결: 404 에러를 덜 verbose하게 처리
+      if (error?.response?.status === 404) {
+        console.debug(`🔍 Artwork ${objectID} not found (404) - skipping`);
+      } else if (error?.code === 'ERR_BAD_REQUEST' && error?.response?.status === 404) {
+        console.debug(`🔍 Artwork ${objectID} unavailable - skipping`);
+      } else {
+        console.warn(`Failed to get artwork ${objectID}:`, error?.message || error);
+      }
       return null;
     }
   }

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Image Generator</title>
+</head>
+<body>
+    <h1>테스트 이미지 생성</h1>
+    <canvas id="canvas" width="400" height="300" style="border: 1px solid #ccc;"></canvas>
+    <br><br>
+    <button onclick="generateArt()">테스트 이미지 생성</button>
+    <button onclick="downloadImage()">이미지 다운로드</button>
+    
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        function generateArt() {
+            // 배경 그라디언트
+            const gradient = ctx.createLinearGradient(0, 0, 400, 300);
+            gradient.addColorStop(0, '#FF6B6B');
+            gradient.addColorStop(0.5, '#4ECDC4');
+            gradient.addColorStop(1, '#45B7D1');
+            
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, 400, 300);
+            
+            // 추상적인 형태들 추가
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+            ctx.beginPath();
+            ctx.arc(100, 100, 50, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.fillStyle = 'rgba(255, 193, 7, 0.8)';
+            ctx.fillRect(200, 50, 80, 80);
+            
+            ctx.fillStyle = 'rgba(156, 39, 176, 0.6)';
+            ctx.beginPath();
+            ctx.moveTo(300, 200);
+            ctx.lineTo(350, 250);
+            ctx.lineTo(250, 250);
+            ctx.closePath();
+            ctx.fill();
+            
+            console.log('✅ 테스트 이미지 생성 완료');
+        }
+        
+        function downloadImage() {
+            const link = document.createElement('a');
+            link.download = 'test-art.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+        
+        // 페이지 로드 시 이미지 자동 생성
+        window.onload = generateArt;
+    </script>
+</body>
+</html>

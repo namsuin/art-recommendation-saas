@@ -12,7 +12,7 @@ interface ImageAnalysisResult {
 }
 
 interface MultiImageAnalysisOptions {
-  userId: string;
+  userId: string | null;
   analysisType: 'batch' | 'progressive';
   findCommonKeywords: boolean;
 }
@@ -76,20 +76,43 @@ export class MultiImageAnalysisService {
   /**
    * 사용자의 다중 이미지 분석 권한 확인
    */
-  async checkAnalysisPermission(userId: string, imageCount: number): Promise<{
+  async checkAnalysisPermission(userId: string | null, imageCount: number): Promise<{
     canAnalyze: boolean;
     paymentRequired: boolean;
     tier: PaymentTier;
     error?: string;
   }> {
+    // 빈 문자열도 null로 처리
+    const normalizedUserId = userId && userId.trim() !== '' ? userId : null;
+    
+    console.log('🔍 Checking analysis permission...');
+    console.log('📋 Original userId:', userId, typeof userId);
+    console.log('📋 Normalized userId:', normalizedUserId, typeof normalizedUserId);
+    console.log('📋 imageCount:', imageCount);
+    console.log('📋 Is guest user?', normalizedUserId === null);
+    
     const tier = MultiImageAnalysisService.calculatePaymentTier(imageCount);
+    console.log('📊 Calculated tier:', tier);
 
-    // 무료 티어인 경우
+    // 무료 티어인 경우 (3장 이하) - 로그인 여부와 관계없이 허용
     if (tier.price === 0) {
+      console.log('✅ Free tier (≤3 images): Analysis allowed for guest user');
+      console.log('🔑 User status:', normalizedUserId === null ? 'GUEST' : 'LOGGED_IN');
       return {
         canAnalyze: true,
         paymentRequired: false,
         tier
+      };
+    }
+
+    // 게스트 사용자는 3장 초과 시에만 로그인 필요
+    if (!normalizedUserId) {
+      console.log('❌ Guest user with >3 images: Login required');
+      return {
+        canAnalyze: false,
+        paymentRequired: true,
+        tier,
+        error: '3장 초과 분석은 로그인이 필요합니다.'
       };
     }
 
@@ -258,9 +281,18 @@ export class MultiImageAnalysisService {
     const startTime = Date.now();
 
     try {
+      // userId 정규화 (빈 문자열도 null로 처리)
+      const normalizedUserId = options.userId && options.userId.trim() !== '' ? options.userId : null;
+      console.log('📋 analyzeMultipleImages - Original userId:', options.userId);
+      console.log('📋 analyzeMultipleImages - Normalized userId:', normalizedUserId);
+      console.log('📋 analyzeMultipleImages - Image count:', imageBuffers.length);
+      
       // 권한 확인
-      const permission = await this.checkAnalysisPermission(options.userId, imageBuffers.length);
+      const permission = await this.checkAnalysisPermission(normalizedUserId, imageBuffers.length);
+      console.log('📋 Permission check result:', permission);
+      
       if (!permission.canAnalyze) {
+        console.log('❌ Analysis not allowed:', permission);
         return {
           success: false,
           error: permission.paymentRequired 
@@ -281,7 +313,7 @@ export class MultiImageAnalysisService {
           // AI 분석 실행
           const analysisResult = await this.aiService.analyzeImageAndRecommend(
             buffer,
-            options.userId,
+            normalizedUserId || undefined,
             undefined, // tasteGroupId
             5 // 개별 이미지당 추천 수 제한
           );
@@ -293,7 +325,7 @@ export class MultiImageAnalysisService {
             await supabase
               .from('multi_image_analysis_progress')
               .upsert({
-                user_id: options.userId,
+                user_id: normalizedUserId,
                 batch_id: `batch_${Date.now()}`,
                 image_index: i,
                 analysis_result: analysisResult.analysis,
@@ -363,7 +395,7 @@ export class MultiImageAnalysisService {
         const { error: saveError } = await supabase
           .from('multi_image_analyses')
           .insert({
-            user_id: options.userId,
+            user_id: normalizedUserId,
             image_count: imageBuffers.length,
             individual_results: results,
             common_keywords: commonKeywords,
@@ -373,7 +405,12 @@ export class MultiImageAnalysisService {
           });
 
         if (saveError) {
-          console.error('Failed to save analysis results:', saveError);
+          // 기술 부채 해결: DB 저장 실패를 치명적이지 않은 경고로 처리
+          if (saveError.code === 'PGRST204') {
+            console.warn('📊 DB schema outdated - analysis results not saved (non-critical)');
+          } else {
+            console.warn('Failed to save analysis results (non-critical):', saveError.message);
+          }
         }
       }
 
@@ -402,12 +439,12 @@ export class MultiImageAnalysisService {
     try {
       // 1. 확장된 아트 검색 서비스를 통해 다양한 소스에서 검색 (한국 창작 플랫폼 완전 제거)
       const expandedResults = await this.expandedSearchService.searchAllSources(keywords, {
-        sources: ['met', 'chicago', 'rijksmuseum', 'korea', 'korean-cultural', 'artsonia', 'academy-art', 'bluethumb', 'degreeart', 'sva-bfa'], 
+        sources: ['met', 'chicago', 'rijksmuseum', 'korea', 'korean-cultural', 'artsonia', 'academy-art', 'degreeart', 'sva-bfa'], 
         // NOTE: 'korean-creative' 완전 제거됨 - 한국 대학교 졸업전시 데이터 생성 방지
         limit: Math.floor(limit / 2), // 절반은 확장 소스에서
         includeKorean: true, // 한국문화정보원만 포함 (문화재 데이터)
         includeStudentArt: true, // 해외 학생 작품 포함 (Academy of Art University, SVA BFA)
-        includeInternational: true // 국제 플랫폼 포함 (Bluethumb, DegreeArt)
+        includeInternational: true // 국제 플랫폼 포함 (DegreeArt)
       });
 
       let allArtworks: any[] = [];
@@ -415,9 +452,24 @@ export class MultiImageAnalysisService {
       // 확장 검색 결과를 통합 (텀블벅 필터링)
       if (expandedResults.success) {
         expandedResults.results.forEach(result => {
+          
+          // 🔍 LOGGING: Check source for university data BEFORE filtering
+          const universityArtworks = result.artworks.filter((artwork: any) => 
+            artwork.source_url && artwork.source_url.includes('.ac.kr')
+          );
+          
+          if (universityArtworks.length > 0) {
+            console.log(`🚨 FOUND UNIVERSITY DATA from ${result.source}:`, universityArtworks.map((a: any) => ({
+              title: a.title,
+              source_url: a.source_url,
+              source: a.source,
+              platform: a.platform
+            })));
+          }
+          
           const sourceArtworks = result.artworks
             .filter(artwork => {
-              // 텀블벅, 그라폴리오, 국내 대학교 관련 데이터 완전 제거
+              // 텀블벅, 그라폴리오, Bluethumb, 국내 대학교 관련 데이터 완전 제거
               const isTumblbug = artwork.platform === 'tumblbug' || 
                                 artwork.source === '텀블벅' || 
                                 artwork.search_source === '텀블벅' ||
@@ -427,6 +479,16 @@ export class MultiImageAnalysisService {
                                artwork.source === '그라폴리오' || 
                                artwork.search_source === '그라폴리오' ||
                                (artwork.source_url && artwork.source_url.includes('grafolio.naver.com'));
+              
+              // Bluethumb 필터링 추가
+              const isBluethumb = (artwork.image_url && artwork.image_url.includes('bluethumb.com.au')) ||
+                                 (artwork.source_url && artwork.source_url.includes('bluethumb.com.au')) ||
+                                 (artwork.url && artwork.url.includes('bluethumb.com.au')) ||
+                                 (artwork.source && artwork.source.toLowerCase().includes('bluethumb')) ||
+                                 (artwork.platform && artwork.platform.toLowerCase().includes('bluethumb')) ||
+                                 (artwork.marketplace && artwork.marketplace.toLowerCase().includes('bluethumb')) ||
+                                 (artwork.id && artwork.id.toString().includes('bluethumb')) ||
+                                 (artwork.search_source && artwork.search_source.toLowerCase().includes('bluethumb'));
               
               // 국내 대학교 필터링 강화
               const isKoreanUniversity = artwork.platform === 'university' ||
@@ -457,7 +519,16 @@ export class MultiImageAnalysisService {
                                           artwork.title.includes('졸업전시')
                                         ));
               
-              return !isTumblbug && !isGrafolio && !isKoreanUniversity;
+              // 🔍 LOGGING: Log when filtered data is found
+              if (isKoreanUniversity && artwork.source_url && artwork.source_url.includes('.ac.kr')) {
+                console.log(`🚫 FILTERING OUT UNIVERSITY DATA: ${artwork.title} from ${artwork.source_url}`);
+              }
+              
+              if (isBluethumb) {
+                console.log(`🚫 FILTERING OUT BLUETHUMB ARTWORK: ${artwork.title} (${artwork.id || 'no-id'})`);
+              }
+              
+              return !isTumblbug && !isGrafolio && !isBluethumb && !isKoreanUniversity;
             })
             .map(artwork => ({
               ...artwork,
@@ -470,8 +541,38 @@ export class MultiImageAnalysisService {
         });
       }
 
-      // 2. 기존 Supabase 데이터베이스에서도 검색 (호환성 유지)
+      // 2. 등록된 작품 검색 (우선순위 높음)
       if (supabase) {
+        try {
+          const { data: registeredArtworks, error: registeredError } = await supabase
+            .from('registered_artworks')
+            .select('*')
+            .eq('status', 'approved')
+            .overlaps('keywords', keywords.slice(0, 5))
+            .limit(Math.floor(limit / 3)); // 1/3은 등록된 작품
+
+          if (!registeredError && registeredArtworks) {
+            const formattedRegisteredArtworks = registeredArtworks.map(artwork => ({
+              ...artwork,
+              source_type: 'registered',
+              search_source: 'Art Recommendation SaaS',
+              similarity: this.calculateKeywordSimilarity(keywords, artwork.keywords || []),
+              reasoning: ['등록된 작품', ...keywords.slice(0, 3)],
+              artist: artwork.artist_name,
+              artistDisplayName: artwork.artist_name,
+              image_url: artwork.image_url,
+              thumbnail_url: artwork.image_url,
+              source_url: `/artwork/${artwork.id}`,
+              platform: 'registered_artworks'
+            }));
+            allArtworks.push(...formattedRegisteredArtworks);
+            console.log(`📋 Found ${registeredArtworks.length} registered artworks`);
+          }
+        } catch (error) {
+          console.error('Error fetching registered artworks:', error);
+        }
+
+        // 3. 기존 Supabase 데이터베이스에서도 검색 (호환성 유지)
         try {
           const { data: dbArtworks, error } = await supabase
             .from('artworks')
@@ -483,7 +584,7 @@ export class MultiImageAnalysisService {
           if (!error && dbArtworks) {
             const dbArtworksWithMeta = dbArtworks
               .filter(artwork => {
-                // 데이터베이스에서도 텀블벅, 그라폴리오, 국내 대학교 관련 데이터 완전 제거
+                // 데이터베이스에서도 텀블벅, 그라폴리오, Bluethumb, 국내 대학교 관련 데이터 완전 제거
                 const isTumblbug = artwork.platform === 'tumblbug' || 
                                   artwork.source === '텀블벅' || 
                                   artwork.search_source === '텀블벅' ||
@@ -493,6 +594,16 @@ export class MultiImageAnalysisService {
                                  artwork.source === '그라폴리오' || 
                                  artwork.search_source === '그라폴리오' ||
                                  (artwork.source_url && artwork.source_url.includes('grafolio.naver.com'));
+                
+                // Bluethumb 필터링 추가 (데이터베이스용)
+                const isBluethumb = (artwork.image_url && artwork.image_url.includes('bluethumb.com.au')) ||
+                                   (artwork.source_url && artwork.source_url.includes('bluethumb.com.au')) ||
+                                   (artwork.url && artwork.url.includes('bluethumb.com.au')) ||
+                                   (artwork.source && artwork.source.toLowerCase().includes('bluethumb')) ||
+                                   (artwork.platform && artwork.platform.toLowerCase().includes('bluethumb')) ||
+                                   (artwork.marketplace && artwork.marketplace.toLowerCase().includes('bluethumb')) ||
+                                   (artwork.id && artwork.id.toString().includes('bluethumb')) ||
+                                   (artwork.search_source && artwork.search_source.toLowerCase().includes('bluethumb'));
                 
                 // 국내 대학교 완전 제거
                 const isKoreanUniversity = artwork.platform === 'university' ||
@@ -523,7 +634,12 @@ export class MultiImageAnalysisService {
                                             artwork.title.includes('졸업전시')
                                           ));
                 
-                return !isTumblbug && !isGrafolio && !isKoreanUniversity;
+                // 🔍 LOGGING: Log when Bluethumb data is filtered out from database
+                if (isBluethumb) {
+                  console.log(`🚫 FILTERING OUT BLUETHUMB FROM DB: ${artwork.title} (${artwork.id || 'no-id'})`);
+                }
+                
+                return !isTumblbug && !isGrafolio && !isBluethumb && !isKoreanUniversity;
               })
               .map(artwork => ({
                 ...artwork,
