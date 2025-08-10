@@ -11,10 +11,14 @@ export class AuthAPI {
     displayName?: string, 
     role?: UserRole,
     additionalInfo?: {
+      artistName?: string;
       artistBio?: string;
       portfolioUrl?: string;
-      instagramUrl?: string;
       websiteUrl?: string;
+      experience?: string;
+      specialties?: string[];
+      instagramUrl?: string;
+      twitterUrl?: string;
     }
   ) {
     try {
@@ -66,8 +70,14 @@ export class AuthAPI {
 
         // 예술가 추가 정보
         if (role === 'artist' && additionalInfo) {
+          profileData.artist_name = additionalInfo.artistName;
           profileData.artist_bio = additionalInfo.artistBio;
           profileData.artist_portfolio_url = additionalInfo.portfolioUrl;
+          profileData.artist_website_url = additionalInfo.websiteUrl;
+          profileData.artist_experience = additionalInfo.experience;
+          profileData.artist_specialties = additionalInfo.specialties;
+          profileData.artist_instagram = additionalInfo.instagramUrl;
+          profileData.artist_twitter = additionalInfo.twitterUrl;
           profileData.artist_verified = false; // 초기에는 미인증 상태
         }
 
@@ -86,11 +96,15 @@ export class AuthAPI {
             .insert({
               user_id: data.user.id,
               real_name: displayName || email.split('@')[0],
+              artist_name: additionalInfo?.artistName,
               email: email,
               portfolio_url: additionalInfo?.portfolioUrl,
               instagram_url: additionalInfo?.instagramUrl,
+              twitter_url: additionalInfo?.twitterUrl,
               website_url: additionalInfo?.websiteUrl,
               artist_statement: additionalInfo?.artistBio,
+              experience: additionalInfo?.experience,
+              specialties: additionalInfo?.specialties,
               status: 'pending'
             });
 
@@ -562,16 +576,58 @@ export class AuthAPI {
 
     if (url.pathname === '/api/auth/signup' && method === 'POST') {
       try {
-        const body = await req.json();
+        const contentType = req.headers.get('content-type');
+        let body: any;
+        
+        // FormData와 JSON 모두 지원
+        if (contentType?.includes('multipart/form-data')) {
+          // FormData 처리 (예술가 회원가입용)
+          const formData = await req.formData();
+          body = {
+            email: formData.get('email'),
+            password: formData.get('password'),
+            displayName: formData.get('displayName'),
+            role: formData.get('role') || 'user',
+            artistName: formData.get('artistName'),
+            artistBio: formData.get('bio'),
+            portfolioUrl: formData.get('portfolioUrl'),
+            website: formData.get('website'),
+            experience: formData.get('experience'),
+            specialties: formData.get('specialties') ? JSON.parse(formData.get('specialties') as string) : []
+          };
+          
+          // 소셜 미디어 정보 파싱
+          const socialMedia = formData.get('socialMedia');
+          if (socialMedia) {
+            const social = JSON.parse(socialMedia as string);
+            body.instagramUrl = social.instagram;
+            body.twitterUrl = social.twitter;
+          }
+          
+          // 프로필 이미지 처리 (향후 구현)
+          const profileImage = formData.get('profileImage');
+          if (profileImage && profileImage instanceof File) {
+            // TODO: 이미지 업로드 처리
+            console.log('Profile image received:', profileImage.name);
+          }
+        } else {
+          // JSON 처리 (기존 방식)
+          body = await req.json();
+        }
+        
         const { 
           email, 
           password, 
           displayName, 
           role = 'user',
+          artistName,
           artistBio,
           portfolioUrl,
+          website,
+          experience,
+          specialties,
           instagramUrl,
-          websiteUrl
+          twitterUrl
         } = body;
 
         const result = await AuthAPI.signUp(
@@ -581,9 +637,13 @@ export class AuthAPI {
           role as UserRole,
           {
             artistBio,
+            artistName,
             portfolioUrl,
+            websiteUrl: website,
+            experience,
+            specialties,
             instagramUrl,
-            websiteUrl
+            twitterUrl
           }
         );
 
@@ -592,6 +652,7 @@ export class AuthAPI {
           headers: { 'Content-Type': 'application/json' }
         });
       } catch (error) {
+        console.error('Signup request error:', error);
         return new Response(JSON.stringify({
           success: false,
           error: '회원가입 요청 처리 실패'
@@ -602,7 +663,7 @@ export class AuthAPI {
       }
     }
 
-    if (url.pathname === '/api/auth/login' && method === 'POST') {
+    if ((url.pathname === '/api/auth/login' || url.pathname === '/api/auth/signin') && method === 'POST') {
       try {
         const { email, password } = await req.json();
         const result = await AuthAPI.signIn(email, password);

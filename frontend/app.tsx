@@ -2,14 +2,13 @@ import React, { useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { AuthModal } from './components/AuthModal';
+import { ProfileModal } from './components/ProfileModal';
 import { UserProfileMenu } from './components/UserProfile';
 import { ImageUploadWithAuth } from './components/ImageUploadWithAuth';
 import MultiImageUpload from './components/MultiImageUpload';
-import { AIArtGenerator } from './components/AIArtGenerator';
-import { PersonalizedRecommendations } from './components/PersonalizedRecommendations';
-import { AICuratorChatbot } from './components/AICuratorChatbot';
 import { ImageAnalysisDisplay } from './components/ImageAnalysisDisplay';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import './styles/global.css';
 
 const AppContent: React.FC = () => {
   // AuthProvider에서 제공하는 useAuth 훅 사용
@@ -31,9 +30,9 @@ const AppContent: React.FC = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [recommendations, setRecommendations] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<'single' | 'multi' | 'ai-generator' | 'personalized'>('single');
-  const [chatbotOpen, setChatbotOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<'single' | 'multi' | 'personalized'>('single');
   const [analysisResult, setAnalysisResult] = useState<any>(null);
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
 
   const handleAuthSuccess = async (email: string, password: string, displayName?: string) => {
     const result = authMode === 'login' 
@@ -56,10 +55,16 @@ const AppContent: React.FC = () => {
   // 로딩 상태 표시
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">로딩 중...</p>
+      <div className="min-h-screen flex items-center justify-center" style={{background: 'var(--gradient-sunrise)'}}>
+        <div className="text-center relative">
+          <div className="relative w-20 h-20 mx-auto mb-4">
+            <div className="absolute inset-0 rounded-full loading-soft" style={{background: 'var(--gradient-peach)'}}></div>
+            <div className="absolute inset-2 rounded-full bg-white"></div>
+            <div className="absolute inset-4 rounded-full" style={{background: 'var(--gradient-lavender)', animation: 'spin 2s linear infinite'}}></div>
+          </div>
+          <div className="decoration-blob blob-pink w-16 h-16 absolute -top-8 -left-8"></div>
+          <div className="decoration-blob blob-lavender w-12 h-12 absolute -bottom-6 -right-6"></div>
+          <p className="heading-elegant font-medium">로딩 중...</p>
         </div>
       </div>
     );
@@ -68,21 +73,23 @@ const AppContent: React.FC = () => {
   // 세션 만료 알림
   if (sessionExpired) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="bg-white rounded-lg shadow-lg p-8 max-w-md mx-4 text-center">
-          <div className="mb-4">
-            <div className="mx-auto w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
-              <span className="text-yellow-600 text-xl">⏰</span>
+      <div className="min-h-screen flex items-center justify-center p-4" style={{background: 'var(--gradient-peach)'}}>
+        <div className="card-modern max-w-md w-full text-center relative">
+          <div className="decoration-blob blob-peach w-20 h-20 absolute -top-10 -right-10"></div>
+          <div className="decoration-blob blob-lavender w-16 h-16 absolute -bottom-8 -left-8"></div>
+          <div className="mb-6">
+            <div className="mx-auto w-16 h-16 rounded-full flex items-center justify-center" style={{background: 'var(--gradient-lavender)', boxShadow: '0 8px 25px rgba(212, 165, 165, 0.3)'}}>
+              <span className="text-2xl">⏰</span>
             </div>
           </div>
-          <h2 className="text-xl font-semibold text-gray-800 mb-2">세션이 만료되었습니다</h2>
-          <p className="text-gray-600 mb-6">1시간 동안 활동이 없어 자동으로 로그아웃되었습니다.</p>
+          <h2 className="text-2xl font-bold heading-gradient mb-3">세션이 만료되었습니다</h2>
+          <p className="mb-8" style={{color: 'var(--text-secondary)'}}>1시간 동안 활동이 없어 자동으로 로그아웃되었습니다.</p>
           <button
             onClick={() => {
               setAuthMode('login');
               setAuthModalOpen(true);
             }}
-            className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
+            className="btn-soft btn-primary-soft w-full hover-lift"
           >
             다시 로그인
           </button>
@@ -172,167 +179,126 @@ const AppContent: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="container mx-auto px-4 py-4">
+    <div className="min-h-screen" style={{background: 'var(--gradient-sunrise)'}}>
+      <div className="decoration-blob blob-pink w-32 h-32 fixed top-10 right-10"></div>
+      <div className="decoration-blob blob-lavender w-24 h-24 fixed bottom-20 left-10"></div>
+      <div className="decoration-blob blob-peach w-20 h-20 fixed top-1/2 left-1/4"></div>
+      
+      {/* Header - Clean & Minimal */}
+      <header className="nav-elegant sticky top-0 z-40">
+        <div className="container mx-auto px-4 py-3 md:py-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-gray-800">
-              AI Art Recommendation
+            <div className="flex-1"></div>
+            <h1 className="text-xl md:text-3xl font-bold heading-elegant heading-gradient text-center flex-1">
+              My Art Taste
             </h1>
-            
-            <div className="flex items-center space-x-4">
-              {/* AI Curator Chatbot Button */}
+            <div className="flex-1 flex justify-end">
               <button
-                onClick={() => setChatbotOpen(true)}
-                className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-4 py-2 rounded-full hover:from-purple-700 hover:to-blue-700 transition-all flex items-center space-x-2"
+                onClick={() => {
+                  if (user) {
+                    setProfileModalOpen(true);
+                  } else {
+                    setAuthMode('login');
+                    setAuthModalOpen(true);
+                  }
+                }}
+                className="btn-soft btn-secondary-soft px-3 md:px-4 py-2 text-sm hover-lift flex items-center gap-2"
               >
-                <span>🎨</span>
-                <span className="font-medium">AI 큐레이터</span>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                <span className="hidden sm:inline">내 계정</span>
               </button>
-
-              {user ? (
-                <UserProfileMenu 
-                  user={user} 
-                  profile={userProfile} 
-                  onSignOut={handleSignOut}
-                />
-              ) : (
-                <div className="space-x-2">
-                  <button
-                    onClick={() => {
-                      setAuthMode('login');
-                      setAuthModalOpen(true);
-                    }}
-                    className="text-gray-600 hover:text-gray-800 px-3 py-2"
-                  >
-                    로그인
-                  </button>
-                  <button
-                    onClick={() => {
-                      setAuthMode('signup');
-                      setAuthModalOpen(true);
-                    }}
-                    className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md"
-                  >
-                    회원가입
-                  </button>
-                </div>
-              )}
             </div>
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto space-y-8">
-          {/* Mode Selector */}
-          <div className="bg-white rounded-lg shadow-lg p-4">
-            <div className="flex items-center justify-center space-x-2 flex-wrap gap-2">
+      {/* Main Content - Mobile First */}
+      <main className="container mx-auto px-4 py-4 md:py-8 pb-20 md:pb-8">
+        <div className="max-w-4xl mx-auto space-y-4 md:space-y-8">
+          {/* Mode Selector - Mobile Optimized */}
+          <div className="card-modern fade-in">
+            <div className="grid grid-cols-2 md:flex md:items-center md:justify-center gap-2 md:gap-3">
               <button
                 onClick={() => setViewMode('single')}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                className={`btn-soft px-3 md:px-6 py-3 font-medium transition-all duration-300 transform active:scale-95 hover-lift ${
                   viewMode === 'single' 
-                    ? 'bg-blue-600 text-white' 
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    ? 'btn-primary-soft' 
+                    : 'btn-secondary-soft'
                 }`}
               >
-                단일 이미지 분석
+                <span className="block md:hidden">🖼️ 1장</span>
+                <span className="hidden md:block">1장 이미지 분석</span>
               </button>
               <button
                 onClick={() => setViewMode('multi')}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                className={`btn-soft px-3 md:px-6 py-3 font-medium transition-all duration-300 transform active:scale-95 hover-lift ${
                   viewMode === 'multi' 
-                    ? 'bg-blue-600 text-white' 
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    ? 'btn-primary-soft' 
+                    : 'btn-secondary-soft'
                 }`}
               >
-                다중 이미지 분석
-              </button>
-              <button
-                onClick={() => setViewMode('ai-generator')}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                  viewMode === 'ai-generator' 
-                    ? 'bg-purple-600 text-white' 
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
-              >
-                🎨 AI 아트 생성기
-              </button>
-              <button
-                onClick={() => setViewMode('personalized')}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                  viewMode === 'personalized' 
-                    ? 'bg-green-600 text-white' 
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
-              >
-                🤖 AI 개인화 추천
+                <span className="block md:hidden">🎨 여러장</span>
+                <span className="hidden md:block">여러장 이미지 분석</span>
               </button>
             </div>
           </div>
 
-          {/* Single Image Upload */}
+          {/* Single Image Upload - Mobile Optimized */}
           {viewMode === 'single' && (
-            <div className="bg-white rounded-lg shadow-lg p-6">
-              <h2 className="text-xl font-semibold mb-4">이미지 업로드</h2>
-              <ImageUploadWithAuth 
-                user={user}
-                onImageUpload={handleImageUpload}
-                onAuthRequired={() => {
-                  setAuthMode('login');
-                  setAuthModalOpen(true);
-                }}
-              />
+            <div className="card-modern fade-in">
+              <h2 className="text-lg md:text-xl font-bold heading-elegant heading-gradient mb-4">이미지 업로드</h2>
+              <div className="upload-area-aesthetic">
+                <ImageUploadWithAuth 
+                  user={user}
+                  onImageUpload={handleImageUpload}
+                  onAuthRequired={() => {
+                    setAuthMode('login');
+                    setAuthModalOpen(true);
+                  }}
+                />
+              </div>
             </div>
           )}
 
-          {/* Multi Image Upload */}
+          {/* Multi Image Upload - Mobile Optimized */}
           {viewMode === 'multi' && (
-            (() => {
-              const finalUserId = user?.id && user.id.trim() !== '' ? user.id : null;
-              console.log('🔍 App.tsx - Passing userId to MultiImageUpload:', {
-                user: user,
-                'user?.id': user?.id,
-                finalUserId: finalUserId
-              });
-              return (
-                <MultiImageUpload
-                  userId={finalUserId}
-                  onAnalysisComplete={(results) => {
-                    console.log('Multi-image analysis complete:', results);
-                    // 결과 처리 로직 추가 가능
-                  }}
-                />
-              );
-            })()
+            <div className="fade-in">
+              {(() => {
+                const finalUserId = user?.id && user.id.trim() !== '' ? user.id : null;
+                console.log('🔍 App.tsx - Passing userId to MultiImageUpload:', {
+                  user: user,
+                  'user?.id': user?.id,
+                  finalUserId: finalUserId
+                });
+                return (
+                  <MultiImageUpload
+                    userId={finalUserId}
+                    onAnalysisComplete={(results) => {
+                      console.log('Multi-image analysis complete:', results);
+                      // 결과 처리 로직 추가 가능
+                    }}
+                  />
+                );
+              })()}
+            </div>
           )}
 
-          {/* AI Art Generator */}
-          {viewMode === 'ai-generator' && (
-            <AIArtGenerator
-              userId={user?.id || null}
-              isPremium={userProfile?.subscription_tier === 'premium'}
-            />
-          )}
 
-          {/* Personalized Recommendations */}
-          {viewMode === 'personalized' && (
-            <PersonalizedRecommendations
-              userId={user?.id || null}
-            />
-          )}
 
           {viewMode === 'single' && uploadedImage && (
-            <div className="bg-white rounded-lg shadow-lg p-6">
-              <h2 className="text-xl font-semibold mb-4">업로드된 이미지</h2>
-              <img
-                src={uploadedImage}
-                alt="Uploaded"
-                className="max-w-full h-auto rounded-lg mx-auto"
-                style={{ maxHeight: '400px' }}
-              />
+            <div className="card-modern fade-in hover-lift">
+              <h2 className="text-lg md:text-xl font-bold heading-elegant heading-gradient mb-4">업로드된 이미지</h2>
+              <div className="relative overflow-hidden rounded-2xl instagram-border">
+                <img
+                  src={uploadedImage}
+                  alt="Uploaded"
+                  className="w-full h-auto object-cover"
+                  style={{ maxHeight: '400px' }}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none"></div>
+              </div>
             </div>
           )}
 
@@ -345,31 +311,40 @@ const AppContent: React.FC = () => {
           )}
 
           {viewMode === 'single' && error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <p className="text-red-600">⚠️ {error}</p>
+            <div className="card-modern p-4 fade-in" style={{background: 'linear-gradient(135deg, rgba(255, 224, 236, 0.3), rgba(255, 182, 193, 0.2))', border: '1px solid var(--dusty-rose)'}}>
+              <p className="flex items-center gap-2" style={{color: 'var(--dusty-rose)'}}>
+                <span className="text-xl">⚠️</span>
+                <span>{error}</span>
+              </p>
             </div>
           )}
 
           {viewMode === 'single' && isAnalyzing && (
-            <div className="bg-white rounded-lg shadow-lg p-6 text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-              <p className="text-gray-600">AI가 이미지를 분석하고 있습니다...</p>
+            <div className="card-modern text-center fade-in relative">
+              <div className="decoration-blob blob-pink w-12 h-12 absolute -top-6 -right-6"></div>
+              <div className="decoration-blob blob-lavender w-10 h-10 absolute -bottom-4 -left-4"></div>
+              <div className="relative w-16 h-16 mx-auto mb-4">
+                <div className="absolute inset-0 rounded-full loading-soft" style={{background: 'var(--gradient-peach)'}}></div>
+                <div className="absolute inset-2 rounded-full bg-white"></div>
+                <div className="absolute inset-4 rounded-full" style={{background: 'var(--gradient-lavender)', animation: 'spin 2s linear infinite'}}></div>
+              </div>
+              <p className="heading-elegant font-medium">AI가 이미지를 분석하고 있습니다...</p>
             </div>
           )}
 
           {viewMode === 'single' && recommendations.length > 0 && (
-            <div className="bg-white rounded-lg shadow-lg p-6">
-              <h2 className="text-xl font-semibold mb-4">추천 작품</h2>
+            <div className="card-modern fade-in">
+              <h2 className="text-lg md:text-xl font-bold heading-elegant heading-gradient mb-6">추천 작품</h2>
               
               {/* 외부 플랫폼 갤러리 추천 (무료 10개 제한) */}
               <div className="mb-8">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-medium text-gray-700">갤러리 추천 (외부 플랫폼)</h3>
-                  <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-6">
+                  <h3 className="text-base md:text-lg heading-elegant font-semibold">갤러리 추천 (외부 플랫폼)</h3>
+                  <span className="tag-pill tag-rose">
                     무료 10개 / 추가는 유료
                   </span>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid-pinterest">
                   {recommendations
                     .filter((rec) => {
                       // 텀블벅, 그라폴리오, 대학 졸업작품, 학생 작품 필터링
@@ -433,38 +408,43 @@ const AppContent: React.FC = () => {
                   return (
                     <div 
                       key={artwork.id || `${title}-${index}`} 
-                      className="border rounded-lg p-4 hover:shadow-md transition-all duration-200 cursor-pointer group"
+                      className="card-modern grid-item group cursor-pointer hover-lift"
                       onClick={() => handleRecommendationClick(rec)}
                     >
-                      <div className="relative overflow-hidden rounded mb-3">
-                        <img
-                          src={imageUrl}
-                          alt={title}
-                          className="w-full h-48 object-cover rounded transition-transform duration-200 group-hover:scale-105"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            if (!target.dataset.retried) {
-                              target.dataset.retried = 'true';
-                              // 2차 폴백 시도
-                              target.src = artwork.thumbnail_url || artwork.primaryImageSmall || 'https://via.placeholder.com/300x300/e5e7eb/6b7280?text=Image+Unavailable';
-                            } else {
-                              // 최종 폴백
-                              target.src = 'https://via.placeholder.com/300x300/e5e7eb/6b7280?text=Image+Error';
-                            }
-                          }}
-                          onLoad={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.style.opacity = '1';
-                          }}
-                          style={{ opacity: '0', transition: 'opacity 0.3s ease' }}
-                        />
+                      <div className="relative overflow-hidden rounded-xl mb-4">
+                        <div className="aspect-w-16 aspect-h-12">
+                          <img
+                            src={imageUrl}
+                            alt={title}
+                            className="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-110"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              if (!target.dataset.retried) {
+                                target.dataset.retried = 'true';
+                                // 2차 폴백 시도
+                                target.src = artwork.thumbnail_url || artwork.primaryImageSmall || 'https://via.placeholder.com/300x300/e5e7eb/6b7280?text=Image+Unavailable';
+                              } else {
+                                // 최종 폴백
+                                target.src = 'https://via.placeholder.com/300x300/e5e7eb/6b7280?text=Image+Error';
+                              }
+                            }}
+                            onLoad={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.opacity = '1';
+                            }}
+                            style={{ opacity: '0', transition: 'opacity 0.3s ease' }}
+                          />
+                        </div>
                         {/* 로딩 상태 표시 */}
-                        <div className="absolute inset-0 bg-gray-200 animate-pulse rounded" style={{ zIndex: -1 }}></div>
+                        <div className="absolute inset-0 skeleton rounded-xl" style={{ zIndex: -1 }}></div>
+                        
+                        {/* 그라디언트 오버레이 */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                         
                         {/* 외부 링크 아이콘 */}
                         {sourceUrl !== '#' && (
-                          <div className="absolute top-2 right-2 bg-black bg-opacity-50 text-white p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <div className="absolute top-3 right-3 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:scale-110">
+                            <svg className="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                             </svg>
                           </div>
@@ -472,30 +452,38 @@ const AppContent: React.FC = () => {
                       </div>
                       
                       <div className="space-y-2">
-                        <h3 className="font-semibold text-gray-800 line-clamp-2" title={title}>
+                        <h3 className="font-bold heading-elegant line-clamp-2 transition-colors" style={{color: 'var(--text-primary)'}} title={title}>
                           {title}
                         </h3>
-                        <p className="text-sm text-gray-600 line-clamp-1" title={artist}>
+                        <p className="text-sm line-clamp-1" style={{color: 'var(--text-secondary)'}} title={artist}>
                           {artist}
                         </p>
                         
-                        <div className="flex items-center justify-between">
-                          <p className="text-xs text-gray-500">
-                            유사도: {Math.round((rec.similarity || rec.similarity_score?.total || 0) * 100)}%
-                          </p>
-                          <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded" title={source}>
+                        <div className="flex items-center justify-between pt-2">
+                          <div className="flex items-center gap-1">
+                            <div className="w-full rounded-full h-1.5 w-20" style={{background: 'var(--soft-gray)'}}>
+                              <div 
+                                className="h-1.5 rounded-full transition-all duration-500"
+                                style={{ width: `${Math.round((rec.similarity || rec.similarity_score?.total || 0) * 100)}%`, background: 'var(--gradient-peach)' }}
+                              ></div>
+                            </div>
+                            <span className="text-xs" style={{color: 'var(--text-secondary)'}}>
+                              {Math.round((rec.similarity || rec.similarity_score?.total || 0) * 100)}%
+                            </span>
+                          </div>
+                          <span className="tag-pill tag-sage text-xs" title={source}>
                             {source}
                           </span>
                         </div>
                         
                         {rec.reasons && rec.reasons.length > 0 && (
-                          <p className="text-xs text-gray-400 line-clamp-1">
+                          <p className="text-xs line-clamp-1" style={{color: 'var(--text-secondary)', opacity: 0.7}}>
                             {rec.reasons[0]}
                           </p>
                         )}
                         
                         {artwork.price && (
-                          <p className="text-sm font-medium text-green-600">
+                          <p className="text-sm font-medium" style={{color: 'var(--sage-green)'}}>
                             ₩{artwork.price.toLocaleString()}
                           </p>
                         )}
@@ -507,7 +495,7 @@ const AppContent: React.FC = () => {
                               e.stopPropagation();
                               window.open(sourceUrl, '_blank', 'noopener,noreferrer');
                             }}
-                            className="w-full mt-2 bg-blue-50 hover:bg-blue-100 text-blue-600 py-2 px-3 rounded text-sm font-medium transition-colors"
+                            className="btn-soft btn-secondary-soft w-full mt-2 py-2 px-3 text-sm font-medium hover-lift"
                           >
                             원본 보기
                           </button>
@@ -530,12 +518,12 @@ const AppContent: React.FC = () => {
               }).length > 0 && (
                 <div className="mb-8">
                   <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-medium text-gray-700">학생 작품 추천</h3>
-                    <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
+                    <h3 className="text-lg font-medium heading-elegant">학생 작품 추천</h3>
+                    <span className="badge-cute" style={{background: 'var(--gradient-sage)', color: 'var(--sage-green)'}}>
                       🎓 교육적 목적
                     </span>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="grid-pinterest">
                     {recommendations
                       .filter((rec) => {
                         const artwork = rec.artwork || rec;
@@ -557,7 +545,8 @@ const AppContent: React.FC = () => {
                       return (
                         <div 
                           key={artwork.id || `${title}-${index}`} 
-                          className="border-2 border-green-100 rounded-lg p-4 hover:shadow-md transition-all duration-200 cursor-pointer group"
+                          className="card-modern grid-item p-4 cursor-pointer group hover-lift"
+                          style={{border: '2px solid var(--sage-green)', borderOpacity: 0.3}}
                           onClick={() => handleRecommendationClick(rec)}
                         >
                           <div className="relative overflow-hidden rounded mb-3">
@@ -584,7 +573,7 @@ const AppContent: React.FC = () => {
                             <div className="absolute inset-0 bg-gray-200 animate-pulse rounded" style={{ zIndex: -1 }}></div>
                             
                             {/* 학생 작품 배지 */}
-                            <div className="absolute top-2 left-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full">
+                            <div className="absolute top-2 left-2 badge-cute text-xs px-2 py-1" style={{background: 'var(--gradient-sage)', color: 'white'}}>
                               🎓 학생
                             </div>
 
@@ -599,30 +588,30 @@ const AppContent: React.FC = () => {
                           </div>
                           
                           <div className="space-y-2">
-                            <h3 className="font-semibold text-gray-800 line-clamp-2" title={title}>
+                            <h3 className="font-semibold heading-elegant line-clamp-2" title={title}>
                               {title}
                             </h3>
-                            <p className="text-sm text-gray-600 line-clamp-1" title={artist}>
+                            <p className="text-sm line-clamp-1" style={{color: 'var(--text-secondary)'}} title={artist}>
                               {artist}
                             </p>
                             
                             <div className="flex items-center justify-between">
-                              <p className="text-xs text-gray-500">
+                              <p className="text-xs" style={{color: 'var(--text-secondary)'}}>
                                 유사도: {Math.round((rec.similarity || rec.similarity_score?.total || 0) * 100)}%
                               </p>
-                              <span className="text-xs bg-green-100 text-green-600 px-2 py-1 rounded" title={source}>
+                              <span className="tag-pill tag-sage text-xs" title={source}>
                                 {source}
                               </span>
                             </div>
                             
                             {artwork.school && (
-                              <p className="text-xs text-green-600">
+                              <p className="text-xs" style={{color: 'var(--sage-green)'}}>
                                 {artwork.school} {artwork.academic_level && `- ${artwork.academic_level}`}
                               </p>
                             )}
                             
                             {rec.reasons && rec.reasons.length > 0 && (
-                              <p className="text-xs text-gray-400 line-clamp-1">
+                              <p className="text-xs line-clamp-1" style={{color: 'var(--text-secondary)', opacity: 0.7}}>
                                 {rec.reasons[0]}
                               </p>
                             )}
@@ -634,7 +623,7 @@ const AppContent: React.FC = () => {
                                   e.stopPropagation();
                                   window.open(sourceUrl, '_blank', 'noopener,noreferrer');
                                 }}
-                                className="w-full mt-2 bg-green-50 hover:bg-green-100 text-green-600 py-2 px-3 rounded text-sm font-medium transition-colors"
+                                className="btn-soft w-full mt-2 py-2 px-3 text-sm font-medium hover-lift" style={{background: 'var(--gradient-sage)', color: 'var(--sage-green)'}}
                               >
                                 원본 보기
                               </button>
@@ -644,7 +633,7 @@ const AppContent: React.FC = () => {
                       );
                     })}
                   </div>
-                  <div className="mt-2 text-xs text-gray-500 text-center">
+                  <div className="mt-2 text-xs text-center" style={{color: 'var(--text-secondary)'}}>
                     💡 학생 작품은 교육적 목적으로 표시되며, 작가의 성장과 발전을 지원합니다.
                   </div>
                 </div>
@@ -693,23 +682,22 @@ const AppContent: React.FC = () => {
                 return !isTumblbug && !isGrafolio && !isKoreanUniversity && !isStudentWork;
               }).length > 10 && (
                 <div className="text-center">
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <h4 className="font-semibold text-blue-800 mb-2">더 많은 추천 작품 보기</h4>
-                    <p className="text-sm text-blue-600 mb-3">
+                  <div className="card-modern p-4" style={{background: 'var(--gradient-lavender)', border: '1px solid var(--soft-lavender)'}}>
+                    <h4 className="font-semibold heading-elegant heading-gradient mb-2">더 많은 추천 작품 보기</h4>
+                    <p className="text-sm mb-3" style={{color: 'var(--text-secondary)'}}>
                       추가 {recommendations.length - 10}개의 작품을 확인하려면 프리미엄 플랜이 필요합니다.
                     </p>
                     <button
                       onClick={() => {
                         window.location.href = '/pricing';
                       }}
-                      className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                      className="btn-soft btn-primary-soft px-4 py-2 text-sm font-medium hover-lift"
                     >
                       프리미엄으로 업그레이드 💎
                     </button>
                   </div>
                 </div>
               )}
-              </div>
             </div>
           )}
         </div>
@@ -724,12 +712,41 @@ const AppContent: React.FC = () => {
         onSwitchMode={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')}
       />
 
-      {/* AI Curator Chatbot */}
-      <AICuratorChatbot
-        userId={user?.id || null}
-        isOpen={chatbotOpen}
-        onClose={() => setChatbotOpen(false)}
+
+      {/* Profile Modal */}
+      <ProfileModal
+        isOpen={profileModalOpen}
+        onClose={() => setProfileModalOpen(false)}
+        user={user}
+        userProfile={userProfile}
+        onSignOut={handleSignOut}
       />
+
+      {/* Mobile Bottom Navigation */}
+      <nav className="nav-mobile-elegant">
+        <div className="flex items-center justify-center h-16">
+          <button
+            onClick={() => setViewMode('single')}
+            className={`nav-mobile-item-elegant flex flex-col items-center justify-center flex-1 ${viewMode === 'single' ? 'active' : ''}`}
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <span className="text-xs mt-1">1장 분석</span>
+          </button>
+          
+          <button
+            onClick={() => setViewMode('multi')}
+            className={`nav-mobile-item-elegant flex flex-col items-center justify-center flex-1 ${viewMode === 'multi' ? 'active' : ''}`}
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+            </svg>
+            <span className="text-xs mt-1">여러장 분석</span>
+          </button>
+        </div>
+      </nav>
+
     </div>
   );
 };

@@ -352,47 +352,10 @@ export class AIAnalysisService {
         };
       });
 
-      // 6. Search local database for additional results
+      // 6. Local database search removed - only use real museum APIs
+      // 데모 데이터 제거로 인해 Local Database 검색 비활성화
       let localRecommendations: Recommendation[] = [];
-      
-      if (supabase) {
-        try {
-          const { data: artworks, error } = await supabase
-            .from('artworks')
-            .select('*')
-            .overlaps('keywords', keywords)
-            .eq('available', true)
-            .limit(Math.ceil(limit * 0.3));
-
-          if (!error && artworks) {
-            localRecommendations = artworks.map(artwork => {
-              const similarity = this.calculateKeywordSimilarity(keywords, artwork.keywords);
-              
-              const reasons = [
-                `Curated collection match`,
-                `Similar artistic themes`
-              ];
-
-              return {
-                artwork: {
-                  ...artwork,
-                  embeddings: undefined,
-                  metadata: {
-                    ...artwork.metadata,
-                    source: 'Local Database'
-                  }
-                },
-                similarity,
-                reasons,
-                confidence: similarity * 0.7
-              };
-            });
-            console.log(`📚 Found ${localRecommendations.length} local artworks`);
-          }
-        } catch (localError) {
-          console.warn('Local search failed, using Met Museum only:', localError);
-        }
-      }
+      console.log(`📚 Local database search disabled (demo data removed)`);
 
       // 7. Combine all recommendations from all sources
       const allRecommendations = [
@@ -450,39 +413,32 @@ export class AIAnalysisService {
   }
 
   private async getFallbackRecommendations(limit: number): Promise<Recommendation[]> {
-    if (!supabase) {
-      // Return mock data if Supabase is not configured
-      return this.getMockRecommendations(limit);
-    }
-
+    // Local Database 제거로 인해 Met Museum의 인기 작품 사용
     try {
-      // Get random popular artworks as fallback
-      const { data: artworks, error } = await supabase
-        .from('artworks')
-        .select('*')
-        .eq('available', true)
-        .order('created_at', { ascending: false })
-        .limit(limit);
-
-      if (error || !artworks) {
-        return [];
-      }
-
-      const recommendations = artworks.map(artwork => ({
+      console.log('🏛️ Using Met Museum highlights as fallback');
+      
+      // Met Museum의 하이라이트 작품들 검색
+      const popularKeywords = ['masterpiece', 'famous', 'highlight', 'collection'];
+      const metResults = await this.metMuseumAPI.searchByKeywords(popularKeywords, limit);
+      
+      const recommendations: Recommendation[] = metResults.map(artwork => ({
         artwork: {
           ...artwork,
-          embeddings: undefined
+          metadata: {
+            ...artwork.metadata,
+            source: 'Met Museum'
+          }
         },
         similarity: 0.3,
-        reasons: ['Popular artwork', 'Recently added'],
+        reasons: ['Museum highlight', 'Popular masterpiece'],
         confidence: 0.3
       }));
 
-      // Filter out Bluethumb artworks
-      return this.filterOutBluethumb(recommendations);
+      return recommendations;
 
     } catch (error) {
       console.error('Fallback recommendations failed:', error);
+      // 완전 실패 시 빈 배열 반환
       return [];
     }
   }
@@ -608,54 +564,11 @@ export class AIAnalysisService {
     return this.aiEnsemble.testAllServices();
   }
 
-  // Mock recommendations for when database is not available
+  // Mock recommendations 제거 - 데모 데이터 사용 안 함
   private getMockRecommendations(limit: number): Recommendation[] {
-    const mockArtworks = [
-      {
-        id: '1',
-        title: '모나리자',
-        artist: '레오나르도 다 빈치',
-        image_url: 'https://via.placeholder.com/300x300?text=Mona+Lisa',
-        keywords: ['portrait', 'renaissance', 'classical'],
-        available: true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      },
-      {
-        id: '2',
-        title: '별이 빛나는 밤',
-        artist: '빈센트 반 고흐',
-        image_url: 'https://via.placeholder.com/300x300?text=Starry+Night',
-        keywords: ['landscape', 'post-impressionism', 'night'],
-        available: true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      },
-      {
-        id: '3',
-        title: '진주 귀걸이를 한 소녀',
-        artist: '요하네스 베르메르',
-        image_url: 'https://via.placeholder.com/300x300?text=Girl+with+Pearl',
-        keywords: ['portrait', 'baroque', 'dutch'],
-        available: true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }
-    ];
-
-    return mockArtworks.slice(0, limit).map((artwork, index) => ({
-      artwork: {
-        ...artwork,
-        thumbnail_url: artwork.image_url,
-        description: `Mock artwork for demonstration`,
-        embeddings: undefined,
-        price: null,
-        admin_user_id: null
-      },
-      similarity: 0.5 + (index * 0.1),
-      reasons: ['Demo recommendation', 'Database not configured'],
-      confidence: 0.3
-    }));
+    // 데모 데이터 제거 - 빈 배열 반환
+    console.log('📭 Mock recommendations disabled (demo data removed)');
+    return [];
   }
 
   /**
@@ -733,6 +646,19 @@ export class AIAnalysisService {
       
       if (isBluethumb) {
         console.log(`🚫 Filtering out Bluethumb artwork: ${artwork.title} (${artwork.id})`);
+        return false;
+      }
+      
+      // Filter out Unknown Artist from Local Database
+      const isLocalUnknown = 
+        (artwork.metadata?.source === 'Local Database' && 
+         (artwork.artist === 'Unknown Artist' || 
+          artwork.artist === 'Unknown Creator' ||
+          artwork.artist === 'Unknown' ||
+          !artwork.artist));
+      
+      if (isLocalUnknown) {
+        console.log(`🚫 Filtering out Local Database Unknown Artist: ${artwork.title} (${artwork.id})`);
         return false;
       }
       

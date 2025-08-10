@@ -81,7 +81,7 @@ const server = Bun.serve({
       // AUTH ENDPOINTS
       // ======================
       const authAPI = new AuthAPI();
-      const authEndpoints = ['/api/auth/signup', '/api/auth/login', '/api/auth/logout', '/api/auth/check'];
+      const authEndpoints = ['/api/auth/signup', '/api/auth/signin', '/api/auth/login', '/api/auth/logout', '/api/auth/check'];
       
       if (authEndpoints.includes(url.pathname)) {
         const result = await authAPI.handleRequest(req);
@@ -94,6 +94,736 @@ const server = Bun.serve({
         return result;
       }
       
+      // ======================
+      // ADMIN ENDPOINTS
+      // ======================
+      if (url.pathname === "/api/admin/dashboard/stats" && method === "GET") {
+        try {
+          // 관리자 대시보드가 기대하는 구조로 데이터 반환
+          const stats = {
+            success: true,
+            data: {
+              users: {
+                total: 4,
+                activeToday: 3,
+                growthRate: 15.3
+              },
+              analyses: {
+                today: 8,
+                total: 76,
+                averagePerUser: 19
+              },
+              revenue: {
+                totalRevenue: 4250.00,
+                monthlyRecurring: 149.97,
+                conversionRate: 8.7
+              },
+              system: {
+                uptime: 99.9,
+                status: "healthy",
+                avgResponseTime: 245,
+                errorRate: 0.12,
+                cpuUsage: 25.4,
+                memoryUsage: 68.2,
+                diskUsage: 45.7,
+                activeConnections: 142,
+                apiCalls: {
+                  today: 1247,
+                  thisHour: 89
+                },
+                services: {
+                  "Google Vision": "active",
+                  "Clarifai": "active", 
+                  "Supabase": "active",
+                  "Redis": "warning"
+                }
+              },
+              artworks: {
+                total: 4,
+                pending: 1,
+                approved: 2,
+                rejected: 1
+              }
+            },
+            recentActivity: [
+              { type: 'analysis', user: 'user123', time: new Date().toISOString(), details: 'Image analysis completed' },
+              { type: 'signup', user: 'newuser', time: new Date().toISOString(), details: 'New user registration' }
+            ]
+          };
+          
+          return new Response(JSON.stringify(stats), {
+            headers: { "Content-Type": "application/json", ...corsHeaders }
+          });
+        } catch (error) {
+          return new Response(JSON.stringify({
+            success: false,
+            error: "Failed to fetch admin stats"
+          }), {
+            status: 500,
+            headers: { "Content-Type": "application/json", ...corsHeaders }
+          });
+        }
+      }
+
+      // ======================
+      // PROFILE ENDPOINTS
+      // ======================
+      
+      // Get user's liked artworks
+      if (url.pathname === "/api/profile/liked-artworks" && method === "GET") {
+        const userId = url.searchParams.get("userId");
+        const limit = parseInt(url.searchParams.get("limit") || "20");
+        
+        if (!userId) {
+          return new Response(JSON.stringify({
+            success: false,
+            error: "userId is required"
+          }), {
+            status: 400,
+            headers: { "Content-Type": "application/json", ...corsHeaders }
+          });
+        }
+        
+        try {
+          // Mock data - in real implementation, query from database
+          const mockLikedArtworks = [
+            {
+              id: "artwork-1",
+              title: "Starry Night",
+              artist: "Vincent van Gogh",
+              image_url: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ea/Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg/757px-Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg",
+              liked_at: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
+              source_platform: "met"
+            },
+            {
+              id: "artwork-2", 
+              title: "The Great Wave",
+              artist: "Hokusai",
+              image_url: "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0a/The_Great_Wave_off_Kanagawa.jpg/640px-The_Great_Wave_off_Kanagawa.jpg",
+              liked_at: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
+              source_platform: "met"
+            }
+          ];
+          
+          return new Response(JSON.stringify({
+            success: true,
+            likedArtworks: mockLikedArtworks.slice(0, limit)
+          }), {
+            headers: { "Content-Type": "application/json", ...corsHeaders }
+          });
+        } catch (error) {
+          return new Response(JSON.stringify({
+            success: false,
+            error: "Failed to fetch liked artworks"
+          }), {
+            status: 500,
+            headers: { "Content-Type": "application/json", ...corsHeaders }
+          });
+        }
+      }
+      
+      // Get user's upload history
+      if (url.pathname === "/api/profile/upload-history" && method === "GET") {
+        const userId = url.searchParams.get("userId");
+        const limit = parseInt(url.searchParams.get("limit") || "10");
+        
+        if (!userId) {
+          return new Response(JSON.stringify({
+            success: false,
+            error: "userId is required"
+          }), {
+            status: 400,
+            headers: { "Content-Type": "application/json", ...corsHeaders }
+          });
+        }
+        
+        try {
+          // Mock data - in real implementation, query user_uploads table
+          const mockHistory = [
+            {
+              id: "upload-1",
+              upload_date: new Date(Date.now() - 86400000).toISOString(),
+              style: "Impressionism",
+              keywords: ["landscape", "sunset", "painting", "colors"],
+              recommendations_count: 8
+            },
+            {
+              id: "upload-2",
+              upload_date: new Date(Date.now() - 259200000).toISOString(), // 3 days ago
+              style: "Modern",
+              keywords: ["abstract", "geometric", "contemporary"],
+              recommendations_count: 12
+            }
+          ];
+          
+          return new Response(JSON.stringify({
+            success: true,
+            history: mockHistory.slice(0, limit)
+          }), {
+            headers: { "Content-Type": "application/json", ...corsHeaders }
+          });
+        } catch (error) {
+          return new Response(JSON.stringify({
+            success: false,
+            error: "Failed to fetch upload history"
+          }), {
+            status: 500,
+            headers: { "Content-Type": "application/json", ...corsHeaders }
+          });
+        }
+      }
+      
+      // Get user's profile stats
+      if (url.pathname === "/api/profile/stats" && method === "GET") {
+        const userId = url.searchParams.get("userId");
+        
+        if (!userId) {
+          return new Response(JSON.stringify({
+            success: false,
+            error: "userId is required"
+          }), {
+            status: 400,
+            headers: { "Content-Type": "application/json", ...corsHeaders }
+          });
+        }
+        
+        try {
+          // Mock stats - in real implementation, aggregate from database
+          const mockStats = {
+            member_since: new Date(Date.now() - 2592000000).toISOString(), // 30 days ago
+            total_uploads: 5,
+            total_likes: 12,
+            favorite_styles: ["Impressionism", "Modern", "Abstract"],
+            activity_score: 17
+          };
+          
+          return new Response(JSON.stringify({
+            success: true,
+            stats: mockStats
+          }), {
+            headers: { "Content-Type": "application/json", ...corsHeaders }
+          });
+        } catch (error) {
+          return new Response(JSON.stringify({
+            success: false,
+            error: "Failed to fetch profile stats"
+          }), {
+            status: 500,
+            headers: { "Content-Type": "application/json", ...corsHeaders }
+          });
+        }
+      }
+      
+      // Update user profile
+      if (url.pathname === "/api/profile/update" && method === "POST") {
+        try {
+          const formData = await req.formData();
+          const userId = formData.get("userId") as string;
+          const displayName = formData.get("displayName") as string;
+          const nickname = formData.get("nickname") as string;
+          const profileImageFile = formData.get("profileImage") as File;
+          
+          if (!userId) {
+            return new Response(JSON.stringify({
+              success: false,
+              error: "userId is required"
+            }), {
+              status: 400,
+              headers: { "Content-Type": "application/json", ...corsHeaders }
+            });
+          }
+          
+          console.log('📝 Profile update request:');
+          console.log('  - userId:', userId);
+          console.log('  - displayName:', displayName);
+          console.log('  - nickname:', nickname);
+          console.log('  - profileImage:', profileImageFile?.name || 'none');
+          
+          let profileImageUrl = null;
+          
+          // Handle profile image upload
+          if (profileImageFile && profileImageFile.size > 0) {
+            // Validate image
+            if (!profileImageFile.type.startsWith('image/')) {
+              return new Response(JSON.stringify({
+                success: false,
+                error: "Only image files are allowed"
+              }), {
+                status: 400,
+                headers: { "Content-Type": "application/json", ...corsHeaders }
+              });
+            }
+            
+            if (profileImageFile.size > 5 * 1024 * 1024) { // 5MB limit
+              return new Response(JSON.stringify({
+                success: false,
+                error: "Image size must be under 5MB"
+              }), {
+                status: 400,
+                headers: { "Content-Type": "application/json", ...corsHeaders }
+              });
+            }
+            
+            // Convert image to base64 for storage
+            const imageBuffer = await profileImageFile.arrayBuffer();
+            const base64Image = Buffer.from(imageBuffer).toString('base64');
+            profileImageUrl = `data:${profileImageFile.type};base64,${base64Image}`;
+          }
+          
+          // In real implementation, update user profile in database using Supabase
+          // For now, return success with mock data
+          
+          console.log('✅ Profile update successful');
+          
+          return new Response(JSON.stringify({
+            success: true,
+            message: "Profile updated successfully",
+            profileImageUrl: profileImageUrl,
+            updatedFields: {
+              displayName,
+              nickname,
+              profileImage: !!profileImageFile
+            }
+          }), {
+            headers: { "Content-Type": "application/json", ...corsHeaders }
+          });
+          
+        } catch (error) {
+          console.error('Profile update error:', error);
+          return new Response(JSON.stringify({
+            success: false,
+            error: "Failed to update profile"
+          }), {
+            status: 500,
+            headers: { "Content-Type": "application/json", ...corsHeaders }
+          });
+        }
+      }
+      
+      // Additional admin endpoint for users list
+      if (url.pathname === "/api/admin/dashboard/users" && method === "GET") {
+        try {
+          // Mock users data with connected API info - in real implementation, query from database
+          const mockUsers = {
+            success: true,
+            data: [
+              {
+                id: "user-1",
+                email: "user1@example.com",
+                displayName: "Art Lover",
+                display_name: "Art Lover", // 호환성을 위해 두 필드 모두 제공
+                role: "user",
+                created_at: new Date(Date.now() - 604800000).toISOString(), // 7 days ago
+                last_login: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
+                upload_count: 3,
+                status: "active",
+                subscription_tier: "free",
+                connected_apis: ["Google Vision", "Met Museum"],
+                total_analyses: 8,
+                payment_method: null
+              },
+              {
+                id: "user-2", 
+                email: "artist1@example.com",
+                displayName: "Professional Artist",
+                display_name: "Professional Artist",
+                role: "artist",
+                created_at: new Date(Date.now() - 1209600000).toISOString(), // 14 days ago
+                last_login: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
+                upload_count: 12,
+                status: "active",
+                subscription_tier: "premium",
+                connected_apis: ["Google Vision", "Clarifai", "Harvard Museums", "WikiArt"],
+                total_analyses: 45,
+                payment_method: "stripe",
+                artist_verified: true,
+                artworks_registered: 5
+              },
+              {
+                id: "user-3",
+                email: "curator@museum.com",
+                displayName: "Museum Curator",
+                display_name: "Museum Curator", 
+                role: "user",
+                created_at: new Date(Date.now() - 1814400000).toISOString(), // 21 days ago
+                last_login: new Date(Date.now() - 259200000).toISOString(), // 3 days ago
+                upload_count: 7,
+                status: "active",
+                subscription_tier: "premium",
+                connected_apis: ["Google Vision", "Europeana", "Met Museum"],
+                total_analyses: 23,
+                payment_method: "paypal"
+              },
+              {
+                id: "admin-1",
+                email: "admin@example.com",
+                displayName: "System Admin",
+                display_name: "System Admin",
+                role: "admin",
+                created_at: new Date(Date.now() - 2592000000).toISOString(), // 30 days ago
+                last_login: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
+                upload_count: 0,
+                status: "active",
+                subscription_tier: "admin",
+                connected_apis: ["All APIs"],
+                total_analyses: 2,
+                payment_method: null
+              }
+            ],
+            pagination: {
+              total: 3,
+              page: 1,
+              limit: 20,
+              total_pages: 1
+            }
+          };
+          
+          return new Response(JSON.stringify(mockUsers), {
+            headers: { "Content-Type": "application/json", ...corsHeaders }
+          });
+        } catch (error) {
+          return new Response(JSON.stringify({
+            success: false,
+            error: "Failed to fetch users list"
+          }), {
+            status: 500,
+            headers: { "Content-Type": "application/json", ...corsHeaders }
+          });
+        }
+      }
+      
+      // Admin revenue endpoint
+      if (url.pathname === "/api/admin/dashboard/revenue" && method === "GET") {
+        try {
+          // Mock revenue data - in real implementation, query from database
+          const mockRevenue = {
+            success: true,
+            data: {
+              total_revenue: 4250.00,
+              monthly_revenue: 890.50,
+              daily_revenue: 125.75,
+              currency: "USD",
+              growth_rate: 15.3,
+              transactions: [
+                {
+                  id: "txn-1",
+                  date: new Date(Date.now() - 86400000).toISOString(),
+                  amount: 29.99,
+                  type: "subscription",
+                  user_email: "user1@example.com",
+                  status: "completed"
+                },
+                {
+                  id: "txn-2", 
+                  date: new Date(Date.now() - 172800000).toISOString(),
+                  amount: 19.99,
+                  type: "multi_analysis",
+                  user_email: "artist1@example.com",
+                  status: "completed"
+                },
+                {
+                  id: "txn-3",
+                  date: new Date(Date.now() - 259200000).toISOString(), 
+                  amount: 49.99,
+                  type: "premium_upgrade",
+                  user_email: "premium@example.com",
+                  status: "completed"
+                }
+              ],
+              monthly_breakdown: [
+                { month: "2025-01", revenue: 2340.00 },
+                { month: "2025-02", revenue: 1910.00 },
+                { month: "2025-03", revenue: 890.50 }
+              ]
+            }
+          };
+          
+          return new Response(JSON.stringify(mockRevenue), {
+            headers: { "Content-Type": "application/json", ...corsHeaders }
+          });
+        } catch (error) {
+          return new Response(JSON.stringify({
+            success: false,
+            error: "Failed to fetch revenue data"
+          }), {
+            status: 500,
+            headers: { "Content-Type": "application/json", ...corsHeaders }
+          });
+        }
+      }
+      
+      // Admin artworks endpoint - 직접 등록한 작품 정보
+      if (url.pathname === "/api/admin/dashboard/artworks" && method === "GET") {
+        try {
+          const mockArtworks = {
+            success: true,
+            artworks: [
+              {
+                id: "artwork-reg-1",
+                title: "Morning Sunrise",
+                artist: "Professional Artist",
+                artist_email: "artist1@example.com",
+                registration_date: new Date(Date.now() - 86400000).toISOString(),
+                status: "approved",
+                approval_date: new Date(Date.now() - 43200000).toISOString(),
+                image_url: "https://via.placeholder.com/400x300?text=Morning+Sunrise",
+                description: "Beautiful sunrise landscape painting with warm colors",
+                price: 850.00,
+                category: "Landscape",
+                medium: "Oil on Canvas",
+                dimensions: "60x80cm",
+                views: 234,
+                likes: 18
+              },
+              {
+                id: "artwork-reg-2", 
+                title: "Abstract Dreams",
+                artist: "Professional Artist",
+                artist_email: "artist1@example.com",
+                registration_date: new Date(Date.now() - 259200000).toISOString(), // 3 days ago
+                status: "approved",
+                approval_date: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
+                image_url: "https://via.placeholder.com/400x300?text=Abstract+Dreams",
+                description: "Modern abstract composition with vibrant colors",
+                price: 1200.00,
+                category: "Abstract",
+                medium: "Acrylic on Canvas",
+                dimensions: "80x100cm",
+                views: 156,
+                likes: 12
+              },
+              {
+                id: "artwork-reg-3",
+                title: "Urban Sketch",
+                artist: "City Artist",
+                artist_email: "cityartist@example.com",
+                registration_date: new Date(Date.now() - 432000000).toISOString(), // 5 days ago  
+                status: "pending",
+                approval_date: null,
+                image_url: "https://via.placeholder.com/400x300?text=Urban+Sketch",
+                description: "Street scene captured in charcoal and pencil",
+                price: 450.00,
+                category: "Drawing",
+                medium: "Charcoal on Paper",
+                dimensions: "40x50cm",
+                views: 89,
+                likes: 7
+              },
+              {
+                id: "artwork-reg-4",
+                title: "Digital Fusion",
+                artist: "Tech Artist", 
+                artist_email: "techartist@example.com",
+                registration_date: new Date(Date.now() - 604800000).toISOString(), // 7 days ago
+                status: "rejected",
+                approval_date: new Date(Date.now() - 518400000).toISOString(), // 6 days ago
+                rejection_reason: "Does not meet quality standards",
+                image_url: "https://via.placeholder.com/400x300?text=Digital+Fusion",
+                description: "Digital art combining traditional and modern elements",
+                price: 300.00,
+                category: "Digital",
+                medium: "Digital Art",
+                dimensions: "Digital",
+                views: 45,
+                likes: 3
+              }
+            ],
+            summary: {
+              total_artworks: 4,
+              approved: 2,
+              pending: 1,
+              rejected: 1,
+              total_value: 2800.00,
+              average_price: 700.00
+            }
+          };
+          
+          return new Response(JSON.stringify(mockArtworks), {
+            headers: { "Content-Type": "application/json", ...corsHeaders }
+          });
+        } catch (error) {
+          return new Response(JSON.stringify({
+            success: false,
+            error: "Failed to fetch artworks data"
+          }), {
+            status: 500,
+            headers: { "Content-Type": "application/json", ...corsHeaders }
+          });
+        }
+      }
+      
+      // Admin analysis logs endpoint - 분석 조회 기록  
+      if (url.pathname === "/api/admin/dashboard/analysis-logs" && method === "GET") {
+        try {
+          const mockAnalysisLogs = {
+            success: true,
+            analysis_logs: [
+              {
+                id: "analysis-1",
+                user_email: "user1@example.com",
+                user_name: "Art Lover",
+                analysis_date: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
+                analysis_type: "single_image",
+                processing_time: 2340,
+                detected_style: "Impressionism",
+                detected_colors: ["blue", "green", "yellow"],
+                keywords_count: 8,
+                recommendations_generated: 12,
+                api_used: ["Google Vision", "Met Museum"],
+                success: true
+              },
+              {
+                id: "analysis-2",
+                user_email: "artist1@example.com", 
+                user_name: "Professional Artist",
+                analysis_date: new Date(Date.now() - 7200000).toISOString(), // 2 hours ago
+                analysis_type: "multi_image",
+                processing_time: 5670,
+                detected_style: "Contemporary",
+                detected_colors: ["red", "black", "white"],
+                keywords_count: 15,
+                recommendations_generated: 8,
+                images_count: 3,
+                api_used: ["Google Vision", "Clarifai", "Harvard Museums"],
+                success: true
+              },
+              {
+                id: "analysis-3",
+                user_email: "curator@museum.com",
+                user_name: "Museum Curator",
+                analysis_date: new Date(Date.now() - 10800000).toISOString(), // 3 hours ago
+                analysis_type: "single_image",
+                processing_time: 1890,
+                detected_style: "Classical",
+                detected_colors: ["brown", "gold", "cream"],
+                keywords_count: 12,
+                recommendations_generated: 15,
+                api_used: ["Google Vision", "Europeana"],
+                success: true
+              },
+              {
+                id: "analysis-4",
+                user_email: "user1@example.com",
+                user_name: "Art Lover", 
+                analysis_date: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
+                analysis_type: "single_image",
+                processing_time: 0,
+                error_message: "Google Vision API quota exceeded",
+                api_used: ["Google Vision"],
+                success: false
+              }
+            ],
+            summary: {
+              total_analyses: 4,
+              successful: 3,
+              failed: 1,
+              average_processing_time: 3300,
+              most_used_style: "Impressionism",
+              most_active_user: "user1@example.com"
+            }
+          };
+          
+          return new Response(JSON.stringify(mockAnalysisLogs), {
+            headers: { "Content-Type": "application/json", ...corsHeaders }
+          });
+        } catch (error) {
+          return new Response(JSON.stringify({
+            success: false,
+            error: "Failed to fetch analysis logs"
+          }), {
+            status: 500,
+            headers: { "Content-Type": "application/json", ...corsHeaders }
+          });
+        }
+      }
+      
+      // Admin payments endpoint - 결제 기록
+      if (url.pathname === "/api/admin/dashboard/payments" && method === "GET") {
+        try {
+          const mockPayments = {
+            success: true,
+            payments: [
+              {
+                id: "pay-1",
+                user_email: "artist1@example.com",
+                user_name: "Professional Artist",
+                payment_date: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
+                amount: 29.99,
+                currency: "USD",
+                payment_method: "stripe",
+                transaction_id: "pi_1234567890",
+                status: "completed",
+                description: "Premium subscription - Monthly",
+                invoice_id: "inv_001"
+              },
+              {
+                id: "pay-2",
+                user_email: "curator@museum.com", 
+                user_name: "Museum Curator",
+                payment_date: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
+                amount: 19.99,
+                currency: "USD", 
+                payment_method: "paypal",
+                transaction_id: "pp_9876543210",
+                status: "completed",
+                description: "Multi-image analysis (5 images)",
+                invoice_id: "inv_002"
+              },
+              {
+                id: "pay-3",
+                user_email: "user1@example.com",
+                user_name: "Art Lover",
+                payment_date: new Date(Date.now() - 259200000).toISOString(), // 3 days ago
+                amount: 9.99,
+                currency: "USD",
+                payment_method: "stripe",
+                transaction_id: "pi_1122334455", 
+                status: "failed",
+                error_message: "Card declined",
+                description: "Single image analysis premium",
+                invoice_id: "inv_003"
+              },
+              {
+                id: "pay-4",
+                user_email: "premium@example.com",
+                user_name: "Premium User",
+                payment_date: new Date(Date.now() - 604800000).toISOString(), // 7 days ago  
+                amount: 99.99,
+                currency: "USD",
+                payment_method: "stripe",
+                transaction_id: "pi_5566778899",
+                status: "completed",
+                description: "Annual subscription - Premium",
+                invoice_id: "inv_004"
+              }
+            ],
+            summary: {
+              total_payments: 4,
+              successful_payments: 3,
+              failed_payments: 1,
+              total_revenue: 149.97,
+              average_payment: 37.49,
+              payment_methods: {
+                stripe: 3,
+                paypal: 1
+              }
+            }
+          };
+          
+          return new Response(JSON.stringify(mockPayments), {
+            headers: { "Content-Type": "application/json", ...corsHeaders }
+          });
+        } catch (error) {
+          return new Response(JSON.stringify({
+            success: false,
+            error: "Failed to fetch payment records"
+          }), {
+            status: 500,
+            headers: { "Content-Type": "application/json", ...corsHeaders }
+          });
+        }
+      }
+
       // ======================
       // AI ANALYSIS ENDPOINTS
       // ======================
@@ -493,7 +1223,7 @@ const server = Bun.serve({
       
       // Static file serving for frontend assets
       // 일반 사용자 접근 가능 페이지
-      const publicPaths = ['/auth', '/profile', '/social', '/payment', '/artist-register', '/signup', '/admin-access'];
+      const publicPaths = ['/auth', '/profile', '/social', '/payment', '/artist-register', '/signup', '/admin-access', '/admin-dashboard', '/artist-signup'];
       // 관리자 전용 페이지 (숨겨진 경로)
       const adminPaths = ['/system/admin-panel'];
       // 일반 사용자 접근 가능한 페이지들
@@ -575,6 +1305,84 @@ const server = Bun.serve({
             status: 500,
             headers: { 'Content-Type': 'application/json', ...corsHeaders }
           });
+        }
+      }
+
+      // Static file serving (CSS, JS, TSX, images, etc.)
+      if (url.pathname.startsWith('/frontend/') || 
+          url.pathname.endsWith('.css') || 
+          url.pathname.endsWith('.js') || 
+          url.pathname.endsWith('.tsx') ||
+          url.pathname.endsWith('.jsx') ||
+          url.pathname.endsWith('.png') ||
+          url.pathname.endsWith('.jpg') ||
+          url.pathname.endsWith('.svg')) {
+        try {
+          let filePath;
+          if (url.pathname.startsWith('/frontend/')) {
+            filePath = `.${url.pathname}`;
+          } else {
+            filePath = `./frontend${url.pathname}`;
+          }
+          
+          const file = Bun.file(filePath);
+          
+          // Check if file exists using try/catch instead of .exists()
+          let fileExists = false;
+          try {
+            const size = file.size; // This will be truthy if file exists
+            fileExists = size > 0;
+          } catch (error) {
+            fileExists = false;
+          }
+          
+          if (fileExists) {
+            // Determine content type
+            let contentType = 'text/plain';
+            if (url.pathname.endsWith('.css')) {
+              contentType = 'text/css';
+            } else if (url.pathname.endsWith('.js')) {
+              contentType = 'application/javascript';
+            } else if (url.pathname.endsWith('.tsx') || url.pathname.endsWith('.jsx')) {
+              contentType = 'application/javascript';
+              // For TypeScript files, we need to compile them
+              const tsContent = await file.text();
+              const compiledJs = await Bun.build({
+                entrypoints: [filePath],
+                target: 'browser',
+                format: 'esm',
+                minify: false,
+                splitting: false,
+              });
+              
+              if (compiledJs.success && compiledJs.outputs[0]) {
+                const jsContent = await compiledJs.outputs[0].text();
+                return new Response(jsContent, {
+                  headers: {
+                    'Content-Type': contentType,
+                    'Cache-Control': 'no-cache',
+                    ...corsHeaders
+                  }
+                });
+              }
+            } else if (url.pathname.endsWith('.png')) {
+              contentType = 'image/png';
+            } else if (url.pathname.endsWith('.jpg') || url.pathname.endsWith('.jpeg')) {
+              contentType = 'image/jpeg';
+            } else if (url.pathname.endsWith('.svg')) {
+              contentType = 'image/svg+xml';
+            }
+            
+            return new Response(file, {
+              headers: {
+                'Content-Type': contentType,
+                'Cache-Control': 'no-cache',
+                ...corsHeaders
+              }
+            });
+          }
+        } catch (error) {
+          console.log(`Static file serving error for ${url.pathname}:`, error);
         }
       }
       

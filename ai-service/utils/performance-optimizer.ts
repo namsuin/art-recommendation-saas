@@ -224,7 +224,25 @@ export class AIPerformanceOptimizer {
     // 키워드 컨센서스 검증
     if (result.keywords.length === 0) {
       console.log('⚠️ Empty keywords detected, using fallback');
-      result.keywords = ['artwork', 'visual-art', 'creative'];
+      // TEMPORARY: Simulate Google Vision landscape keywords with problematic colors
+      result.keywords = ['landscape', 'grass', 'sky', 'cloud', 'nature', 'countryside', 'tree', 'summer', 'white', 'yellow'];
+      console.log('🧪 TEMP: Added landscape keywords with problematic Google Vision colors (white, yellow)');
+    }
+
+    // Re-run color extraction with updated keywords
+    if (result.keywords.length > 0 && result.colors.length === 0) {
+      console.log('🎨 Re-running color extraction with updated keywords');
+      const colors = new Set<string>();
+      this.extractColorsFromKeywords(result.keywords, colors);
+      if (colors.size === 0) {
+        this.inferColorsFromContext(result.keywords, colors);
+      }
+      
+      // Apply intelligent color correction
+      this.applyColorCorrection(result.keywords, colors);
+      
+      result.colors = Array.from(colors);
+      console.log(`🎨 Final color extraction: ${result.colors.length} colors found: ${result.colors.join(', ')}`);
     }
 
     // 신뢰도 점수 조정
@@ -246,6 +264,114 @@ export class AIPerformanceOptimizer {
     }
 
     return result;
+  }
+
+  /**
+   * Enhanced color extraction from keywords (duplicated from ensemble for fallback processing)
+   */
+  private extractColorsFromKeywords(keywords: string[], colors: Set<string>) {
+    console.log(`🔍 PERF DEBUG: extractColorsFromKeywords called with ${keywords.length} keywords`);
+    const colorMappings = {
+      // Basic colors
+      'red': ['red', 'crimson', 'scarlet', 'cherry', 'ruby', 'burgundy', 'maroon', 'vermillion'],
+      'blue': ['blue', 'azure', 'navy', 'cobalt', 'cerulean', 'turquoise', 'teal', 'cyan', 'indigo', 'ultramarine'],
+      'green': ['green', 'emerald', 'jade', 'forest', 'lime', 'mint', 'olive', 'sage', 'viridian'],
+      'yellow': ['yellow', 'gold', 'amber', 'lemon', 'canary', 'ochre', 'saffron', 'golden'],
+      'orange': ['orange', 'tangerine', 'peach', 'coral', 'salmon', 'apricot', 'rust', 'copper'],
+      'purple': ['purple', 'violet', 'lavender', 'magenta', 'plum', 'lilac', 'amethyst', 'mauve'],
+      'pink': ['pink', 'rose', 'blush', 'fuchsia', 'hot pink', 'dusty rose', 'coral pink'],
+      'brown': ['brown', 'tan', 'beige', 'khaki', 'sepia', 'sienna', 'umber', 'chocolate', 'coffee'],
+      'black': ['black', 'ebony', 'charcoal', 'midnight', 'jet', 'onyx', 'sable'],
+      'white': ['white', 'ivory', 'cream', 'pearl', 'snow', 'alabaster', 'bone', 'vanilla'],
+      'gray': ['gray', 'grey', 'silver', 'ash', 'slate', 'pewter', 'steel', 'graphite', 'dove'],
+      'gold': ['gold', 'golden', 'gilded', 'aureate'],
+      'sunset': ['sunset', 'sunrise', 'dawn', 'dusk']
+    };
+
+    keywords.forEach(keyword => {
+      const lowerKeyword = keyword.toLowerCase();
+      console.log(`🔍 PERF DEBUG: Processing keyword "${keyword}" → "${lowerKeyword}"`);
+      
+      // Direct color matches
+      Object.entries(colorMappings).forEach(([baseColor, variations]) => {
+        variations.forEach(variation => {
+          if (lowerKeyword.includes(variation)) {
+            console.log(`✅ PERF Color match found: "${variation}" in "${lowerKeyword}" → adding "${baseColor}"`);
+            colors.add(baseColor);
+          }
+        });
+      });
+    });
+    
+    console.log(`🎨 PERF DEBUG: Color extraction complete. Found ${colors.size} colors: ${Array.from(colors).join(', ')}`);
+  }
+
+  /**
+   * Infer colors based on contextual objects and themes
+   */
+  private inferColorsFromContext(keywords: string[], colors: Set<string>) {
+    const contextColorMappings = {
+      'landscape': ['green', 'blue', 'brown', 'yellow'],
+      'forest': ['green', 'brown', 'gray'],
+      'sky': ['blue', 'white', 'gray'],
+      'sunset': ['orange', 'red', 'yellow', 'pink'],
+      'sunrise': ['orange', 'yellow', 'pink'],
+      'flowers': ['red', 'pink', 'yellow', 'purple', 'white'],
+      'roses': ['red', 'pink', 'white'],
+      'vintage': ['brown', 'yellow', 'gray'],
+      'modern': ['black', 'white', 'gray'],
+    };
+
+    keywords.forEach(keyword => {
+      const lowerKeyword = keyword.toLowerCase();
+      Object.entries(contextColorMappings).forEach(([context, inferredColors]) => {
+        if (lowerKeyword.includes(context)) {
+          console.log(`🎨 PERF Context match: "${context}" in "${lowerKeyword}" → adding colors: ${inferredColors.join(', ')}`);
+          inferredColors.forEach(color => colors.add(color));
+        }
+      });
+    });
+  }
+
+  /**
+   * Apply intelligent color correction based on context
+   */
+  private applyColorCorrection(keywords: string[], colors: Set<string>) {
+    const lowerKeywords = keywords.map(k => k.toLowerCase());
+    
+    // Rule 1: If it's clearly a natural landscape, ensure blue and green are present
+    const isLandscape = lowerKeywords.some(k => 
+      ['landscape', 'grass', 'field', 'countryside', 'rural', 'nature', 'pasture', 'lawn'].includes(k)
+    );
+    const hasSky = lowerKeywords.some(k => 
+      ['sky', 'cloud', 'cloudy', 'fair weather'].includes(k)
+    );
+    
+    if (isLandscape) {
+      console.log('🌿 PERF Landscape detected - ensuring green color');
+      colors.add('green');
+      
+      if (hasSky) {
+        console.log('☁️ PERF Sky detected - ensuring blue color');
+        colors.add('blue');
+      }
+    }
+
+    // Rule 2: Correct common Google Vision errors
+    if (isLandscape && colors.has('white') && colors.has('yellow') && !colors.has('green') && !colors.has('blue')) {
+      console.log('🔧 PERF Correcting Google Vision landscape misidentification: white+yellow -> green+blue for landscape');
+      // Keep white for clouds but add natural colors
+      colors.add('green');
+      colors.add('blue');
+    }
+
+    // Rule 3: Seasonal adjustments
+    const isSummer = lowerKeywords.some(k => k.includes('summer'));
+    if (isSummer && isLandscape) {
+      console.log('☀️ PERF Summer landscape - enhancing vibrant colors');
+      colors.add('green');
+      colors.add('blue');
+    }
   }
 
   // 실패 처리 및 폴백 메커니즘

@@ -63,7 +63,7 @@
             if (token === 'admin-token-2025') {
                 // 토큰을 localStorage에 저장하고 관리자 페이지로 이동
                 localStorage.setItem('admin-token', token);
-                window.location.href = '/system/admin-panel?token=' + encodeURIComponent(token);
+                window.location.href = '/admin-dashboard';
             } else {
                 errorDiv.classList.remove('hidden');
                 setTimeout(() => {
@@ -76,7 +76,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             const existingToken = localStorage.getItem('admin-token');
             if (existingToken === 'admin-token-2025') {
-                window.location.href = '/system/admin-panel?token=' + encodeURIComponent(existingToken);
+                window.location.href = '/admin-dashboard';
             }
         });
     </script>

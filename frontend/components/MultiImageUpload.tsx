@@ -135,6 +135,8 @@ export default function MultiImageUpload({ userId, onAnalysisComplete }: MultiIm
     setError(null);
     setAnalysisProgress({ current: 0, total: images.length });
 
+    let progressInterval: NodeJS.Timeout | null = null;
+
     try {
       const formData = new FormData();
       // userId가 있으면 추가, 없으면 게스트로 처리
@@ -157,7 +159,7 @@ export default function MultiImageUpload({ userId, onAnalysisComplete }: MultiIm
       });
 
       // 진행 상황 시뮬레이션 (실제로는 WebSocket으로 받을 수 있음)
-      const progressInterval = setInterval(() => {
+      progressInterval = setInterval(() => {
         setAnalysisProgress(prev => {
           if (prev.current < prev.total) {
             const newCurrent = prev.current + 1;
@@ -177,12 +179,15 @@ export default function MultiImageUpload({ userId, onAnalysisComplete }: MultiIm
         hasUserId: !!userId
       });
 
-      const response = await fetch('/api/multi-image/analyze', {
+      const response = await fetch('/api/multi-analyze', {
         method: 'POST',
         body: formData
       });
 
-      clearInterval(progressInterval);
+      if (progressInterval) {
+        clearInterval(progressInterval);
+        progressInterval = null;
+      }
       setAnalysisProgress({ current: images.length, total: images.length });
       setCurrentAnalyzingImage(null);
 
@@ -215,7 +220,10 @@ export default function MultiImageUpload({ userId, onAnalysisComplete }: MultiIm
       onAnalysisComplete(result);
 
     } catch (err) {
-      clearInterval(progressInterval);
+      if (progressInterval) {
+        clearInterval(progressInterval);
+        progressInterval = null;
+      }
       setAnalysisProgress({ current: 0, total: 0 });
       setCurrentAnalyzingImage(null);
       setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.');

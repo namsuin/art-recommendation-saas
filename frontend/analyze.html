@@ -178,7 +178,12 @@
 
                     <!-- 추천 작품 -->
                     <div class="result-card rounded-2xl p-6 border">
-                        <h3 class="text-xl font-bold text-gray-900 mb-4">🎨 추천 작품</h3>
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-xl font-bold text-gray-900">🎨 추천 작품</h3>
+                            <button id="registerArtworkBtn" class="hidden bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium" onclick="showArtworkRegistrationModal()">
+                                ✨ 내 작품 등록하기
+                            </button>
+                        </div>
                         <div id="recommendationsGrid" class="grid grid-cols-1 gap-4"></div>
                     </div>
                 </div>
@@ -192,6 +197,99 @@
                         다시 시도
                     </button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 작품 등록 모달 -->
+    <div id="artworkRegistrationModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-gray-900">🎨 작품 등록하기</h2>
+                    <button onclick="hideArtworkRegistrationModal()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+                </div>
+                
+                <form id="artworkRegistrationForm" class="space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">작품 제목 *</label>
+                            <input type="text" name="title" required class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="예: 봄날의 추억">
+                        </div>
+                        
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">작품 설명</label>
+                            <textarea name="description" rows="3" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="작품에 대한 설명을 입력해주세요..."></textarea>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">카테고리 *</label>
+                            <select name="category" required class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                                <option value="">선택해주세요</option>
+                                <option value="painting">회화</option>
+                                <option value="sculpture">조각</option>
+                                <option value="photography">사진</option>
+                                <option value="digital">디지털 아트</option>
+                                <option value="mixed">혼합 매체</option>
+                                <option value="other">기타</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">매체/재료</label>
+                            <input type="text" name="medium" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="예: 캔버스에 유채, 디지털">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">제작년도</label>
+                            <input type="number" name="yearCreated" min="1900" max="2025" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="2024">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">작품 크기 (cm)</label>
+                            <div class="grid grid-cols-3 gap-2">
+                                <input type="number" name="widthCm" placeholder="가로" class="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm">
+                                <input type="number" name="heightCm" placeholder="세로" class="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm">
+                                <input type="number" name="depthCm" placeholder="깊이" class="p-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm">
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">작품 이미지 URL *</label>
+                            <input type="url" name="imageUrl" required class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="https://example.com/artwork.jpg">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">가격 (원)</label>
+                            <input type="number" name="priceKrw" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="1000000">
+                        </div>
+                        
+                        <div class="md:col-span-2">
+                            <label class="flex items-center space-x-2">
+                                <input type="checkbox" name="isForSale" class="rounded">
+                                <span class="text-sm text-gray-700">판매용 작품입니다</span>
+                            </label>
+                        </div>
+                        
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">키워드 (쉼표로 구분)</label>
+                            <input type="text" name="keywordsInput" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="예: 풍경, 자연, 평화로운, 파스텔">
+                        </div>
+                    </div>
+                    
+                    <div id="registrationError" class="hidden bg-red-50 border border-red-200 rounded-lg p-4">
+                        <p class="text-red-700 text-sm"></p>
+                    </div>
+                    
+                    <div class="flex justify-end space-x-4">
+                        <button type="button" onclick="hideArtworkRegistrationModal()" class="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+                            취소
+                        </button>
+                        <button type="submit" class="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+                            작품 등록하기
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -505,9 +603,99 @@
             resultArea.classList.remove('hidden');
         }
 
+        // 사용자 상태 확인 및 예술가 버튼 표시
+        let currentUser = null;
+
+        async function checkUserRole() {
+            try {
+                // 간단한 인증 시뮬레이션 (실제로는 세션이나 토큰에서 가져옴)
+                const mockUser = {
+                    id: 'user-123',
+                    role: 'artist', // 'user' 또는 'artist' 또는 'admin'
+                    displayName: 'Test Artist'
+                };
+                
+                currentUser = mockUser;
+                
+                // 예술가인 경우 작품 등록 버튼 표시
+                if (currentUser && currentUser.role === 'artist') {
+                    document.getElementById('registerArtworkBtn').classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error('사용자 역할 확인 실패:', error);
+            }
+        }
+
+        // 작품 등록 모달 표시
+        function showArtworkRegistrationModal() {
+            if (!currentUser || currentUser.role !== 'artist') {
+                alert('예술가 회원만 작품을 등록할 수 있습니다.');
+                return;
+            }
+            document.getElementById('artworkRegistrationModal').classList.remove('hidden');
+        }
+
+        // 작품 등록 모달 숨기기
+        function hideArtworkRegistrationModal() {
+            document.getElementById('artworkRegistrationModal').classList.add('hidden');
+            document.getElementById('artworkRegistrationForm').reset();
+            document.getElementById('registrationError').classList.add('hidden');
+        }
+
+        // 작품 등록 폼 제출
+        document.getElementById('artworkRegistrationForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData();
+            const form = e.target;
+            
+            // 폼 데이터 수집
+            formData.append('userId', currentUser.id);
+            formData.append('title', form.title.value);
+            formData.append('description', form.description.value);
+            formData.append('category', form.category.value);
+            formData.append('medium', form.medium.value);
+            formData.append('yearCreated', form.yearCreated.value);
+            formData.append('widthCm', form.widthCm.value);
+            formData.append('heightCm', form.heightCm.value);
+            formData.append('depthCm', form.depthCm.value);
+            formData.append('imageUrl', form.imageUrl.value);
+            formData.append('priceKrw', form.priceKrw.value);
+            formData.append('isForSale', form.isForSale.checked);
+            formData.append('status', 'pending'); // 승인 대기 상태
+            
+            // 키워드 처리
+            const keywordsInput = form.keywordsInput.value;
+            const keywords = keywordsInput ? keywordsInput.split(',').map(k => k.trim()).filter(k => k) : [];
+            formData.append('keywords', JSON.stringify(keywords));
+            formData.append('tags', JSON.stringify(keywords));
+            
+            try {
+                const response = await fetch('/api/artwork/register', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('작품이 성공적으로 등록되었습니다! 관리자 승인 후 추천 목록에 포함됩니다.');
+                    hideArtworkRegistrationModal();
+                } else {
+                    document.getElementById('registrationError').classList.remove('hidden');
+                    document.getElementById('registrationError').querySelector('p').textContent = result.error || '작품 등록 중 오류가 발생했습니다.';
+                }
+            } catch (error) {
+                console.error('작품 등록 오류:', error);
+                document.getElementById('registrationError').classList.remove('hidden');
+                document.getElementById('registrationError').querySelector('p').textContent = '작품 등록 중 오류가 발생했습니다.';
+            }
+        });
+
         // 페이지 로드 시 초기화
         document.addEventListener('DOMContentLoaded', () => {
             console.log('🎨 AI 이미지 분석 페이지 로드 완료');
+            checkUserRole();
         });
     </script>
 </body>
