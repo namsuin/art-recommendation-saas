@@ -1,5 +1,5 @@
 import { AIEnsembleService } from '../../ai-service/utils/ensemble';
-import { AIPerformanceOptimizer } from '../../ai-service/utils/performance-optimizer';
+import { PerformanceOptimizer } from '../core/performance-optimizer';
 import type { ImageAnalysis, Recommendation } from '../../shared/types';
 import { supabase } from './supabase';
 import { MetMuseumAPI } from './met-museum-api';
@@ -9,7 +9,7 @@ import { EuropeanaAPI } from './europeana-api';
 
 export class AIAnalysisService {
   private aiEnsemble: AIEnsembleService;
-  private performanceOptimizer: AIPerformanceOptimizer;
+  private performanceOptimizer: PerformanceOptimizer;
   private metMuseumAPI: MetMuseumAPI;
   private wikiArtAPI: WikiArtAPI;
   private harvardAPI: HarvardMuseumsAPI;
@@ -19,25 +19,8 @@ export class AIAnalysisService {
     console.log('🚀 Initializing AI Analysis Service...');
     this.aiEnsemble = new AIEnsembleService();
     console.log('✅ AI Ensemble Service initialized');
-    this.performanceOptimizer = new AIPerformanceOptimizer(this.aiEnsemble, {
-      caching: {
-        enabled: true,
-        maxCacheSize: 500,
-        defaultTtl: 1800000, // 30 minutes
-        preloadPopularQueries: true
-      },
-      parallelProcessing: {
-        enabled: true,
-        maxConcurrentRequests: 8,
-        timeoutMs: 25000
-      },
-      circuitBreaker: {
-        enabled: true,
-        failureThreshold: 3,
-        recoveryTimeout: 30000,
-        halfOpenMaxCalls: 2
-      }
-    });
+    this.performanceOptimizer = new PerformanceOptimizer();
+    console.log('✅ Performance Optimizer initialized');
     this.metMuseumAPI = new MetMuseumAPI();
     this.wikiArtAPI = new WikiArtAPI();
     this.harvardAPI = new HarvardMuseumsAPI();
@@ -664,5 +647,30 @@ export class AIAnalysisService {
       
       return true;
     });
+  }
+
+  /**
+   * Get recommendations based on search keywords (for multi-image analysis)
+   */
+  async getRecommendations(searchQuery: string, limit: number = 10): Promise<{ recommendations: Recommendation[] }> {
+    console.log(`🔍 Getting recommendations for query: "${searchQuery}"`);
+    
+    try {
+      // Convert search query into keywords array
+      const keywords = searchQuery.toLowerCase().split(' ').filter(word => word.length > 2);
+      
+      // Use existing keyword-based search
+      const recommendations = await this.findSimilarByKeywords(keywords, limit);
+      
+      console.log(`✅ Found ${recommendations.length} recommendations for multi-image analysis`);
+      
+      return { recommendations };
+    } catch (error) {
+      console.error('Error getting recommendations:', error);
+      
+      // Return fallback recommendations
+      const fallbackRecommendations = await this.getFallbackRecommendations(limit);
+      return { recommendations: fallbackRecommendations };
+    }
   }
 }

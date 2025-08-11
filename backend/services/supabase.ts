@@ -5,6 +5,7 @@ import type { Database } from '../db/types';
 const supabaseUrl = process.env.SUPABASE_URL || 'http://localhost:54321';
 const supabaseKey = process.env.SUPABASE_ANON_KEY || 'your-anon-key-here';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'your-service-key-here';
+const sessionTimeout = parseInt(process.env.SESSION_TIMEOUT || '1800'); // 30분 기본값
 
 // Check if we have valid configuration
 const hasValidConfig = supabaseUrl !== 'http://localhost:54321' || 
@@ -19,7 +20,8 @@ export const supabase = hasValidConfig ?
       detectSessionInUrl: true,
       // 개발 환경에서 이메일 확인 없이 로그인 허용
       confirmEmailBeforeSignin: false,
-      // 1시간 세션 타임아웃 설정
+      // 환경변수에서 가져온 세션 타임아웃 설정 (30분)
+      expiresIn: sessionTimeout,
       storage: typeof window !== 'undefined' ? window.localStorage : undefined,
     },
     global: {

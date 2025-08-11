@@ -7,6 +7,7 @@ import { UserProfileMenu } from './components/UserProfile';
 import { ImageUploadWithAuth } from './components/ImageUploadWithAuth';
 import MultiImageUpload from './components/MultiImageUpload';
 import { ImageAnalysisDisplay } from './components/ImageAnalysisDisplay';
+import { AdminDashboard } from './components/AdminDashboard';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import './styles/global.css';
 
@@ -34,10 +35,10 @@ const AppContent: React.FC = () => {
   const [analysisResult, setAnalysisResult] = useState<any>(null);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
 
-  const handleAuthSuccess = async (email: string, password: string, displayName?: string) => {
+  const handleAuthSuccess = async (email: string, password: string, displayName?: string, role?: string, artistInfo?: any) => {
     const result = authMode === 'login' 
       ? await signIn(email, password)
-      : await signUp(email, password, displayName);
+      : await signUp(email, password, displayName, role, artistInfo);
     
     if (result.success) {
       setAuthModalOpen(false);
@@ -129,8 +130,7 @@ const AppContent: React.FC = () => {
       });
 
       const result = await response.json();
-      console.log('🔍 API Response:', result);
-      console.log('📊 Recommendations:', result.recommendations);
+      // API 응답 수신 완료
 
       if (!response.ok) {
         if (response.status === 429) {
@@ -141,10 +141,10 @@ const AppContent: React.FC = () => {
 
       // 분석 결과 저장
       if (result.analysis) {
-        console.log('📊 Setting analysis result:', result.analysis);
+        // 분석 결과 저장
         setAnalysisResult(result.analysis);
       } else {
-        console.warn('⚠️ No analysis field in response');
+        // 분석 필드 누락 경고
       }
       
       if (result.recommendations && result.recommendations.length > 0) {
@@ -153,7 +153,7 @@ const AppContent: React.FC = () => {
         setError('추천할 작품을 찾을 수 없습니다.');
       }
     } catch (error) {
-      console.error('Image analysis failed:', error);
+      // 이미지 분석 실패
       setError(error instanceof Error ? error.message : '이미지 분석 중 오류가 발생했습니다.');
     } finally {
       setIsAnalyzing(false);
@@ -177,6 +177,19 @@ const AppContent: React.FC = () => {
       }
     }
   };
+
+  // URL에 따른 라우팅 처리
+  const pathname = window.location.pathname;
+  
+  // 관리자 대시보드 표시
+  if (pathname === '/admin-dashboard' && userProfile?.role === 'admin') {
+    return (
+      <AdminDashboard 
+        user={user} 
+        onClose={() => window.location.href = '/'} 
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen" style={{background: 'var(--gradient-sunrise)'}}>
@@ -267,16 +280,12 @@ const AppContent: React.FC = () => {
             <div className="fade-in">
               {(() => {
                 const finalUserId = user?.id && user.id.trim() !== '' ? user.id : null;
-                console.log('🔍 App.tsx - Passing userId to MultiImageUpload:', {
-                  user: user,
-                  'user?.id': user?.id,
-                  finalUserId: finalUserId
-                });
+                // userId 전달 처리
                 return (
                   <MultiImageUpload
                     userId={finalUserId}
                     onAnalysisComplete={(results) => {
-                      console.log('Multi-image analysis complete:', results);
+                      // 다중 이미지 분석 완료
                       // 결과 처리 로직 추가 가능
                     }}
                   />
@@ -720,6 +729,7 @@ const AppContent: React.FC = () => {
         user={user}
         userProfile={userProfile}
         onSignOut={handleSignOut}
+        refreshProfile={refreshProfile}
       />
 
       {/* Mobile Bottom Navigation */}

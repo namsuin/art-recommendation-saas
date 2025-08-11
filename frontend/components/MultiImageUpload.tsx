@@ -1,6 +1,10 @@
 import React, { useState, useCallback } from 'react';
-import { useDropzone } from 'react-dropzone';
-import { X, Upload, AlertCircle, Loader2, Check, DollarSign } from 'lucide-react';
+import { AnalysisResults } from '../utils/artworkUtils';
+import { ImageUploadZone } from './ImageUploadZone';
+import { ImagePreviewGrid } from './ImagePreviewGrid';
+import { AnalysisProgress } from './AnalysisProgress';
+import { AnalysisResults as AnalysisResultsComponent } from './AnalysisResults';
+import { PaymentModal } from './PaymentModal';
 
 interface ImagePreview {
   id: string;
@@ -10,7 +14,7 @@ interface ImagePreview {
 
 interface MultiImageUploadProps {
   userId: string | null;
-  onAnalysisComplete: (results: any) => void;
+  onAnalysisComplete: (results: AnalysisResults) => void;
 }
 
 const PRICING_TIERS = {
@@ -25,7 +29,7 @@ export default function MultiImageUpload({ userId, onAnalysisComplete }: MultiIm
   const [error, setError] = useState<string | null>(null);
   const [currentTier, setCurrentTier] = useState<keyof typeof PRICING_TIERS>('free');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [analysisResults, setAnalysisResults] = useState<any>(null);
+  const [analysisResults, setAnalysisResults] = useState<AnalysisResults | null>(null);
   const [analysisProgress, setAnalysisProgress] = useState({ current: 0, total: 0 });
   const [currentAnalyzingImage, setCurrentAnalyzingImage] = useState<string | null>(null);
 
@@ -36,8 +40,8 @@ export default function MultiImageUpload({ userId, onAnalysisComplete }: MultiIm
     return 'premium';
   };
 
-  // 드롭존 설정
-  const onDrop = useCallback((acceptedFiles: File[]) => {
+  // 이미지 업로드 처리
+  const handleImageUpload = useCallback((acceptedFiles: File[]) => {
     const newImages = acceptedFiles.map(file => ({
       id: Math.random().toString(36).substr(2, 9),
       file,
@@ -53,14 +57,6 @@ export default function MultiImageUpload({ userId, onAnalysisComplete }: MultiIm
     setError(null);
   }, []);
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    accept: {
-      'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp']
-    },
-    maxSize: 10 * 1024 * 1024 // 10MB
-  });
-
   // 이미지 제거
   const removeImage = (id: string) => {
     setImages(prev => {
@@ -71,51 +67,17 @@ export default function MultiImageUpload({ userId, onAnalysisComplete }: MultiIm
     });
   };
 
-  // 분석 시작
+  // 분석 처리
   const handleAnalyze = async () => {
-    console.log('🔍 handleAnalyze called with:', {
-      userId: userId,
-      userIdType: typeof userId,
-      userIdIsNull: userId === null,
-      userIdIsUndefined: userId === undefined,
-      userIdIsEmptyString: userId === '',
-      imageCount: images.length
-    });
-
-    if (images.length === 0) {
-      setError('분석할 이미지를 업로드해주세요.');
-      return;
-    }
-
+    if (images.length === 0) return;
+    
     const tier = calculateTier(images.length);
-    console.log('📊 Calculated tier:', tier);
-    
-    // 게스트 사용자 체크 - null, undefined, 빈 문자열 모두 게스트로 처리
-    if (!userId || userId.trim() === '') {
-      console.log('👤 Guest user detected');
-      if (images.length > 3) {
-        console.log('❌ Guest user with >3 images - login required');
-        setError('게스트는 최대 3장까지만 분석할 수 있습니다. 더 많은 이미지를 분석하려면 로그인해주세요.');
-        return;
-      }
-      // 3장 이하는 게스트도 분석 가능
-      console.log('✅ Guest user with ≤3 images - analysis allowed');
-      await performAnalysis();
+    setCurrentTier(tier);
+
+    // 게스트 모드 제한 확인
+    if (!userId && images.length > 3) {
+      setError('게스트는 최대 3장까지만 분석할 수 있습니다. 로그인 후 더 많은 이미지를 분석하세요.');
       return;
-    }
-    
-    // 결제 완료 여부 확인 (localStorage에서)
-    const paymentCompleted = localStorage.getItem('paymentCompleted');
-    if (paymentCompleted) {
-      const paymentData = JSON.parse(paymentCompleted);
-      const isRecentPayment = Date.now() - paymentData.timestamp < 24 * 60 * 60 * 1000; // 24시간 이내
-      
-      if (isRecentPayment && paymentData.tier === tier && paymentData.imageCount >= images.length) {
-        // 결제 완료된 상태, 분석 진행
-        localStorage.removeItem('paymentCompleted'); // 사용 후 제거
-        await performAnalysis();
-        return;
-      }
     }
     
     // 로그인 사용자 - 유료 티어인 경우 결제 필요 여부 확인
@@ -130,35 +92,26 @@ export default function MultiImageUpload({ userId, onAnalysisComplete }: MultiIm
 
   // 실제 분석 수행
   const performAnalysis = async () => {
-    console.log('🚀 performAnalysis started');
     setIsAnalyzing(true);
     setError(null);
+    setAnalysisResults(null);
     setAnalysisProgress({ current: 0, total: images.length });
+    setCurrentAnalyzingImage(null);
 
     let progressInterval: NodeJS.Timeout | null = null;
 
     try {
       const formData = new FormData();
-      // userId가 있으면 추가, 없으면 게스트로 처리
-      console.log('📤 Preparing FormData with userId:', userId, typeof userId);
       
-      if (userId && userId.trim() !== '') {
-        console.log('📤 Adding userId to FormData:', userId);
+      if (userId) {
         formData.append('userId', userId);
-      } else {
-        console.log('📤 No userId added to FormData (guest mode)');
-      }
-      
-      console.log('📤 FormData entries before sending:');
-      for (const [key, value] of formData.entries()) {
-        console.log(`  ${key}:`, value);
       }
       
       images.forEach((image, index) => {
         formData.append(`image${index}`, image.file);
       });
 
-      // 진행 상황 시뮬레이션 (실제로는 WebSocket으로 받을 수 있음)
+      // 진행 상황 시뮬레이션
       progressInterval = setInterval(() => {
         setAnalysisProgress(prev => {
           if (prev.current < prev.total) {
@@ -171,13 +124,7 @@ export default function MultiImageUpload({ userId, onAnalysisComplete }: MultiIm
           }
           return prev;
         });
-      }, 2000); // 2초마다 진행 상황 업데이트
-
-      console.log('🚀 Sending multi-image analysis request:', {
-        imageCount: images.length,
-        userId: userId,
-        hasUserId: !!userId
-      });
+      }, 2000);
 
       const response = await fetch('/api/multi-analyze', {
         method: 'POST',
@@ -191,29 +138,14 @@ export default function MultiImageUpload({ userId, onAnalysisComplete }: MultiIm
       setAnalysisProgress({ current: images.length, total: images.length });
       setCurrentAnalyzingImage(null);
 
-      console.log('📡 API Response:', {
-        status: response.status,
-        ok: response.ok,
-        statusText: response.statusText
-      });
-
       const result = await response.json();
-      console.log('📊 API Result:', result);
 
       if (!response.ok) {
-        console.error('❌ API Error:', {
-          status: response.status,
-          statusText: response.statusText,
-          result: result
-        });
         if (result.paymentRequired) {
-          console.log('💳 Payment required, showing payment modal');
           setShowPaymentModal(true);
           return;
         }
-        const errorMessage = result.error || '분석에 실패했습니다.';
-        console.error('❌ Setting error message:', errorMessage);
-        throw new Error(errorMessage);
+        throw new Error(result.error || '분석에 실패했습니다.');
       }
 
       setAnalysisResults(result);
@@ -234,7 +166,6 @@ export default function MultiImageUpload({ userId, onAnalysisComplete }: MultiIm
 
   // 결제 처리
   const handlePayment = async () => {
-    // Stripe 결제 페이지로 리다이렉트
     const tier = PRICING_TIERS[currentTier];
     window.location.href = `/payment?tier=${currentTier}&price=${tier.price}&images=${images.length}`;
   };
@@ -282,643 +213,51 @@ export default function MultiImageUpload({ userId, onAnalysisComplete }: MultiIm
           </div>
         </div>
 
-        {/* 드롭존 */}
+        {/* 이미지 업로드 영역 */}
         {images.length < 50 && (
-          <div
-            {...getRootProps()}
-            className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors
-              ${isDragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-gray-400'}`}
-          >
-            <input {...getInputProps()} />
-            <Upload className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-            <p className="text-gray-600">
-              {isDragActive
-                ? '여기에 이미지를 놓으세요'
-                : '클릭하거나 이미지를 드래그하여 업로드'}
-            </p>
-            <p className="text-sm text-gray-500 mt-2">
-              최대 50장, 각 10MB 이하
-            </p>
-          </div>
+          <ImageUploadZone
+            onDrop={handleImageUpload}
+            maxImages={50}
+            currentImageCount={images.length}
+            disabled={isAnalyzing}
+            error={error}
+          />
         )}
 
         {/* 업로드된 이미지 미리보기 */}
-        {images.length > 0 && (
-          <div className="mt-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="font-semibold">
-                업로드된 이미지 ({images.length}장)
-                {PRICING_TIERS[currentTier].price > 0 && (
-                  <span className="ml-2 text-blue-600">
-                    ${PRICING_TIERS[currentTier].price}
-                  </span>
-                )}
-              </h3>
-              {images.length > 3 && (
-                <span className="text-sm text-gray-600">
-                  공통 키워드 분석 가능
-                </span>
-              )}
-            </div>
-            <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {images.map((image) => (
-                <div key={image.id} className="relative group">
-                  <img
-                    src={image.preview}
-                    alt={image.file.name}
-                    className="w-full h-24 object-cover rounded-lg"
-                  />
-                  <button
-                    onClick={() => removeImage(image.id)}
-                    className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* 에러 메시지 */}
-        {error && (
-          <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center">
-            <AlertCircle className="w-5 h-5 text-red-500 mr-2" />
-            <span className="text-red-700">{error}</span>
-          </div>
-        )}
+        <ImagePreviewGrid
+          images={images}
+          onRemoveImage={removeImage}
+          disabled={isAnalyzing}
+        />
 
         {/* 분석 버튼 및 진행 상황 */}
-        <div className="mt-6 flex flex-col items-center space-y-4">
-          {/* 진행 상황 표시 */}
-          {isAnalyzing && (
-            <div className="w-full max-w-md">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm text-gray-600">
-                  분석 진행 상황: {analysisProgress.current}/{analysisProgress.total}
-                </span>
-                <span className="text-sm text-gray-600">
-                  {Math.round((analysisProgress.current / analysisProgress.total) * 100)}%
-                </span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div 
-                  className="bg-blue-600 h-2 rounded-full transition-all duration-500"
-                  style={{ width: `${(analysisProgress.current / analysisProgress.total) * 100}%` }}
-                ></div>
-              </div>
-              {currentAnalyzingImage && (
-                <p className="text-sm text-gray-500 mt-2 text-center">
-                  현재 분석 중: {currentAnalyzingImage}
-                </p>
-              )}
-            </div>
-          )}
-
-          <button
-            onClick={handleAnalyze}
-            disabled={images.length === 0 || isAnalyzing}
-            className={`px-6 py-3 rounded-lg font-semibold transition-colors flex items-center
-              ${images.length === 0 || isAnalyzing
-                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                : 'bg-blue-600 text-white hover:bg-blue-700'}`}
-          >
-            {isAnalyzing ? (
-              <>
-                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                분석 중... ({analysisProgress.current}/{analysisProgress.total})
-              </>
-            ) : (
-              <>
-                {PRICING_TIERS[currentTier].price > 0 && (
-                  <DollarSign className="w-5 h-5 mr-1" />
-                )}
-                {images.length}장 분석하기
-                {PRICING_TIERS[currentTier].price > 0 && (
-                  <span className="ml-1">(${PRICING_TIERS[currentTier].price})</span>
-                )}
-              </>
-            )}
-          </button>
-        </div>
+        <AnalysisProgress
+          isAnalyzing={isAnalyzing}
+          analysisProgress={analysisProgress}
+          currentAnalyzingImage={currentAnalyzingImage}
+          imageCount={images.length}
+          currentTier={currentTier}
+          pricingTiers={PRICING_TIERS}
+          onAnalyze={handleAnalyze}
+        />
       </div>
 
       {/* 결제 모달 */}
-      {showPaymentModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-8 max-w-md">
-            <h3 className="text-xl font-bold mb-4">결제가 필요합니다</h3>
-            <p className="mb-4">
-              {images.length}장 분석을 위해 {PRICING_TIERS[currentTier].name} 플랜
-              (${PRICING_TIERS[currentTier].price}) 결제가 필요합니다.
-            </p>
-            <div className="flex justify-end space-x-4">
-              <button
-                onClick={() => setShowPaymentModal(false)}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-              >
-                취소
-              </button>
-              <button
-                onClick={handlePayment}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-              >
-                결제하기
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <PaymentModal
+        show={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        onPayment={handlePayment}
+        imageCount={images.length}
+        currentTier={currentTier}
+        pricingTiers={PRICING_TIERS}
+      />
 
       {/* 분석 결과 표시 */}
-      {analysisResults && (
-        <div className="mt-8 bg-white rounded-lg shadow-lg p-8">
-          <h3 className="text-xl font-bold mb-4">다중 이미지 분석 결과</h3>
-          
-          {/* 공통 키워드 분석 (개별 이미지 키워드는 표시하지 않음) */}
-          {analysisResults.commonKeywords ? (
-            <div className="mb-6">
-              <h4 className="font-semibold mb-2">공통 키워드 분석</h4>
-              {analysisResults.commonKeywords.keywords.length > 0 ? (
-                <div className="flex flex-wrap gap-2 mb-3">
-                  {analysisResults.commonKeywords.keywords.map((keyword: string, index: number) => (
-                  <span
-                    key={index}
-                    className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm"
-                  >
-                    {keyword}
-                  </span>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-gray-500 mb-3">공통 키워드를 찾을 수 없습니다.</p>
-              )}
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="text-gray-600">키워드 신뢰도: </span>
-                  <span className="font-semibold text-blue-600">
-                    {analysisResults.commonKeywords.totalSimilarityScore || 
-                     Math.round((analysisResults.commonKeywords.confidence || 0) * 100)}%
-                  </span>
-                </div>
-                {analysisResults.similarityAnalysis && (
-                  <div>
-                    <span className="text-gray-600">평균 유사도: </span>
-                    <span className="font-semibold text-green-600">
-                      {analysisResults.similarityAnalysis.averageSimilarity}%
-                    </span>
-                  </div>
-                )}
-              </div>
-              
-              {/* 상위 매칭 작품 */}
-              {analysisResults.similarityAnalysis?.topMatches?.length > 0 && (
-                <div className="mt-3 p-3 bg-gray-50 rounded-lg">
-                  <h5 className="text-sm font-medium text-gray-700 mb-2">상위 매칭 작품</h5>
-                  <div className="space-y-1">
-                    {analysisResults.similarityAnalysis.topMatches.map((match: any, index: number) => (
-                      <div key={index} className="text-xs text-gray-600">
-                        <span className="font-medium">{match.title}</span>
-                        <span className="ml-2 text-green-600">{match.similarity}%</span>
-                        {match.matchedKeywords?.length > 0 && (
-                          <span className="ml-2">({match.matchedKeywords.slice(0, 2).join(', ')})</span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <p className="text-sm text-yellow-800">
-                업로드된 이미지들 간의 공통 키워드를 찾을 수 없습니다. 
-                더 유사한 이미지들을 업로드해보세요.
-              </p>
-            </div>
-          )}
-
-          {/* 추천 작품 */}
-          {analysisResults.recommendations && (
-            <div>
-              <h4 className="font-semibold mb-4">추천 작품</h4>
-              
-              {/* 내부 추천 작품 */}
-              {analysisResults.recommendations?.internal?.length > 0 && (
-                <div className="mb-6">
-                  <h5 className="text-sm font-medium text-gray-600 mb-3">AI 추천 작품</h5>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {analysisResults.recommendations.internal.slice(0, 8).map((artwork: any, index: number) => {
-                      const imageUrl = artwork.image_url || artwork.thumbnail_url || artwork.primaryImage || 'https://via.placeholder.com/300x300/f0f0f0/666666?text=No+Image';
-                      const sourceUrl = artwork.source_url || artwork.objectURL || artwork.eventSite;
-                      
-                      return (
-                        <div key={`internal-${index}`} className="relative group cursor-pointer">
-                          <div className="relative overflow-hidden rounded-lg">
-                            <img
-                              src={imageUrl}
-                              alt={artwork.title || '작품'}
-                              className="w-full h-32 object-cover rounded-lg transition-transform duration-200 group-hover:scale-105"
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                target.src = 'https://via.placeholder.com/300x300/e5e7eb/6b7280?text=Image+Error';
-                              }}
-                            />
-                          </div>
-                          
-                          {/* 유사도 점수 표시 */}
-                          {(artwork.similarity_score || artwork.similarity) && (
-                            <div className="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full shadow-lg">
-                              {typeof artwork.similarity_score === 'object' 
-                                ? Math.round(artwork.similarity_score.total * 100)
-                                : Math.round((artwork.similarity_score || artwork.similarity) * 100)}%
-                            </div>
-                          )}
-                          
-                          <div className="mt-2 p-2">
-                            <p className="text-xs font-medium truncate">{artwork.title || '제목 없음'}</p>
-                            <p className="text-xs text-gray-500 truncate">{artwork.artist || artwork.artistDisplayName || '작가 미상'}</p>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-              
-              {/* 갤러리 추천 (외부 플랫폼만, 학생 작품 제외) */}
-              {analysisResults.recommendations?.external?.length > 0 && (
-                <div className="mb-6">
-                  <div className="flex justify-between items-center mb-2">
-                    <h5 className="text-sm font-medium text-gray-600">갤러리 추천 (외부 플랫폼)</h5>
-                    <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">
-                      무료 10개 / 추가는 유료
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {analysisResults.recommendations.external.slice(0, 10)
-                      .filter((artwork: any) => {
-                        // 텀블벅, 그라폴리오, 대학 졸업작품 필터링
-                        const isTumblbug = artwork.platform === 'tumblbug' || 
-                                          artwork.source === '텀블벅' || 
-                                          artwork.search_source === '텀블벅' ||
-                                          (artwork.source_url && artwork.source_url.includes('tumblbug.com')) ||
-                                          artwork.project_type === '크라우드펀딩';
-                        
-                        const isGrafolio = artwork.platform === 'grafolio' || 
-                                         artwork.source === '그라폴리오' || 
-                                         artwork.search_source === '그라폴리오' ||
-                                         (artwork.source_url && artwork.source_url.includes('grafolio.naver.com'));
-                        
-                        const isKoreanUniversity = artwork.platform === 'university' ||
-                                                 artwork.source === '대학 졸업전시' ||
-                                                 artwork.category === 'student_work' ||
-                                                 artwork.search_source === 'graduation' ||
-                                                 (artwork.university && (
-                                                   artwork.university.includes('대학') ||
-                                                   artwork.university.includes('대학교') ||
-                                                   artwork.university.includes('University')
-                                                 )) ||
-                                                 (artwork.source_url && (
-                                                   artwork.source_url.includes('.ac.kr') ||
-                                                   artwork.source_url.includes('univ.') ||
-                                                   artwork.source_url.includes('university') ||
-                                                   artwork.source_url.includes('college') ||
-                                                   artwork.source_url.includes('graduation')
-                                                 )) ||
-                                                 (artwork.source && (
-                                                   artwork.source.includes('졸업전시') ||
-                                                   artwork.source.includes('졸업작품') ||
-                                                   artwork.source.includes('대학') ||
-                                                   artwork.source.includes('University') ||
-                                                   artwork.source.includes('College')
-                                                 )) ||
-                                                 (artwork.title && (
-                                                   artwork.title.includes('졸업작품') ||
-                                                   artwork.title.includes('졸업전시')
-                                                 ));
-                        
-                        const isStudentWork = artwork.student_work === true ||
-                                            artwork.platform === 'academy_art_university' ||
-                                            artwork.platform === 'sva_bfa' ||
-                                            artwork.platform === 'artsonia';
-                        
-                        return !isTumblbug && !isGrafolio && !isKoreanUniversity && !isStudentWork;
-                      })
-                      .map((artwork: any) => {
-                      const imageUrl = artwork.image_url || artwork.thumbnail_url || artwork.primaryImage || 'https://via.placeholder.com/300x300/f0f0f0/666666?text=No+Image';
-                      const sourceUrl = artwork.source_url || artwork.objectURL || artwork.eventSite;
-                      
-                      return (
-                        <div key={artwork.id || artwork.title} className="relative group cursor-pointer">
-                          <div className="relative overflow-hidden rounded-lg">
-                            <img
-                              src={imageUrl}
-                              alt={artwork.title || '작품'}
-                              className="w-full h-32 object-cover rounded-lg transition-transform duration-200 group-hover:scale-105"
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                if (!target.dataset.retried) {
-                                  target.dataset.retried = 'true';
-                                  target.src = artwork.thumbnail_url || artwork.primaryImageSmall || 'https://via.placeholder.com/300x300/e5e7eb/6b7280?text=Image+Unavailable';
-                                } else {
-                                  target.src = 'https://via.placeholder.com/300x300/e5e7eb/6b7280?text=Image+Error';
-                                }
-                              }}
-                              onLoad={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                target.style.opacity = '1';
-                              }}
-                              style={{ opacity: '0', transition: 'opacity 0.3s ease' }}
-                            />
-                            {/* 로딩 상태 */}
-                            <div className="absolute inset-0 bg-gray-200 animate-pulse rounded-lg" style={{ zIndex: -1 }}></div>
-                          </div>
-                          
-                          {/* 유사도 점수 표시 */}
-                          {(artwork.similarity_score || artwork.similarity_score === 0) && (
-                            <div className="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full shadow-lg">
-                              {typeof artwork.similarity_score === 'object' 
-                                ? Math.round(artwork.similarity_score.total * 100)
-                                : Math.round(artwork.similarity_score * 100)}%
-                            </div>
-                          )}
-                          
-                          {/* 링크 아이콘 */}
-                          {sourceUrl && (
-                            <div className="absolute top-2 left-2 bg-black bg-opacity-50 text-white p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">
-                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                              </svg>
-                            </div>
-                          )}
-                          
-                          {/* 호버 정보 */}
-                          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-60 transition-opacity rounded-lg flex items-end">
-                            <div className="p-2 text-white opacity-0 group-hover:opacity-100 transition-opacity w-full">
-                              <p className="text-sm font-semibold line-clamp-1" title={artwork.title}>
-                                {artwork.title || '제목 없음'}
-                              </p>
-                              <p className="text-xs line-clamp-1" title={artwork.artist}>
-                                {artwork.artist || '작가 미상'}
-                              </p>
-                              {artwork.similarity_score?.matchedKeywords && (
-                                <p className="text-xs text-green-200 line-clamp-1">
-                                  매칭: {artwork.similarity_score.matchedKeywords.slice(0, 2).join(', ')}
-                                </p>
-                              )}
-                              {/* 링크 버튼 */}
-                              {sourceUrl && (
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    window.open(sourceUrl, '_blank', 'noopener,noreferrer');
-                                  }}
-                                  className="mt-1 bg-white bg-opacity-20 hover:bg-opacity-30 text-white py-1 px-2 rounded text-xs transition-all"
-                                >
-                                  원본 보기
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* 학생 작품 섹션 (별도 분리) */}
-              {analysisResults.recommendations.external?.filter((artwork: any) => {
-                return artwork.student_work === true ||
-                       artwork.platform === 'academy_art_university' ||
-                       artwork.platform === 'sva_bfa' ||
-                       artwork.platform === 'artsonia' ||
-                       artwork.category === 'professional_student_work';
-              }).length > 0 && (
-                <div className="mt-8">
-                  <div className="flex justify-between items-center mb-2">
-                    <h5 className="text-sm font-medium text-gray-600">학생 작품 추천</h5>
-                    <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
-                      🎓 교육적 목적
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {analysisResults.recommendations.external
-                      .filter((artwork: any) => {
-                        return artwork.student_work === true ||
-                               artwork.platform === 'academy_art_university' ||
-                               artwork.platform === 'sva_bfa' ||
-                               artwork.platform === 'artsonia' ||
-                               artwork.category === 'professional_student_work';
-                      })
-                      .slice(0, 6)
-                      .map((artwork: any) => {
-                      const imageUrl = artwork.image_url || artwork.thumbnail_url || artwork.primaryImage || 'https://via.placeholder.com/300x300/f0f0f0/666666?text=No+Image';
-                      const sourceUrl = artwork.source_url || artwork.objectURL || artwork.eventSite || '#';
-                      
-                      return (
-                        <div
-                          key={artwork.id || artwork.title}
-                          className="relative group cursor-pointer border-2 border-green-100"
-                          onClick={() => {
-                            if (sourceUrl !== '#') {
-                              window.open(sourceUrl, '_blank', 'noopener,noreferrer');
-                            }
-                          }}
-                        >
-                          <div className="relative overflow-hidden rounded-lg">
-                            <img
-                              src={imageUrl}
-                              alt={artwork.title || '학생 작품'}
-                              className="w-full h-32 object-cover rounded-lg transition-transform duration-200 group-hover:scale-105"
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                if (!target.dataset.retried) {
-                                  target.dataset.retried = 'true';
-                                  target.src = artwork.thumbnail_url || artwork.primaryImageSmall || 'https://via.placeholder.com/300x300/e5e7eb/6b7280?text=Student+Work';
-                                } else {
-                                  target.src = 'https://via.placeholder.com/300x300/e5e7eb/6b7280?text=Student+Art';
-                                }
-                              }}
-                              onLoad={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                target.style.opacity = '1';
-                              }}
-                              style={{ opacity: '0', transition: 'opacity 0.3s ease' }}
-                            />
-                            {/* 로딩 상태 */}
-                            <div className="absolute inset-0 bg-gray-200 animate-pulse rounded-lg" style={{ zIndex: -1 }}></div>
-                          </div>
-                          
-                          {/* 학생 작품 배지 */}
-                          <div className="absolute top-2 left-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full shadow-lg">
-                            🎓 학생
-                          </div>
-                          
-                          {/* 외부 링크 아이콘 */}
-                          {sourceUrl !== '#' && (
-                            <div className="absolute top-2 right-2 bg-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
-                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                              </svg>
-                            </div>
-                          )}
-                          
-                          {/* 호버 정보 */}
-                          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-60 transition-opacity rounded-lg flex items-end">
-                            <div className="p-2 text-white opacity-0 group-hover:opacity-100 transition-opacity w-full">
-                              <p className="text-sm font-semibold line-clamp-1" title={artwork.title}>
-                                {artwork.title || '학생 작품'}
-                              </p>
-                              <p className="text-xs line-clamp-1" title={artwork.artist}>
-                                {artwork.artist || '학생'}
-                              </p>
-                              <p className="text-xs text-green-200" title={artwork.school || artwork.university}>
-                                {artwork.school || artwork.university || artwork.source || 'Student Work'}
-                              </p>
-                              {artwork.academic_level && (
-                                <p className="text-xs text-green-200">
-                                  {artwork.academic_level}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <div className="mt-2 text-xs text-gray-500 text-center">
-                    💡 학생 작품은 교육적 목적으로 표시되며, 작가의 성장과 발전을 지원합니다.
-                  </div>
-                </div>
-              )}
-
-              {/* 더 보기 버튼 (유료 결제 안내) */}
-              {analysisResults.recommendations.external?.filter((artwork: any) => {
-                const isTumblbug = artwork.platform === 'tumblbug' || 
-                                  artwork.source === '텀블벅' || 
-                                  artwork.search_source === '텀블벅';
-                const isGrafolio = artwork.platform === 'grafolio' || 
-                                 artwork.source === '그라폴리오' || 
-                                 artwork.search_source === '그라폴리오';
-                const isKoreanUniversity = artwork.platform === 'university' ||
-                                         artwork.source === '대학 졸업전시' ||
-                                         artwork.category === 'student_work' ||
-                                         artwork.search_source === 'graduation' ||
-                                         (artwork.university && (
-                                           artwork.university.includes('대학') ||
-                                           artwork.university.includes('대학교') ||
-                                           artwork.university.includes('University')
-                                         )) ||
-                                         (artwork.source_url && (
-                                           artwork.source_url.includes('.ac.kr') ||
-                                           artwork.source_url.includes('univ.') ||
-                                           artwork.source_url.includes('university') ||
-                                           artwork.source_url.includes('college') ||
-                                           artwork.source_url.includes('graduation')
-                                         )) ||
-                                         (artwork.source && (
-                                           artwork.source.includes('졸업전시') ||
-                                           artwork.source.includes('졸업작품') ||
-                                           artwork.source.includes('대학') ||
-                                           artwork.source.includes('University') ||
-                                           artwork.source.includes('College')
-                                         )) ||
-                                         (artwork.title && (
-                                           artwork.title.includes('졸업작품') ||
-                                           artwork.title.includes('졸업전시')
-                                         ));
-                const isStudentWork = artwork.student_work === true ||
-                                    artwork.platform === 'academy_art_university' ||
-                                    artwork.platform === 'sva_bfa' ||
-                                    artwork.platform === 'artsonia';
-                return !isTumblbug && !isGrafolio && !isKoreanUniversity && !isStudentWork;
-              }).length > 10 && (
-                <div className="mt-6 text-center">
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <h6 className="font-semibold text-blue-800 mb-2">더 많은 추천 작품 보기</h6>
-                    <p className="text-sm text-blue-600 mb-3">
-                      추가 {analysisResults.recommendations.external.length - 10}개의 작품을 확인하려면 프리미엄 플랜이 필요합니다.
-                    </p>
-                    <button
-                      onClick={() => {
-                        // 결제 페이지로 이동 또는 모달 열기
-                        window.location.href = '/pricing';
-                      }}
-                      className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-                    >
-                      프리미엄으로 업그레이드 💎
-                    </button>
-                  </div>
-                </div>
-              )}
-              
-              {/* Flat array 형식 지원 (backward compatibility) */}
-              {Array.isArray(analysisResults.recommendations) && 
-               !analysisResults.recommendations.internal && 
-               !analysisResults.recommendations.external && 
-               analysisResults.recommendations.length > 0 && (
-                <div className="mb-6">
-                  <h5 className="text-sm font-medium text-gray-600 mb-3">추천 작품</h5>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {analysisResults.recommendations.slice(0, 12).map((artwork: any, index: number) => {
-                      const imageUrl = artwork.image_url || artwork.thumbnail_url || artwork.primaryImage || 'https://via.placeholder.com/300x300/f0f0f0/666666?text=No+Image';
-                      
-                      return (
-                        <div key={`flat-${index}`} className="relative group cursor-pointer">
-                          <div className="relative overflow-hidden rounded-lg">
-                            <img
-                              src={imageUrl}
-                              alt={artwork.title || '작품'}
-                              className="w-full h-32 object-cover rounded-lg transition-transform duration-200 group-hover:scale-105"
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                target.src = 'https://via.placeholder.com/300x300/e5e7eb/6b7280?text=Image+Error';
-                              }}
-                            />
-                          </div>
-                          
-                          {/* 유사도 점수 표시 */}
-                          {(artwork.similarity_score || artwork.similarity) && (
-                            <div className="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full shadow-lg">
-                              {typeof artwork.similarity_score === 'object' 
-                                ? Math.round(artwork.similarity_score.total * 100)
-                                : Math.round((artwork.similarity_score || artwork.similarity) * 100)}%
-                            </div>
-                          )}
-                          
-                          <div className="mt-2 p-2">
-                            <p className="text-xs font-medium truncate">{artwork.title || '제목 없음'}</p>
-                            <p className="text-xs text-gray-500 truncate">{artwork.artist || artwork.artistDisplayName || '작가 미상'}</p>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-              
-              {/* 추천 작품이 전혀 없는 경우 */}
-              {(!analysisResults.recommendations || 
-                (typeof analysisResults.recommendations === 'object' && 
-                 (!analysisResults.recommendations.internal || analysisResults.recommendations.internal.length === 0) &&
-                 (!analysisResults.recommendations.external || analysisResults.recommendations.external.length === 0)) ||
-                (Array.isArray(analysisResults.recommendations) && analysisResults.recommendations.length === 0)) && (
-                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                  <p className="text-sm text-yellow-800">
-                    추천 작품을 찾을 수 없습니다. 다른 이미지로 다시 시도해보세요.
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
-
-          <p className="text-sm text-gray-500 mt-4">
-            처리 시간: {(analysisResults.processingTime / 1000).toFixed(1)}초
-          </p>
-        </div>
-      )}
+      <AnalysisResultsComponent
+        analysisResults={analysisResults}
+        onUpgradeClick={() => window.location.href = '/pricing'}
+      />
     </div>
   );
 }

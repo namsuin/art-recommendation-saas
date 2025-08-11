@@ -7,7 +7,7 @@ interface AuthContextType {
   loading: boolean;
   sessionExpired: boolean;
   signIn: (email: string, password: string) => Promise<any>;
-  signUp: (email: string, password: string, displayName?: string) => Promise<any>;
+  signUp: (email: string, password: string, displayName?: string, role?: string, artistInfo?: any) => Promise<any>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   extendSession: () => void;

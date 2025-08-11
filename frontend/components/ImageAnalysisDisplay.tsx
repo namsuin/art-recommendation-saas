@@ -19,7 +19,7 @@ interface ImageAnalysisDisplayProps {
 }
 
 export const ImageAnalysisDisplay: React.FC<ImageAnalysisDisplayProps> = ({ analysis, isAnalyzing }) => {
-  console.log('🎨 ImageAnalysisDisplay render:', { analysis, isAnalyzing });
+  // 이미지 분석 디스플레이 렌더링
   
   if (isAnalyzing) {
     return (

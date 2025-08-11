@@ -51,8 +51,25 @@ interface Artwork {
   created_at: string;
 }
 
+interface ArtistApplication {
+  id: string;
+  user_id: string;
+  email: string;
+  artist_name: string;
+  bio: string;
+  portfolio_url?: string;
+  instagram_url?: string;
+  experience: string;
+  specialties: string[];
+  statement: string;
+  status: 'pending' | 'approved' | 'rejected';
+  applied_at: string;
+  reviewed_at?: string;
+  review_notes?: string;
+}
+
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onClose }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'artworks' | 'users'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'artworks' | 'users' | 'applications'>('overview');
   
   // Stats state
   const [userStats, setUserStats] = useState<UserStats | null>(null);
@@ -67,6 +84,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onClose })
   const [artworkPage, setArtworkPage] = useState(1);
   const [totalArtworks, setTotalArtworks] = useState(0);
   
+  // Artist applications state
+  const [applications, setApplications] = useState<ArtistApplication[]>([]);
+  
   // UI state
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -76,6 +96,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onClose })
       loadOverviewData();
     } else if (activeTab === 'artworks') {
       loadArtworks();
+    } else if (activeTab === 'applications') {
+      loadApplications();
     }
   }, [activeTab, artworkPage]);
 
@@ -139,6 +161,58 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onClose })
       setError('작품 목록을 불러오는데 실패했습니다.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadApplications = async () => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const response = await fetch('/api/admin/artist-applications');
+      const result = await response.json();
+      
+      if (result.success) {
+        setApplications(result.applications || []);
+      } else {
+        setError(result.error || '예술가 신청 목록을 불러오는데 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('Failed to load applications:', error);
+      setError('예술가 신청 목록을 불러오는데 실패했습니다.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const handleApplicationReview = async (applicationId: string, action: 'approve' | 'reject') => {
+    try {
+      const reviewNotes = action === 'approve' 
+        ? '예술가 자격이 확인되어 승인됩니다.' 
+        : '신청 요건을 충족하지 못하여 거부됩니다.';
+      
+      const response = await fetch('/api/admin/artist-applications/review', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          applicationId,
+          action,
+          reviewNotes
+        })
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        // 목록 새로고침
+        loadApplications();
+        alert(`신청이 ${action === 'approve' ? '승인' : '거부'}되었습니다.`);
+      } else {
+        alert('신청 처리에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('Failed to review application:', error);
+      alert('신청 처리 중 오류가 발생했습니다.');
     }
   };
 
@@ -280,6 +354,125 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onClose })
     </div>
   );
 
+  const renderApplications = () => {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center mb-6">
+          <h3 className="text-xl font-bold text-gray-900">🎨 예술가 신청 관리</h3>
+          <div className="text-sm text-gray-500">
+            총 {applications.length}건의 신청
+          </div>
+        </div>
+
+        {applications.length === 0 ? (
+          <div className="text-center py-12 bg-gray-50 rounded-lg">
+            <p className="text-gray-500">아직 신청이 없습니다.</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {applications.map((app) => (
+              <div key={app.id} className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-lg transition-shadow">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h4 className="text-lg font-semibold text-gray-900">{app.artist_name}</h4>
+                    <p className="text-sm text-gray-500">{app.email}</p>
+                    <p className="text-xs text-gray-400">
+                      신청일: {new Date(app.applied_at).toLocaleString('ko-KR')}
+                    </p>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    {app.status === 'pending' ? (
+                      <>
+                        <button
+                          onClick={() => handleApplicationReview(app.id, 'approve')}
+                          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                        >
+                          ✅ 승인
+                        </button>
+                        <button
+                          onClick={() => handleApplicationReview(app.id, 'reject')}
+                          className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                        >
+                          ❌ 거부
+                        </button>
+                      </>
+                    ) : (
+                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                        app.status === 'approved' 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-red-100 text-red-800'
+                      }`}>
+                        {app.status === 'approved' ? '승인됨' : '거부됨'}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <p className="text-sm font-medium text-gray-700">경력</p>
+                    <p className="text-sm text-gray-600">
+                      {app.experience === 'beginner' && '초보자 (1년 미만)'}
+                      {app.experience === 'intermediate' && '중급자 (1-5년)'}
+                      {app.experience === 'advanced' && '고급자 (5-10년)'}
+                      {app.experience === 'professional' && '전문가 (10년 이상)'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-700">전문 분야</p>
+                    <p className="text-sm text-gray-600">{app.specialties.join(', ')}</p>
+                  </div>
+                </div>
+
+                <div className="mb-4">
+                  <p className="text-sm font-medium text-gray-700 mb-1">자기소개</p>
+                  <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded">{app.bio}</p>
+                </div>
+
+                <div className="mb-4">
+                  <p className="text-sm font-medium text-gray-700 mb-1">예술관</p>
+                  <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded">{app.statement}</p>
+                </div>
+
+                <div className="flex flex-wrap gap-4 text-sm">
+                  {app.portfolio_url && (
+                    <a 
+                      href={app.portfolio_url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline"
+                    >
+                      🌐 포트폴리오
+                    </a>
+                  )}
+                  {app.instagram_url && (
+                    <a 
+                      href={app.instagram_url.startsWith('http') ? app.instagram_url : `https://instagram.com/${app.instagram_url.replace('@', '')}`} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-pink-600 hover:underline"
+                    >
+                      📷 인스타그램
+                    </a>
+                  )}
+                </div>
+
+                {app.reviewed_at && (
+                  <div className="mt-4 pt-4 border-t border-gray-200">
+                    <p className="text-xs text-gray-500">
+                      처리일: {new Date(app.reviewed_at).toLocaleString('ko-KR')}
+                      {app.review_notes && ` - ${app.review_notes}`}
+                    </p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const renderArtworks = () => (
     <div className="space-y-6">
       {/* Artworks Grid */}
@@ -402,6 +595,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onClose })
             }`}
           >
             작품 관리
+          </button>
+          <button
+            onClick={() => setActiveTab('applications')}
+            className={`px-6 py-3 font-medium ${
+              activeTab === 'applications'
+                ? 'border-b-2 border-blue-500 text-blue-600'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            🎨 예술가 신청
           </button>
         </div>
 

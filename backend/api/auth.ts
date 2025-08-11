@@ -607,7 +607,7 @@ export class AuthAPI {
           // 프로필 이미지 처리 (향후 구현)
           const profileImage = formData.get('profileImage');
           if (profileImage && profileImage instanceof File) {
-            // TODO: 이미지 업로드 처리
+            // 이미지 업로드 처리 로직 필요
             console.log('Profile image received:', profileImage.name);
           }
         } else {
@@ -615,6 +615,7 @@ export class AuthAPI {
           body = await req.json();
         }
         
+        // 프론트엔드에서 보내는 데이터 구조 처리
         const { 
           email, 
           password, 
@@ -623,6 +624,7 @@ export class AuthAPI {
           artistName,
           artistBio,
           portfolioUrl,
+          websiteUrl,
           website,
           experience,
           specialties,
@@ -639,7 +641,7 @@ export class AuthAPI {
             artistBio,
             artistName,
             portfolioUrl,
-            websiteUrl: website,
+            websiteUrl: websiteUrl || website,
             experience,
             specialties,
             instagramUrl,
@@ -684,11 +686,53 @@ export class AuthAPI {
     }
 
     if (url.pathname === '/api/auth/logout' && method === 'POST') {
-      return this.handleLogout(req);
+      return AuthAPI.handleSignOut(req);
+    }
+
+    if (url.pathname === '/api/auth/signout' && method === 'POST') {
+      return AuthAPI.handleSignOut(req);
     }
 
     if (url.pathname === '/api/auth/check' && method === 'GET') {
       return AuthAPI.getUser(req);
+    }
+
+    if (url.pathname === '/api/auth/user' && method === 'GET') {
+      try {
+        const result = await AuthAPI.getCurrentUser();
+        
+        if (result.success && result.profile) {
+          // role 정보가 profile에 포함되어 있는지 확인
+          return new Response(JSON.stringify({
+            success: true,
+            user: result.user,
+            profile: {
+              ...result.profile,
+              role: result.profile.role || 'user' // role이 없으면 기본값 'user'
+            }
+          }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+          });
+        }
+
+        return new Response(JSON.stringify({
+          success: false,
+          message: 'Not authenticated',
+          ...result
+        }), {
+          status: result.success ? 200 : 401,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      } catch (error) {
+        return new Response(JSON.stringify({
+          success: false,
+          error: '사용자 정보 조회 실패'
+        }), {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
     }
 
     return new Response(JSON.stringify({

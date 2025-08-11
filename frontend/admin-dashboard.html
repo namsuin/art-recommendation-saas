@@ -293,9 +293,11 @@
 
         // 메인 대시보드 컴포넌트
         const AdminDashboard = () => {
+            const [activeTab, setActiveTab] = useState('overview');
             const [dashboardData, setDashboardData] = useState(null);
             const [users, setUsers] = useState([]);
             const [revenueData, setRevenueData] = useState([]);
+            const [applications, setApplications] = useState([]);
             const [loading, setLoading] = useState(true);
             const [error, setError] = useState(null);
 
@@ -334,11 +336,47 @@
                         setRevenueData(revenueResult.data);
                     }
 
+                    // 예술가 신청 데이터 로드
+                    const applicationsResponse = await fetch(`/api/admin/artist-applications`);
+                    const applicationsResult = await applicationsResponse.json();
+                    
+                    if (applicationsResult.success) {
+                        setApplications(applicationsResult.applications || []);
+                    }
+
                 } catch (error) {
                     console.error('Dashboard loading error:', error);
                     setError('대시보드 데이터를 불러오는 중 오류가 발생했습니다.');
                 } finally {
                     setLoading(false);
+                }
+            };
+
+            const handleApplicationReview = async (applicationId, action, reviewNotes = '') => {
+                try {
+                    const response = await fetch('/api/admin/artist-applications/review', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            applicationId,
+                            action,
+                            reviewNotes
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        alert(action === 'approve' ? '예술가 신청이 승인되었습니다.' : '예술가 신청이 거부되었습니다.');
+                        loadDashboardData(); // 데이터 새로고침
+                    } else {
+                        alert('처리 중 오류가 발생했습니다: ' + result.error);
+                    }
+                } catch (error) {
+                    console.error('Application review error:', error);
+                    alert('서버 오류가 발생했습니다.');
                 }
             };
 
@@ -395,7 +433,37 @@
                     </div>
 
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                        {dashboardData && (
+                        {/* 탭 네비게이션 */}
+                        <div className="mb-8 border-b border-gray-200">
+                            <nav className="-mb-px flex space-x-8">
+                                <button
+                                    onClick={() => setActiveTab('overview')}
+                                    className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                                        activeTab === 'overview'
+                                            ? 'border-blue-500 text-blue-600'
+                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                    }`}
+                                >
+                                    📊 개요
+                                </button>
+                                <button
+                                    onClick={() => setActiveTab('applications')}
+                                    className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                                        activeTab === 'applications'
+                                            ? 'border-blue-500 text-blue-600'
+                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                    }`}
+                                >
+                                    🎨 예술가 신청 {applications.filter(app => app.status === 'pending').length > 0 && 
+                                        <span className="ml-1 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                            {applications.filter(app => app.status === 'pending').length}
+                                        </span>
+                                    }
+                                </button>
+                            </nav>
+                        </div>
+
+                        {activeTab === 'overview' && dashboardData && (
                             <>
                                 {/* 통계 카드 */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -467,6 +535,147 @@
                                 {/* 사용자 테이블 */}
                                 {users.length > 0 && <UserTable users={users} />}
                             </>
+                        )}
+
+                        {activeTab === 'applications' && (
+                            <div className="space-y-6">
+                                <div className="bg-white rounded-lg shadow">
+                                    <div className="px-6 py-4 border-b border-gray-200">
+                                        <h3 className="text-lg font-medium text-gray-900">
+                                            예술가 신청 관리
+                                            <span className="ml-2 text-sm text-gray-500">
+                                                (총 {applications.length}건, 대기 중 {applications.filter(app => app.status === 'pending').length}건)
+                                            </span>
+                                        </h3>
+                                    </div>
+                                    
+                                    {applications.length === 0 ? (
+                                        <div className="px-6 py-12 text-center">
+                                            <div className="text-gray-400 text-6xl mb-4">🎨</div>
+                                            <h3 className="text-lg font-medium text-gray-900 mb-2">신청이 없습니다</h3>
+                                            <p className="text-gray-500">아직 예술가 신청이 접수되지 않았습니다.</p>
+                                        </div>
+                                    ) : (
+                                        <div className="divide-y divide-gray-200">
+                                            {applications.map((application) => (
+                                                <div key={application.id} className="px-6 py-6">
+                                                    <div className="flex items-start justify-between">
+                                                        <div className="flex-1">
+                                                            <div className="flex items-center mb-2">
+                                                                <h4 className="text-lg font-semibold text-gray-900">
+                                                                    {application.artist_name}
+                                                                </h4>
+                                                                <span className={`ml-3 inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                                                    application.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                                                    application.status === 'approved' ? 'bg-green-100 text-green-800' :
+                                                                    'bg-red-100 text-red-800'
+                                                                }`}>
+                                                                    {application.status === 'pending' ? '대기 중' :
+                                                                     application.status === 'approved' ? '승인됨' : '거부됨'}
+                                                                </span>
+                                                            </div>
+                                                            <p className="text-sm text-gray-600 mb-1">
+                                                                <strong>이메일:</strong> {application.email}
+                                                            </p>
+                                                            <p className="text-sm text-gray-600 mb-3">
+                                                                <strong>신청일:</strong> {new Date(application.applied_at).toLocaleString('ko-KR')}
+                                                            </p>
+                                                            
+                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                                                <div>
+                                                                    <h5 className="font-medium text-gray-900 mb-1">경력</h5>
+                                                                    <p className="text-sm text-gray-600">
+                                                                        {application.experience === 'beginner' ? '초급 (1년 미만)' :
+                                                                         application.experience === 'intermediate' ? '중급 (1-3년)' :
+                                                                         application.experience === 'advanced' ? '고급 (3-10년)' :
+                                                                         '전문가 (10년 이상)'}
+                                                                    </p>
+                                                                </div>
+                                                                <div>
+                                                                    <h5 className="font-medium text-gray-900 mb-1">전문 분야</h5>
+                                                                    <div className="flex flex-wrap gap-1">
+                                                                        {application.specialties.map((specialty, index) => (
+                                                                            <span key={index} className="inline-flex px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">
+                                                                                {specialty}
+                                                                            </span>
+                                                                        ))}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="mb-4">
+                                                                <h5 className="font-medium text-gray-900 mb-1">작품 소개</h5>
+                                                                <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded">
+                                                                    {application.bio}
+                                                                </p>
+                                                            </div>
+
+                                                            <div className="mb-4">
+                                                                <h5 className="font-medium text-gray-900 mb-1">작가 소명</h5>
+                                                                <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded">
+                                                                    {application.statement}
+                                                                </p>
+                                                            </div>
+
+                                                            {(application.portfolio_url || application.instagram_url) && (
+                                                                <div className="flex gap-4 mb-4">
+                                                                    {application.portfolio_url && (
+                                                                        <a href={application.portfolio_url} target="_blank" rel="noopener noreferrer"
+                                                                           className="text-blue-600 hover:text-blue-800 text-sm">
+                                                                            🌐 포트폴리오 보기
+                                                                        </a>
+                                                                    )}
+                                                                    {application.instagram_url && (
+                                                                        <a href={`https://instagram.com/${application.instagram_url.replace('@', '')}`} 
+                                                                           target="_blank" rel="noopener noreferrer"
+                                                                           className="text-pink-600 hover:text-pink-800 text-sm">
+                                                                            📷 인스타그램 보기
+                                                                        </a>
+                                                                    )}
+                                                                </div>
+                                                            )}
+
+                                                            {application.status === 'pending' && (
+                                                                <div className="flex gap-3 pt-4">
+                                                                    <button
+                                                                        onClick={() => handleApplicationReview(application.id, 'approve')}
+                                                                        className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium"
+                                                                    >
+                                                                        ✅ 승인
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            const notes = prompt('거부 사유를 입력해주세요 (선택사항):');
+                                                                            if (notes !== null) {
+                                                                                handleApplicationReview(application.id, 'reject', notes);
+                                                                            }
+                                                                        }}
+                                                                        className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium"
+                                                                    >
+                                                                        ❌ 거부
+                                                                    </button>
+                                                                </div>
+                                                            )}
+
+                                                            {application.review_notes && (
+                                                                <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
+                                                                    <h5 className="font-medium text-yellow-800 mb-1">검토 메모</h5>
+                                                                    <p className="text-sm text-yellow-700">{application.review_notes}</p>
+                                                                    {application.reviewed_at && (
+                                                                        <p className="text-xs text-yellow-600 mt-1">
+                                                                            검토일: {new Date(application.reviewed_at).toLocaleString('ko-KR')}
+                                                                        </p>
+                                                                    )}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
                         )}
                     </div>
                 </div>

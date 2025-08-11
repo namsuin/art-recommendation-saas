@@ -187,13 +187,13 @@
                         document.getElementById('card-errors').textContent = error.message;
                     } else if (paymentIntent.status === 'succeeded') {
                         // 결제 성공
-                        console.log('Payment succeeded:', paymentIntent);
+                        // 결제 성공 처리
                         showPaymentSuccess();
                     }
                 } else {
                     // 테스트 모드: 2초 후 결제 성공 시뮬레이션
                     setTimeout(() => {
-                        console.log('Test payment succeeded');
+                        // 테스트 결제 성공
                         showPaymentSuccess();
                     }, 2000);
                 }

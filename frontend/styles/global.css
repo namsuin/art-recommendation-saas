@@ -343,6 +343,15 @@ body::before {
   padding: 1rem 0;
 }
 
+/* Mobile: Make header completely opaque */
+@media (max-width: 768px) {
+  .nav-elegant {
+    background: rgba(255, 255, 255, 1.0);
+    backdrop-filter: blur(15px);
+    border-bottom: 1px solid rgba(212, 165, 165, 0.2);
+  }
+}
+
 .nav-link {
   color: var(--text-secondary);
   font-weight: 400;

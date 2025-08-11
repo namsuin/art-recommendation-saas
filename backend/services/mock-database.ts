@@ -126,9 +126,29 @@ export class MockDatabaseService {
     }
     
     const user = this.users.get(this.currentUserId);
+    if (!user) {
+      return { success: false, error: "사용자 정보를 찾을 수 없습니다." };
+    }
+    
     return {
       success: true,
-      user
+      user: {
+        id: user.id,
+        email: user.email
+      },
+      profile: {
+        id: user.id,
+        email: user.email,
+        display_name: user.display_name || user.email.split('@')[0],
+        avatar_url: user.avatar_url || null,
+        subscription_tier: user.subscription_tier || 'free',
+        upload_count_today: user.upload_count || 0,
+        role: user.role || 'user',
+        artist_name: user.artist_name || null,
+        artist_bio: user.artist_bio || null,
+        artist_portfolio_url: user.artist_portfolio_url || null,
+        artist_instagram: user.artist_instagram || null
+      }
     };
   }
 
@@ -293,6 +313,57 @@ export class MockDatabaseService {
     return {
       success: true,
       uploads: userUploads
+    };
+  }
+
+  // Update user role (for artist upgrade)
+  async updateUserRole(userId: string, email: string, role: string, artistData?: any) {
+    // 먼저 ID로 사용자 찾기
+    let user = this.users.get(userId);
+    
+    if (!user) {
+      // ID로 찾을 수 없으면 이메일로 검색
+      for (const [id, userData] of this.users.entries()) {
+        if (userData.email === email) {
+          user = userData;
+          userId = id;
+          break;
+        }
+      }
+    }
+    
+    if (!user) {
+      console.log(`📝 Mock: Creating new user for role update - ${email}`);
+      // 사용자가 없으면 새로 생성
+      user = {
+        id: userId,
+        email: email,
+        role: 'user',
+        display_name: email.split('@')[0],
+        subscription_tier: 'free',
+        upload_count: 0,
+        last_upload_date: null,
+        created_at: new Date().toISOString()
+      };
+    }
+    
+    // 역할 업데이트
+    user.role = role;
+    if (artistData) {
+      user.artist_name = artistData.artist_name;
+      user.artist_bio = artistData.artist_bio;
+      user.artist_portfolio_url = artistData.artist_portfolio_url;
+      user.artist_instagram = artistData.artist_instagram;
+    }
+    user.updated_at = new Date().toISOString();
+    
+    this.users.set(userId, user);
+    
+    console.log(`✅ Mock: User role updated to ${role} for ${email}`);
+    
+    return {
+      data: [user],
+      error: null
     };
   }
 

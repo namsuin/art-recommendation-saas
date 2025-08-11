@@ -12,6 +12,7 @@ interface UserProfile {
   avatar_url: string | null;
   subscription_tier: 'free' | 'premium';
   upload_count_today: number;
+  role?: 'user' | 'artist' | 'admin';
 }
 
 export const useSupabaseAuth = () => {
@@ -23,7 +24,7 @@ export const useSupabaseAuth = () => {
 
   // 세션 만료 핸들러
   const handleSessionExpired = useCallback(() => {
-    console.log('🔒 세션이 만료되었습니다. 로그아웃합니다.');
+    // 세션 만료으로 로그아웃
     setSessionExpired(true);
     signOut();
   }, []);
@@ -31,7 +32,7 @@ export const useSupabaseAuth = () => {
   // 세션 갱신 핸들러
   const handleSessionRefreshed = useCallback(() => {
     if (user) {
-      console.log('🔄 세션이 갱신되었습니다.');
+      // 세션 갱신 완료
       // 세션 갱신 시에는 강제 체크하지 않음 (중복 방지)
     }
   }, [user]);
@@ -57,6 +58,14 @@ export const useSupabaseAuth = () => {
         }
       });
       
+      // 401 에러는 정상적인 응답 (로그인하지 않은 상태)
+      if (response.status === 401) {
+        setUser(null);
+        setUserProfile(null);
+        setLoading(false);
+        return;
+      }
+      
       const result = await response.json();
       
       if (result.success && result.user) {
@@ -68,7 +77,10 @@ export const useSupabaseAuth = () => {
         setUserProfile(null);
       }
     } catch (error) {
-      console.error('Failed to check user status:', error);
+      // 네트워크 오류만 로그에 기록
+      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        console.error('Network error while checking auth status');
+      }
       setUser(null);
       setUserProfile(null);
     } finally {
@@ -96,6 +108,9 @@ export const useSupabaseAuth = () => {
         setUserProfile(result.profile);
         setSessionExpired(false);
         
+        // 로그인 시간 기록 (30분 세션 관리용)
+        localStorage.setItem('lastLoginTime', Date.now().toString());
+        
         return { success: true };
       } else {
         return { success: false, error: result.error };
@@ -109,7 +124,7 @@ export const useSupabaseAuth = () => {
   }, [extendSession]);
 
   // 회원가입
-  const signUp = useCallback(async (email: string, password: string, displayName?: string) => {
+  const signUp = useCallback(async (email: string, password: string, displayName?: string, role?: string, artistInfo?: any) => {
     try {
       const response = await fetch('/api/auth/signup', {
         method: 'POST',
@@ -118,7 +133,13 @@ export const useSupabaseAuth = () => {
           'Cache-Control': 'no-cache'
         },
         credentials: 'include',
-        body: JSON.stringify({ email, password, displayName }),
+        body: JSON.stringify({ 
+          email, 
+          password, 
+          displayName,
+          role: role || 'user',
+          ...(artistInfo || {})
+        }),
       });
 
       const result = await response.json();
@@ -127,6 +148,9 @@ export const useSupabaseAuth = () => {
         setUser(result.user);
         setUserProfile(result.profile);
         setSessionExpired(false);
+        
+        // 회원가입 성공 시에도 로그인 시간 기록
+        localStorage.setItem('lastLoginTime', Date.now().toString());
         
         return { success: true };
       } else {
@@ -153,6 +177,9 @@ export const useSupabaseAuth = () => {
       setUser(null);
       setUserProfile(null);
       setSessionExpired(false);
+      
+      // 로그인 시간 기록 제거
+      localStorage.removeItem('lastLoginTime');
     }
   }, []);
 
@@ -163,18 +190,31 @@ export const useSupabaseAuth = () => {
     }
   }, [user, checkUserStatus]);
 
-  // 컴포넌트 마운트 시 사용자 상태 확인 (한 번만)
+  // 30분 세션 타임아웃 관리
   useEffect(() => {
-    // 로컬 스토리지에서 마지막 체크 시간 확인
-    const lastCheck = localStorage.getItem('lastAuthCheck');
+    const SESSION_TIMEOUT = 30 * 60 * 1000; // 30분
+    
+    // 로컬 스토리지에서 마지막 로그인 시간 확인
+    const lastLoginTime = localStorage.getItem('lastLoginTime');
     const now = Date.now();
     
-    // 5분 이내에 체크했다면 스킵
-    if (!lastCheck || now - parseInt(lastCheck) > 5 * 60 * 1000) {
-      localStorage.setItem('lastAuthCheck', now.toString());
+    if (lastLoginTime) {
+      const timeSinceLogin = now - parseInt(lastLoginTime);
+      
+      if (timeSinceLogin > SESSION_TIMEOUT) {
+        // 30분 경과시 세션 만료
+        // 30분 만료으로 세션 종료
+        setSessionExpired(true);
+        localStorage.removeItem('lastLoginTime');
+        signOut();
+        return;
+      }
+      
+      // 세션이 유효하면 사용자 상태 확인
       checkUserStatus(true);
     } else {
-      setLoading(false); // 체크하지 않으면 로딩 상태 해제
+      // 로그인 시간이 없으면 로딩 해제
+      setLoading(false);
     }
   }, []);
 

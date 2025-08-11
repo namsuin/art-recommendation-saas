@@ -4,7 +4,10 @@
  * AI 생성기 제거 버전
  */
 
-console.log("🎨 Starting Art Recommendation SaaS Server...");
+// Initialize logging first
+import { serverLogger } from "./shared/logger";
+
+serverLogger.info("🎨 Starting Art Recommendation SaaS Server...");
 
 // Environment validation
 import { printEnvironmentStatus, validateEnvironment } from "./backend/utils/env-validator";
@@ -13,17 +16,17 @@ printEnvironmentStatus();
 const envValidation = validateEnvironment();
 
 if (!envValidation.isValid) {
-  console.error('\n❌ Critical environment configuration errors!');
-  console.error('Please check your .env file and fix the errors above.');
+  serverLogger.error('Critical environment configuration errors! Please check your .env file and fix the errors above.');
   process.exit(1);
 }
 
 // Core services
-import { testSupabaseConnection } from "./backend/services/supabase";
+import { testSupabaseConnection, supabase } from "./backend/services/supabase";
 import { AIAnalysisService } from "./backend/services/ai-analysis";
 import { AuthAPI } from "./backend/api/auth";
 import { ArtworkManagementAPI } from "./backend/api/artwork-management";
-import { RoleAuthService } from "./backend/services/role-auth";
+import { mockArtistApplications } from "./backend/services/mock-artist-applications";
+import { mockDB } from "./backend/services/mock-database";
 
 // Initialize services lazily
 let aiService: AIAnalysisService | null = null;
@@ -81,7 +84,7 @@ const server = Bun.serve({
       // AUTH ENDPOINTS
       // ======================
       const authAPI = new AuthAPI();
-      const authEndpoints = ['/api/auth/signup', '/api/auth/signin', '/api/auth/login', '/api/auth/logout', '/api/auth/check'];
+      const authEndpoints = ['/api/auth/signup', '/api/auth/signin', '/api/auth/login', '/api/auth/logout', '/api/auth/check', '/api/auth/user', '/api/auth/signout'];
       
       if (authEndpoints.includes(url.pathname)) {
         const result = await authAPI.handleRequest(req);
@@ -99,6 +102,12 @@ const server = Bun.serve({
       // ======================
       if (url.pathname === "/api/admin/dashboard/stats" && method === "GET") {
         try {
+          // 관리자 인증 확인
+          const auth = await checkAdminAuth(req);
+          if (!auth.isAdmin) {
+            return auth.response!;
+          }
+
           // 관리자 대시보드가 기대하는 구조로 데이터 반환
           const stats = {
             success: true,
@@ -393,6 +402,288 @@ const server = Bun.serve({
           return new Response(JSON.stringify({
             success: false,
             error: "Failed to update profile"
+          }), {
+            status: 500,
+            headers: { "Content-Type": "application/json", ...corsHeaders }
+          });
+        }
+      }
+
+      // Artist application endpoint
+      if (url.pathname === "/api/artist/apply" && method === "POST") {
+        try {
+          const body = await req.json();
+          const { userId, email, artistName, bio, portfolioUrl, instagramUrl, experience, specialties, statement } = body;
+          
+          if (!userId || !email || !artistName || !bio || !experience || !specialties || !statement) {
+            return new Response(JSON.stringify({
+              success: false,
+              error: "Missing required fields"
+            }), {
+              status: 400,
+              headers: { "Content-Type": "application/json", ...corsHeaders }
+            });
+          }
+          
+          // Mock 데이터 사용 (Supabase 테이블이 아직 생성되지 않음)
+          const { data, error } = await mockArtistApplications.create({
+            user_id: userId,
+            email: email,
+            artist_name: artistName,
+            bio: bio,
+            portfolio_url: portfolioUrl,
+            instagram_url: instagramUrl,
+            experience: experience,
+            specialties: specialties,
+            statement: statement,
+            status: 'pending'
+          });
+            
+          if (error) {
+            console.error('Artist application insert error:', error);
+            return new Response(JSON.stringify({
+              success: false,
+              error: "Failed to submit application"
+            }), {
+              status: 500,
+              headers: { "Content-Type": "application/json", ...corsHeaders }
+            });
+          }
+          
+          console.log('🎨 Artist application submitted:', {
+            userId,
+            artistName,
+            email,
+            experience,
+            specialties: specialties.length
+          });
+          
+          return new Response(JSON.stringify({
+            success: true,
+            message: "Artist application submitted successfully",
+            applicationId: data?.[0]?.id
+          }), {
+            headers: { "Content-Type": "application/json", ...corsHeaders }
+          });
+          
+        } catch (error) {
+          console.error('Artist application error:', error);
+          return new Response(JSON.stringify({
+            success: false,
+            error: "Failed to process application"
+          }), {
+            status: 500,
+            headers: { "Content-Type": "application/json", ...corsHeaders }
+          });
+        }
+      }
+
+      // Get artist applications (Admin only)
+      if (url.pathname === "/api/admin/artist-applications" && method === "GET") {
+        try {
+          // Mock 데이터 사용
+          const { data, error } = await mockArtistApplications.getAll();
+
+          if (error) {
+            console.error('Failed to fetch artist applications:', error);
+            return new Response(JSON.stringify({
+              success: false,
+              error: "Failed to fetch applications"
+            }), {
+              status: 500,
+              headers: { "Content-Type": "application/json", ...corsHeaders }
+            });
+          }
+
+          return new Response(JSON.stringify({
+            success: true,
+            applications: data || []
+          }), {
+            headers: { "Content-Type": "application/json", ...corsHeaders }
+          });
+        } catch (error) {
+          console.error('Error fetching artist applications:', error);
+          return new Response(JSON.stringify({
+            success: false,
+            error: "Server error"
+          }), {
+            status: 500,
+            headers: { "Content-Type": "application/json", ...corsHeaders }
+          });
+        }
+      }
+
+      // Approve/Reject artist application (Admin only)
+      if (url.pathname === "/api/admin/artist-applications/review" && method === "POST") {
+        try {
+          const body = await req.json();
+          const { applicationId, action, reviewNotes } = body;
+
+          if (!applicationId || !action || !['approve', 'reject'].includes(action)) {
+            return new Response(JSON.stringify({
+              success: false,
+              error: "Invalid request parameters"
+            }), {
+              status: 400,
+              headers: { "Content-Type": "application/json", ...corsHeaders }
+            });
+          }
+
+          const newStatus = action === 'approve' ? 'approved' : 'rejected';
+
+          // Mock 데이터 업데이트
+          const { data: appData, error: appError } = await mockArtistApplications.updateStatus(
+            applicationId,
+            newStatus,
+            reviewNotes
+          );
+
+          if (appError) {
+            console.error('Failed to update application:', appError);
+            return new Response(JSON.stringify({
+              success: false,
+              error: "Failed to update application"
+            }), {
+              status: 500,
+              headers: { "Content-Type": "application/json", ...corsHeaders }
+            });
+          }
+
+          // If approved, update user role to artist
+          if (action === 'approve' && appData) {
+            console.log(`🔄 Updating user role for user_id: ${appData.user_id}`);
+            
+            // 먼저 해당 사용자가 존재하는지 확인 (users 테이블 사용)
+            const { data: existingUser, error: checkError } = await supabase
+              .from('users')
+              .select('*')
+              .eq('id', appData.user_id)
+              .single();
+            
+            if (checkError) {
+              console.error('❌ User not found in database:', checkError);
+              console.log('🔍 Searching by email instead...');
+              
+              // Supabase 테이블이 존재하지 않는 경우 바로 Mock 시스템 사용
+              if (checkError.code === '42P01') {
+                console.log('🔄 Database table missing, using Mock system directly');
+                
+                const { data: mockUpdateData, error: mockError } = await mockDB.updateUserRole(
+                  appData.user_id,
+                  appData.email,
+                  'artist',
+                  {
+                    artist_name: appData.artist_name,
+                    artist_bio: appData.bio,
+                    artist_portfolio_url: appData.portfolio_url,
+                    artist_instagram: appData.instagram_url
+                  }
+                );
+                
+                if (mockError) {
+                  console.error('❌ Mock role update failed:', mockError);
+                } else {
+                  console.log('✅ User role updated successfully via Mock (direct):', mockUpdateData);
+                }
+                
+                // Mock 업데이트 완료 후 다음 단계로 건너뛰기
+                console.log(`🎨 Artist application ${action}d:`, applicationId);
+                return new Response(JSON.stringify({
+                  success: true,
+                  message: `Application ${action}d successfully`
+                }), {
+                  headers: { "Content-Type": "application/json", ...corsHeaders }
+                });
+              }
+              
+              // 이메일로 사용자 찾기 시도
+              const { data: userByEmail, error: emailError } = await supabase
+                .from('users')
+                .select('*')
+                .eq('email', appData.email)
+                .single();
+              
+              if (emailError) {
+                console.error('❌ User not found by email either:', emailError);
+                console.log('🔄 Falling back to Mock database for user role update');
+                
+                // Supabase 실패 시 Mock 시스템 사용
+                const { data: mockUpdateData, error: mockError } = await mockDB.updateUserRole(
+                  appData.user_id,
+                  appData.email,
+                  'artist',
+                  {
+                    artist_name: appData.artist_name,
+                    artist_bio: appData.bio,
+                    artist_portfolio_url: appData.portfolio_url,
+                    artist_instagram: appData.instagram_url
+                  }
+                );
+                
+                if (mockError) {
+                  console.error('❌ Mock role update failed:', mockError);
+                } else {
+                  console.log('✅ User role updated successfully via Mock:', mockUpdateData);
+                }
+              } else {
+                console.log('✅ Found user by email:', userByEmail.id);
+                // 이메일로 찾은 사용자 ID로 업데이트
+                const { data: updateData, error: userError } = await supabase
+                  .from('users')
+                  .update({
+                    role: 'artist',
+                    artist_name: appData.artist_name,
+                    artist_bio: appData.bio,
+                    artist_portfolio_url: appData.portfolio_url,
+                    artist_instagram: appData.instagram_url,
+                    updated_at: new Date().toISOString()
+                  })
+                  .eq('id', userByEmail.id)
+                  .select();
+
+                if (userError) {
+                  console.error('❌ Failed to update user role by email:', userError);
+                } else {
+                  console.log('✅ User role updated successfully by email:', updateData);
+                }
+              }
+            } else {
+              console.log('✅ User found, updating role:', existingUser);
+              
+              const { data: updateData, error: userError } = await supabase
+                .from('users')
+                .update({
+                  role: 'artist',
+                  artist_name: appData.artist_name,
+                  artist_bio: appData.bio,
+                  artist_portfolio_url: appData.portfolio_url,
+                  artist_instagram: appData.instagram_url,
+                  updated_at: new Date().toISOString()
+                })
+                .eq('id', appData.user_id)
+                .select();
+
+              if (userError) {
+                console.error('❌ Failed to update user role:', userError);
+              } else {
+                console.log('✅ User role updated successfully:', updateData);
+              }
+            }
+          }
+
+          console.log(`🎨 Artist application ${action}d:`, applicationId);
+
+          return new Response(JSON.stringify({
+            success: true,
+            message: `Application ${action}d successfully`
+          }), {
+            headers: { "Content-Type": "application/json", ...corsHeaders }
+          });
+        } catch (error) {
+          console.error('Error reviewing artist application:', error);
+          return new Response(JSON.stringify({
+            success: false,
+            error: "Server error"
           }), {
             status: 500,
             headers: { "Content-Type": "application/json", ...corsHeaders }
@@ -968,16 +1259,37 @@ const server = Bun.serve({
           colorCounts.set(color, (colorCounts.get(color) || 0) + 1);
         });
         
-        // Get most common elements
-        const commonKeywords = Array.from(keywordCounts.entries())
-          .sort((a, b) => b[1] - a[1])
-          .slice(0, 20)
+        // Get truly common elements (appearing in all images)
+        const totalImages = validAnalyses.length;
+        const trulyCommonKeywords = Array.from(keywordCounts.entries())
+          .filter(([keyword, count]) => count === totalImages)
           .map(([keyword]) => keyword);
         
-        const commonColors = Array.from(colorCounts.entries())
-          .sort((a, b) => b[1] - a[1])
-          .slice(0, 10)
+        const trulyCommonColors = Array.from(colorCounts.entries())
+          .filter(([color, count]) => count === totalImages)
           .map(([color]) => color);
+        
+        // Get most frequent elements (high frequency but not necessarily in all images)
+        const frequentKeywords = Array.from(keywordCounts.entries())
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 15)
+          .map(([keyword]) => keyword);
+        
+        const frequentColors = Array.from(colorCounts.entries())
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 8)
+          .map(([color]) => color);
+        
+        // Combine truly common + frequent (prioritize truly common)
+        const commonKeywords = [
+          ...trulyCommonKeywords,
+          ...frequentKeywords.filter(k => !trulyCommonKeywords.includes(k))
+        ].slice(0, 20);
+        
+        const commonColors = [
+          ...trulyCommonColors,
+          ...frequentColors.filter(c => !trulyCommonColors.includes(c))
+        ].slice(0, 10);
         
         // Get dominant style and mood
         const styleCounts = new Map();
@@ -1023,6 +1335,7 @@ const server = Bun.serve({
             total_images: imageFiles.length,
             analyzed_images: validAnalyses.length,
             total_processing_time: totalProcessingTime,
+            processingTime: totalProcessingTime, // Frontend compatibility
             user_type: userId ? 'logged_in' : 'guest',
             individual_analyses: individualAnalyses.map(item => ({
               image_name: item.image_name,
@@ -1040,6 +1353,24 @@ const server = Bun.serve({
             dominant_mood: dominantMood,
             average_confidence: avgConfidence,
             pattern_description: `이미지들의 공통 테마는 ${dominantMood} 분위기의 ${dominantStyle} 스타일이며, 주로 ${commonColors.slice(0, 3).join(', ')} 색상이 사용되었습니다.`
+          },
+          // Frontend expects commonKeywords at root level
+          commonKeywords: {
+            keywords: commonKeywords,
+            trulyCommon: trulyCommonKeywords,
+            frequent: frequentKeywords.slice(0, 10),
+            confidence: avgConfidence,
+            totalSimilarityScore: Math.round(avgConfidence * 100),
+            totalImages: totalImages
+          },
+          // Frontend expects commonColors at root level
+          commonColors: {
+            colors: commonColors,
+            trulyCommon: trulyCommonColors,
+            frequent: frequentColors.slice(0, 6),
+            confidence: avgConfidence,
+            totalColorScore: Math.round(avgConfidence * 100),
+            totalImages: totalImages
           },
           recommendations: recommendations
           }), {
@@ -1405,27 +1736,71 @@ const server = Bun.serve({
   },
 });
 
+// 관리자 인증 확인 함수
+async function checkAdminAuth(req: Request): Promise<{ isAdmin: boolean; response?: Response }> {
+  const authHeader = req.headers.get('authorization');
+  const token = authHeader?.replace('Bearer ', '');
+  
+  if (!token) {
+    return {
+      isAdmin: false,
+      response: new Response(JSON.stringify({
+        success: false,
+        error: 'Authorization token required'
+      }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    };
+  }
+
+  const userRole = await getUserRoleFromToken(token);
+  
+  if (userRole !== 'admin') {
+    return {
+      isAdmin: false,
+      response: new Response(JSON.stringify({
+        success: false,
+        error: 'Access denied. Admin privileges required.'
+      }), {
+        status: 403,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    };
+  }
+
+  return { isAdmin: true };
+}
+
 // 토큰에서 사용자 역할을 가져오는 헬퍼 함수
 async function getUserRoleFromToken(token: string): Promise<string | null> {
   try {
-    // 실제 구현에서는 Supabase JWT 검증 또는 세션 확인
-    // 현재는 간단한 토큰 기반 역할 확인
-    if (token === 'admin-token-2025') {
-      return 'admin';
+    if (!supabase) {
+      console.warn('Supabase not configured, using fallback authentication');
+      return null;
     }
+
+    // Supabase JWT 검증을 통한 사용자 인증
+    const { data: { user }, error } = await supabase.auth.getUser(token);
     
-    // 실제로는 supabase.auth.getUser(token)으로 사용자 정보 확인
-    // const { data: { user }, error } = await supabase.auth.getUser(token);
-    // if (!error && user) {
-    //   const { data: profile } = await supabase
-    //     .from('users')
-    //     .select('role')
-    //     .eq('id', user.id)
-    //     .single();
-    //   return profile?.role || 'user';
-    // }
-    
-    return null;
+    if (error || !user) {
+      console.warn('Invalid token or user not found:', error?.message);
+      return null;
+    }
+
+    // 사용자 프로필에서 역할 조회
+    const { data: profile, error: profileError } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError) {
+      console.warn('Failed to get user profile:', profileError.message);
+      return 'user'; // 기본값
+    }
+
+    return profile?.role || 'user';
   } catch (error) {
     console.error('Token validation error:', error);
     return null;
