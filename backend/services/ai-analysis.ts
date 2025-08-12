@@ -8,14 +8,27 @@ import { HarvardMuseumsAPI } from './harvard-museums-api';
 import { EuropeanaAPI } from './europeana-api';
 
 export class AIAnalysisService {
+  private static instance: AIAnalysisService;
   private aiEnsemble: AIEnsembleService;
   private performanceOptimizer: PerformanceOptimizer;
   private metMuseumAPI: MetMuseumAPI;
   private wikiArtAPI: WikiArtAPI;
   private harvardAPI: HarvardMuseumsAPI;
   private europeanaAPI: EuropeanaAPI;
+  private initialized: boolean = false;
 
   constructor() {
+    if (AIAnalysisService.instance) {
+      return AIAnalysisService.instance;
+    }
+    
+    this.initialize();
+    AIAnalysisService.instance = this;
+  }
+
+  private initialize() {
+    if (this.initialized) return;
+    
     console.log('🚀 Initializing AI Analysis Service...');
     this.aiEnsemble = new AIEnsembleService();
     console.log('✅ AI Ensemble Service initialized');
@@ -26,6 +39,14 @@ export class AIAnalysisService {
     this.harvardAPI = new HarvardMuseumsAPI();
     this.europeanaAPI = new EuropeanaAPI();
     console.log('🎨 All art source APIs initialized');
+    this.initialized = true;
+  }
+
+  static getInstance(): AIAnalysisService {
+    if (!AIAnalysisService.instance) {
+      AIAnalysisService.instance = new AIAnalysisService();
+    }
+    return AIAnalysisService.instance;
   }
 
   async analyzeImageAndRecommend(
@@ -41,11 +62,12 @@ export class AIAnalysisService {
     const startTime = Date.now();
 
     try {
-      // 1. Analyze the uploaded image with performance optimization
-      console.log('🔍 Starting optimized image analysis...');
+      // 1. Analyze the uploaded image with Google Vision
+      console.log('🔍 Starting image analysis with Google Vision...');
       console.log('🔧 AI Ensemble status:', this.aiEnsemble ? 'initialized' : 'not initialized');
-      console.log('🔧 Performance Optimizer status:', this.performanceOptimizer ? 'initialized' : 'not initialized');
-      const analysis = await this.performanceOptimizer.analyzeImage(imageBuffer);
+      
+      // Use AI Ensemble directly for image analysis
+      const analysis = await this.aiEnsemble.analyzeImage(imageBuffer);
       
       console.log(`📊 Analysis complete. Found ${analysis.keywords.length} keywords`);
       console.log(`🎯 Style: ${analysis.style}, Confidence: ${analysis.confidence}`);
@@ -178,7 +200,66 @@ export class AIAnalysisService {
     console.log(`🔍 Searching for artworks with keywords: ${keywords.join(', ')}`);
 
     try {
-      // 1. Search all art sources in parallel for diverse results
+      // 1. FIRST: Check registered artworks from admin (highest priority)
+      let registeredRecommendations: Recommendation[] = [];
+      try {
+        const { artworkRegistry } = await import('./artwork-registry');
+        const registeredMatches = await artworkRegistry.getMatchingArtworks(keywords, limit);
+        
+        registeredRecommendations = registeredMatches.map(artwork => {
+          const reasons = [
+            `🌟 Curated artwork from our collection`,
+            `Matches: ${keywords.slice(0, 3).join(', ')}`,
+            artwork.style ? `Style: ${artwork.style}` : '',
+            `Artist: ${artwork.artist}`
+          ].filter(Boolean);
+
+          return {
+            artwork: {
+              id: artwork.id,
+              title: artwork.title,
+              artist: artwork.artist,
+              image_url: artwork.image_url,
+              thumbnail_url: artwork.image_url,
+              description: artwork.description || '',
+              keywords: artwork.keywords,
+              available: true,
+              created_at: artwork.created_at,
+              updated_at: artwork.created_at,
+              metadata: {
+                source: 'Registered Collection',
+                style: artwork.style,
+                year: artwork.year,
+                medium: artwork.medium,
+                match_score: artwork.match_score
+              }
+            },
+            similarity: Math.min(0.95, 0.7 + (artwork.match_score || 0) * 0.05), // High base score for registered artworks
+            reasons,
+            confidence: 0.9
+          };
+        });
+        
+        console.log(`✨ Found ${registeredRecommendations.length} matching registered artworks`);
+      } catch (error) {
+        console.error('Failed to get registered artworks:', error);
+      }
+
+      // If we have enough registered artworks, return mostly those
+      if (registeredRecommendations.length >= limit * 0.6) {
+        const remainingLimit = limit - registeredRecommendations.length;
+        
+        // Get a few external recommendations for diversity
+        const [metResults] = await Promise.all([
+          this.metMuseumAPI.searchByKeywords(keywords, remainingLimit)
+        ]);
+        
+        const metRecommendations = this.convertMetMuseumToRecommendations(metResults, keywords);
+        
+        return [...registeredRecommendations, ...metRecommendations].slice(0, limit);
+      }
+
+      // 2. Search all art sources in parallel for diverse results
       console.log('🔍 Searching multiple art sources in parallel...');
       const [metResults, wikiArtResults, harvardResults, europeanaResults] = await Promise.all([
         this.metMuseumAPI.searchByKeywords(keywords, Math.ceil(limit * 0.3)), // 30% Met Museum
@@ -342,6 +423,7 @@ export class AIAnalysisService {
 
       // 7. Combine all recommendations from all sources
       const allRecommendations = [
+        ...registeredRecommendations, // Registered artworks first (highest priority)
         ...metRecommendations,
         ...wikiArtRecommendations,
         ...harvardRecommendations,
@@ -424,6 +506,31 @@ export class AIAnalysisService {
       // 완전 실패 시 빈 배열 반환
       return [];
     }
+  }
+
+  private convertMetMuseumToRecommendations(metResults: any[], keywords: string[]): Recommendation[] {
+    return metResults.map((artwork, index) => {
+      const similarity = this.calculateKeywordSimilarity(keywords, artwork.keywords);
+      
+      const reasons = [
+        `Real artwork from The Metropolitan Museum of Art`,
+        `Matches your image's ${keywords.slice(0, 2).join(', ')} themes`,
+        `${artwork.metadata?.period || artwork.metadata?.culture || 'Historical piece'}`
+      ].filter(Boolean);
+
+      return {
+        artwork: {
+          ...artwork,
+          metadata: {
+            ...artwork.metadata,
+            source: 'Met Museum'
+          }
+        },
+        similarity: similarity + 0.1, // Boost Met Museum results
+        reasons,
+        confidence: similarity * 0.95 // High confidence for real museum pieces
+      };
+    });
   }
 
   private generateReasons(analysis: ImageAnalysis, artwork: any): string[] {

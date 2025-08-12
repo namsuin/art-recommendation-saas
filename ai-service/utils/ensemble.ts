@@ -267,11 +267,15 @@ export class AIEnsembleService {
     const mood = this.determineOverallMood(keywordArray);
 
     // Enhanced color extraction from keywords
-    console.log(`🔍 DEBUG: Starting color extraction with ${keywordArray.length} keywords:`, keywordArray.slice(0, 10));
+    if (process.env.DEBUG_MODE === 'true') {
+      console.log(`🔍 DEBUG: Starting color extraction with ${keywordArray.length} keywords:`, keywordArray.slice(0, 10));
+    }
     
     // TEMPORARY: Add test keywords to demonstrate color extraction works
     if (keywordArray.length > 0 && keywordArray.every(k => ['artwork', 'visual-art', 'creative'].includes(k))) {
-      console.log('🧪 DEBUG: Adding test color keywords to demonstrate functionality');
+      if (process.env.DEBUG_MODE === 'true') {
+        console.log('🧪 DEBUG: Adding test color keywords to demonstrate functionality');
+      }
       keywordArray.push('blue sky', 'green forest', 'red sunset', 'golden hour', 'violet flowers');
     }
     
@@ -418,7 +422,9 @@ export class AIEnsembleService {
    * Enhanced color extraction from keywords with comprehensive color vocabulary
    */
   private extractColorsFromKeywords(keywords: string[], colors: Set<string>) {
-    console.log(`🔍 DEBUG: extractColorsFromKeywords called with ${keywords.length} keywords`);
+    if (process.env.DEBUG_MODE === 'true') {
+      console.log(`🔍 DEBUG: extractColorsFromKeywords called with ${keywords.length} keywords`);
+    }
     const colorMappings = {
       // Basic colors
       'red': ['red', 'crimson', 'scarlet', 'cherry', 'ruby', 'burgundy', 'maroon', 'vermillion'],
@@ -447,7 +453,9 @@ export class AIEnsembleService {
 
     keywords.forEach(keyword => {
       const lowerKeyword = keyword.toLowerCase();
-      console.log(`🔍 DEBUG: Processing keyword "${keyword}" → "${lowerKeyword}"`);
+      if (process.env.DEBUG_MODE === 'true') {
+        console.log(`🔍 DEBUG: Processing keyword "${keyword}" → "${lowerKeyword}"`);
+      }
       
       // Direct color matches
       Object.entries(colorMappings).forEach(([baseColor, variations]) => {
@@ -463,7 +471,9 @@ export class AIEnsembleService {
       this.extractAdvancedColorPatterns(lowerKeyword, colors);
     });
     
-    console.log(`🎨 DEBUG: Color extraction complete. Found ${colors.size} colors: ${Array.from(colors).join(', ')}`);
+    if (process.env.DEBUG_MODE === 'true') {
+      console.log(`🎨 DEBUG: Color extraction complete. Found ${colors.size} colors: ${Array.from(colors).join(', ')}`);
+    }
   }
 
   /**

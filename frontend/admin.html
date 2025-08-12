@@ -19,7 +19,7 @@
                 <p class="text-gray-600">관리자 인증이 필요합니다</p>
             </div>
 
-            <form id="admin-access-form" class="space-y-4">
+            <form id="admin-form" class="space-y-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">
                         🔑 관리자 토큰
@@ -54,16 +54,17 @@
     </div>
 
     <script>
-        document.getElementById('admin-access-form').addEventListener('submit', async (e) => {
+        document.getElementById('admin-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             
             const token = document.getElementById('admin-token').value;
             const errorDiv = document.getElementById('error-message');
             
-            if (token === 'admin-token-2025') {
-                // 토큰을 localStorage에 저장하고 관리자 페이지로 이동
+            if (token === 'admin-token-2025' || token === 'ADMIN2025SECRET') {
+                // 토큰을 localStorage와 쿠키에 저장하고 관리자 페이지로 이동
                 localStorage.setItem('admin-token', token);
-                window.location.href = '/admin-dashboard';
+                document.cookie = `admin-token=${token}; path=/; max-age=86400`; // 24시간
+                window.location.href = '/dashboard';
             } else {
                 errorDiv.classList.remove('hidden');
                 setTimeout(() => {
@@ -75,8 +76,8 @@
         // 페이지 로드 시 기존 토큰 확인
         document.addEventListener('DOMContentLoaded', () => {
             const existingToken = localStorage.getItem('admin-token');
-            if (existingToken === 'admin-token-2025') {
-                window.location.href = '/admin-dashboard';
+            if (existingToken === 'admin-token-2025' || existingToken === 'ADMIN2025SECRET') {
+                window.location.href = '/dashboard';
             }
         });
     </script>

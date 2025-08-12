@@ -270,6 +270,12 @@ coreRoutes.set("GET:/api/artworks", async (req: Request) => {
 
 // 정적 파일 패턴 매칭을 위한 헬퍼 함수
 export function handleStaticFiles(pathname: string): Promise<Response> | null {
+  // HTML 파일 처리 (instagram-import.html 포함)
+  if (pathname.endsWith('.html') && pathname !== '/') {
+    const filePath = pathname.substring(1);
+    return serveStaticFile(filePath);
+  }
+  
   if (pathname.startsWith("/components/")) {
     const filePath = pathname.substring(1);
     return serveStaticFile(filePath);

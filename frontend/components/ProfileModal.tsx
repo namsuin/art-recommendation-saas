@@ -514,7 +514,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                 <h3 className="text-xl font-bold mb-6" style={{color: '#dc2626'}}>🛡️ 관리자 메뉴</h3>
                 <div className="grid grid-cols-3 gap-4">
                   <button 
-                    onClick={() => window.location.href = '/admin-dashboard'}
+                    onClick={() => window.location.href = '/dashboard'}
                     className="p-4 rounded-lg bg-white hover:shadow-lg transition-all duration-200 text-center"
                   >
                     <div className="text-2xl mb-2">📊</div>

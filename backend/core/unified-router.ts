@@ -34,6 +34,53 @@ export class UnifiedRouter {
       const [method, path] = route.split(':');
       this.addRoute(method, path, this.adaptLegacyHandler(handler));
     }
+    
+    // Instagram 통합 라우트 추가
+    this.addInstagramRoutes();
+  }
+  
+  private addInstagramRoutes() {
+    const { instagramService } = require('../services/instagram-integration');
+    
+    // Instagram 프로필 가져오기
+    this.get('/api/instagram/profile/:username', async (req, params) => {
+      try {
+        const result = await instagramService.importAsArtworks(params.username);
+        return new Response(JSON.stringify(result), {
+          headers: { 'Content-Type': 'application/json' }
+        });
+      } catch (error) {
+        return new Response(JSON.stringify({ error: 'Failed to fetch Instagram profile' }), {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+    });
+    
+    // Instagram 작품 가져오기
+    this.post('/api/instagram/import', async (req) => {
+      try {
+        const body = await req.json();
+        const { username } = body;
+        
+        if (!username) {
+          return new Response(JSON.stringify({ error: 'Username is required' }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' }
+          });
+        }
+        
+        const result = await instagramService.importAsArtworks(username);
+        return new Response(JSON.stringify(result), {
+          headers: { 'Content-Type': 'application/json' }
+        });
+      } catch (error) {
+        return new Response(JSON.stringify({ error: 'Failed to import Instagram posts' }), {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+    });
   }
   
   private adaptLegacyHandler(legacyHandler: (req: Request) => Promise<Response>): RouteHandler {

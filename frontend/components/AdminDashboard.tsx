@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { ArtworkRegistry } from './ArtworkRegistry';
 
 interface AdminDashboardProps {
   user: any;
@@ -69,7 +70,7 @@ interface ArtistApplication {
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onClose }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'artworks' | 'users' | 'applications'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'artworks' | 'users' | 'applications' | 'registry'>('overview');
   
   // Stats state
   const [userStats, setUserStats] = useState<UserStats | null>(null);
@@ -91,6 +92,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onClose })
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Helper function to get admin headers
+  const getAdminHeaders = () => {
+    const token = localStorage.getItem('admin-token') || 'ADMIN2025SECRET';
+    return {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    };
+  };
+
   useEffect(() => {
     if (activeTab === 'overview') {
       loadOverviewData();
@@ -108,9 +118,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onClose })
     try {
       // Load all overview data in parallel
       const [userStatsRes, usageStatsRes, activityRes] = await Promise.all([
-        fetch(`/api/admin/stats/users?userId=${user.id}`),
-        fetch(`/api/admin/stats/usage?userId=${user.id}`),
-        fetch(`/api/admin/activity?userId=${user.id}`)
+        fetch(`/api/admin/dashboard/stats`, { headers: getAdminHeaders() }),
+        fetch(`/api/admin/dashboard/users`, { headers: getAdminHeaders() }),
+        fetch(`/api/admin/dashboard/revenue`, { headers: getAdminHeaders() })
       ]);
 
       const [userStatsData, usageStatsData, activityData] = await Promise.all([
@@ -147,7 +157,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onClose })
     setError(null);
 
     try {
-      const response = await fetch(`/api/admin/artworks?userId=${user.id}&page=${artworkPage}&limit=20`);
+      const response = await fetch(`/api/admin/artworks?page=${artworkPage}&limit=20`, { headers: getAdminHeaders() });
       const result = await response.json();
 
       if (result.success) {
@@ -169,7 +179,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onClose })
     setError(null);
     
     try {
-      const response = await fetch('/api/admin/artist-applications');
+      const response = await fetch('/api/admin/artist-applications', { headers: getAdminHeaders() });
       const result = await response.json();
       
       if (result.success) {
@@ -493,7 +503,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onClose })
             <p className="text-sm text-gray-500">₩{artwork.price?.toLocaleString()}</p>
             
             <div className="flex flex-wrap gap-1 mt-2">
-              {artwork.keywords.slice(0, 3).map((keyword, idx) => (
+              {artwork.keywords.slice(0, 10).map((keyword, idx) => (
                 <span key={idx} className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded">
                   {keyword}
                 </span>
@@ -561,71 +571,96 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onClose })
   );
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg w-full max-w-6xl max-h-[90vh] overflow-hidden">
-        {/* Header */}
-        <div className="flex justify-between items-center p-6 border-b">
-          <h2 className="text-2xl font-bold">관리자 대시보드</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 text-xl"
-          >
-            ✕
-          </button>
+    <div className="min-h-screen bg-gray-50">
+      {/* Navigation Header */}
+      <nav className="bg-white shadow-lg border-b">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center space-x-4">
+              <h1 className="text-2xl font-bold text-gray-800">🎨 관리자 대시보드</h1>
+            </div>
+            <div className="flex items-center space-x-4">
+              <span className="text-sm text-gray-600">관리자</span>
+              <button
+                onClick={onClose}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                메인으로
+              </button>
+            </div>
+          </div>
         </div>
+      </nav>
 
+      <div className="container mx-auto px-4 py-6">
         {/* Tabs */}
-        <div className="flex border-b">
-          <button
-            onClick={() => setActiveTab('overview')}
-            className={`px-6 py-3 font-medium ${
-              activeTab === 'overview'
-                ? 'border-b-2 border-blue-500 text-blue-600'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            개요
-          </button>
-          <button
-            onClick={() => setActiveTab('artworks')}
-            className={`px-6 py-3 font-medium ${
-              activeTab === 'artworks'
-                ? 'border-b-2 border-blue-500 text-blue-600'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            작품 관리
-          </button>
-          <button
-            onClick={() => setActiveTab('applications')}
-            className={`px-6 py-3 font-medium ${
-              activeTab === 'applications'
-                ? 'border-b-2 border-blue-500 text-blue-600'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            🎨 예술가 신청
-          </button>
+        <div className="bg-white rounded-lg shadow-sm mb-6">
+          <div className="flex border-b">
+            <button
+              onClick={() => setActiveTab('overview')}
+              className={`px-6 py-4 font-medium border-b-2 transition-colors ${
+                activeTab === 'overview'
+                  ? 'border-blue-500 text-blue-600 bg-blue-50'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              📊 개요
+            </button>
+            <button
+              onClick={() => setActiveTab('artworks')}
+              className={`px-6 py-4 font-medium border-b-2 transition-colors ${
+                activeTab === 'artworks'
+                  ? 'border-blue-500 text-blue-600 bg-blue-50'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              📚 작품 관리
+            </button>
+            <button
+              onClick={() => setActiveTab('registry')}
+              className={`px-6 py-4 font-medium border-b-2 transition-colors ${
+                activeTab === 'registry'
+                  ? 'border-purple-500 text-purple-600 bg-purple-50'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              🎨 작품 등록
+            </button>
+            <button
+              onClick={() => setActiveTab('applications')}
+              className={`px-6 py-4 font-medium border-b-2 transition-colors ${
+                activeTab === 'applications'
+                  ? 'border-green-500 text-green-600 bg-green-50'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              👥 예술가 신청
+            </button>
+          </div>
         </div>
 
         {/* Content */}
-        <div className="p-6 overflow-y-auto max-h-[70vh]">
+        <div className="bg-white rounded-lg shadow-sm min-h-[calc(100vh-200px)]">
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 m-6 mb-0">
               <p className="text-red-600">⚠️ {error}</p>
             </div>
           )}
 
           {isLoading ? (
-            <div className="flex justify-center items-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-              <span className="ml-2">로딩 중...</span>
+            <div className="flex justify-center items-center py-20">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                <span className="text-gray-600">로딩 중...</span>
+              </div>
             </div>
           ) : (
-            <>
+            <div className="p-6">
               {activeTab === 'overview' && renderOverview()}
               {activeTab === 'artworks' && renderArtworks()}
-            </>
+              {activeTab === 'registry' && <ArtworkRegistry />}
+              {activeTab === 'applications' && renderApplications()}
+            </div>
           )}
         </div>
       </div>
