@@ -78,7 +78,7 @@ export class ClarifaiArtAnalysisService {
     };
 
     if (!this.apiKey) {
-      console.warn('⚠️ Clarifai API key not configured - using mock responses');
+      logger.warn('⚠️ Clarifai API key not configured - using mock responses');
     }
   }
 
@@ -87,12 +87,12 @@ export class ClarifaiArtAnalysisService {
    */
   async analyzeArtwork(imageBuffer: Buffer): Promise<ClarifaiArtAnalysisResult> {
     if (!this.apiKey) {
-      console.log('🎭 Using mock Clarifai art analysis');
+      logger.info('🎭 Using mock Clarifai art analysis');
       return this.getMockAnalysis();
     }
 
     try {
-      console.log('🎨 Analyzing artwork with Clarifai Art Models...');
+      logger.info('🎨 Analyzing artwork with Clarifai Art Models...');
 
       // 병렬로 여러 모델 호출
       const [styleResult, emotionResult, genreResult, culturalResult] = await Promise.allSettled([
@@ -111,7 +111,7 @@ export class ClarifaiArtAnalysisService {
       };
 
     } catch (error) {
-      console.error('❌ Clarifai art analysis failed:', error);
+      logger.error('❌ Clarifai art analysis failed:', error);
       return this.getMockAnalysis();
     }
   }

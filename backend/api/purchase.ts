@@ -88,7 +88,7 @@ export class PurchaseAPI {
       };
 
     } catch (error) {
-      console.error('Failed to create purchase request:', error);
+      logger.error('Failed to create purchase request:', error);
       return {
         success: false,
         error: '구매 요청 생성 중 오류가 발생했습니다.'
@@ -129,7 +129,7 @@ export class PurchaseAPI {
       };
 
     } catch (error) {
-      console.error('Failed to get user purchase requests:', error);
+      logger.error('Failed to get user purchase requests:', error);
       return {
         success: false,
         error: '구매 요청 목록 조회에 실패했습니다.'
@@ -185,7 +185,7 @@ export class PurchaseAPI {
       };
 
     } catch (error) {
-      console.error('Failed to get all purchase requests:', error);
+      logger.error('Failed to get all purchase requests:', error);
       return {
         success: false,
         error: '구매 요청 목록 조회에 실패했습니다.'
@@ -264,7 +264,7 @@ export class PurchaseAPI {
       };
 
     } catch (error) {
-      console.error('Failed to update purchase request status:', error);
+      logger.error('Failed to update purchase request status:', error);
       return {
         success: false,
         error: '구매 요청 상태 업데이트에 실패했습니다.'
@@ -314,7 +314,7 @@ export class PurchaseAPI {
       };
 
     } catch (error) {
-      console.error('Failed to cancel purchase request:', error);
+      logger.error('Failed to cancel purchase request:', error);
       return {
         success: false,
         error: '구매 요청 취소에 실패했습니다.'
@@ -509,7 +509,7 @@ export class PurchaseAPI {
       });
 
     } catch (error) {
-      console.error('Purchase API error:', error);
+      logger.error('Purchase API error:', error);
       return new Response(JSON.stringify({ 
         error: 'Internal server error' 
       }), {
@@ -558,7 +558,7 @@ export class PurchaseAPI {
       });
 
     } catch (error) {
-      console.error('Create payment intent error:', error);
+      logger.error('Create payment intent error:', error);
       return new Response(JSON.stringify({
         error: '결제 생성에 실패했습니다.'
       }), {
@@ -602,7 +602,7 @@ export class PurchaseAPI {
       });
 
     } catch (error) {
-      console.error('Confirm payment error:', error);
+      logger.error('Confirm payment error:', error);
       return new Response(JSON.stringify({
         error: '결제 확인에 실패했습니다.'
       }), {

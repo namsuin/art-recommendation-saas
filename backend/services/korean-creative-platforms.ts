@@ -12,7 +12,7 @@ export class KoreanCreativePlatformsAPI {
     artworks: any[];
     error?: string;
   }> {
-    console.log('📝 그라폴리오 검색이 비활성화되었습니다 (사용자 요청)');
+    logger.info('📝 그라폴리오 검색이 비활성화되었습니다 (사용자 요청)');
     return {
       success: true,
       artworks: []
@@ -34,7 +34,7 @@ export class KoreanCreativePlatformsAPI {
     error?: string;
   }> {
     // 데이터 생성 자체를 중단 - Mock 데이터도 생성하지 않음
-    console.log('🚫 대학 졸업전시 검색이 완전히 비활성화되었습니다. 데이터 생성 없음.');
+    logger.info('🚫 대학 졸업전시 검색이 완전히 비활성화되었습니다. 데이터 생성 없음.');
     return {
       success: true,
       artworks: [] // 빈 배열만 반환, Mock 데이터 생성 안함
@@ -50,7 +50,7 @@ export class KoreanCreativePlatformsAPI {
     artworks: any[];
     error?: string;
   }> {
-    console.log('📝 텀블벅 검색이 비활성화되었습니다 (사용자 요청)');
+    logger.info('📝 텀블벅 검색이 비활성화되었습니다 (사용자 요청)');
     return {
       success: true,
       artworks: []
@@ -62,7 +62,7 @@ export class KoreanCreativePlatformsAPI {
    * NOTE: 사용자 요청에 따라 그라폴리오 제외
    */
   private generateGrafolioMockData(keywords: string[], limit: number): any[] {
-    console.log('📝 그라폴리오 Mock 데이터 생성이 비활성화되었습니다');
+    logger.info('📝 그라폴리오 Mock 데이터 생성이 비활성화되었습니다');
     return [];
   }
 
@@ -76,7 +76,7 @@ export class KoreanCreativePlatformsAPI {
     year?: string, 
     limit: number
   ): any[] {
-    console.log('📝 졸업작품 Mock 데이터 생성이 비활성화되었습니다');
+    logger.info('📝 졸업작품 Mock 데이터 생성이 비활성화되었습니다');
     return [];
   }
 
@@ -85,7 +85,7 @@ export class KoreanCreativePlatformsAPI {
    * NOTE: 사용자 요청에 따라 텀블벅 제외
    */
   private generateTumblbugMockData(keywords: string[], limit: number): any[] {
-    console.log('📝 텀블벅 Mock 데이터 생성이 비활성화되었습니다');
+    logger.info('📝 텀블벅 Mock 데이터 생성이 비활성화되었습니다');
     return [];
   }
 
@@ -104,7 +104,7 @@ export class KoreanCreativePlatformsAPI {
     error?: string;
   }> {
     // 완전 비활성화 - 어떤 데이터도 생성하지 않음
-    console.log('🚫 한국 창작 플랫폼 검색이 완전히 비활성화되었습니다. 모든 데이터 생성 중단.');
+    logger.info('🚫 한국 창작 플랫폼 검색이 완전히 비활성화되었습니다. 모든 데이터 생성 중단.');
     
     // 빈 결과만 반환, Mock 데이터 생성 안함
     return {

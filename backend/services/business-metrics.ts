@@ -235,7 +235,7 @@ export class BusinessMetricsService {
       return { success: true, data: kpiMetrics };
 
     } catch (error) {
-      console.error('Get KPI metrics error:', error);
+      logger.error('Get KPI metrics error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'KPI 메트릭 조회 실패'
@@ -309,7 +309,7 @@ export class BusinessMetricsService {
       return { success: true, data: revenueAnalysis };
 
     } catch (error) {
-      console.error('Get revenue analysis error:', error);
+      logger.error('Get revenue analysis error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : '수익 분석 실패'
@@ -350,7 +350,7 @@ export class BusinessMetricsService {
       return { success: true, data: userBehaviorMetrics };
 
     } catch (error) {
-      console.error('Get user behavior metrics error:', error);
+      logger.error('Get user behavior metrics error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : '사용자 행동 메트릭 조회 실패'
@@ -393,7 +393,7 @@ export class BusinessMetricsService {
       return { success: true, data: formattedGoals };
 
     } catch (error) {
-      console.error('Get business goals error:', error);
+      logger.error('Get business goals error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : '비즈니스 목표 조회 실패'
@@ -437,7 +437,7 @@ export class BusinessMetricsService {
       return { success: true, data: formattedAlerts };
 
     } catch (error) {
-      console.error('Get business alerts error:', error);
+      logger.error('Get business alerts error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : '비즈니스 알림 조회 실패'

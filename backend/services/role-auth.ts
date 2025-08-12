@@ -30,7 +30,7 @@ export class RoleAuthService {
       if (error || !data) return null;
       return data.role as UserRole;
     } catch (error) {
-      console.error('Error fetching user role:', error);
+      logger.error('Error fetching user role:', error);
       return null;
     }
   }
@@ -75,7 +75,7 @@ export class RoleAuthService {
       
       return data.role === 'artist' && data.artist_verified === true;
     } catch (error) {
-      console.error('Error checking artist verification:', error);
+      logger.error('Error checking artist verification:', error);
       return false;
     }
   }
@@ -113,7 +113,7 @@ export class RoleAuthService {
 
       return { success: true };
     } catch (error) {
-      console.error('Error updating user role:', error);
+      logger.error('Error updating user role:', error);
       return { 
         success: false, 
         error: error instanceof Error ? error.message : '역할 업데이트 실패'
@@ -177,7 +177,7 @@ export class RoleAuthService {
 
       return { success: true };
     } catch (error) {
-      console.error('Error requesting artist verification:', error);
+      logger.error('Error requesting artist verification:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : '인증 요청 실패'
@@ -239,7 +239,7 @@ export class RoleAuthService {
 
       return { success: true };
     } catch (error) {
-      console.error('Error approving artist verification:', error);
+      logger.error('Error approving artist verification:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : '인증 승인 실패'
@@ -283,7 +283,7 @@ export class RoleAuthService {
 
       return { success: true };
     } catch (error) {
-      console.error('Error rejecting artist verification:', error);
+      logger.error('Error rejecting artist verification:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : '인증 거부 실패'
@@ -308,7 +308,7 @@ export class RoleAuthService {
 
       return data as UserProfile;
     } catch (error) {
-      console.error('Error fetching user profile:', error);
+      logger.error('Error fetching user profile:', error);
       return null;
     }
   }
@@ -351,7 +351,7 @@ export class RoleAuthService {
 
       return { success: true };
     } catch (error) {
-      console.error('Error setting initial role:', error);
+      logger.error('Error setting initial role:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : '역할 설정 실패'

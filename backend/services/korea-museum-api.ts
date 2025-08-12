@@ -83,7 +83,7 @@ export class KoreaMuseumAPI {
       };
 
     } catch (error) {
-      console.error('Korea Museum API search error:', error);
+      logger.error('Korea Museum API search error:', error);
       return {
         success: false,
         artworks: [],
@@ -125,7 +125,7 @@ export class KoreaMuseumAPI {
       };
 
     } catch (error) {
-      console.error('Korea Museum API period search error:', error);
+      logger.error('Korea Museum API period search error:', error);
       return {
         success: false,
         artworks: [],
@@ -166,7 +166,7 @@ export class KoreaMuseumAPI {
       };
 
     } catch (error) {
-      console.error('Korea Museum API material search error:', error);
+      logger.error('Korea Museum API material search error:', error);
       return {
         success: false,
         artworks: [],

@@ -4,6 +4,7 @@
 
 import type { AppError } from '../types/common';
 import { ResponseHelper } from './response-helper';
+import { logger } from '../../shared/logger';
 
 export class AppErrorClass extends Error implements AppError {
   statusCode: number;
@@ -29,7 +30,7 @@ export class ErrorHandler {
    * 에러를 적절한 HTTP 응답으로 변환
    */
   static handleError(error: Error | AppError): Response {
-    console.error('🚨 Error occurred:', {
+    logger.error('🚨 Error occurred:', {
       name: error.name,
       message: error.message,
       stack: error.stack,

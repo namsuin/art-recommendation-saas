@@ -50,7 +50,7 @@ export class ImageUrlValidator {
       return isValid;
 
     } catch (error) {
-      console.log(`❌ Image URL validation failed for ${url}:`, error.message);
+      logger.info(`❌ Image URL validation failed for ${url}:`, error.message);
       
       // 캐시에 실패 결과 저장
       this.cache.set(url, { valid: false, timestamp: Date.now() });
@@ -84,7 +84,7 @@ export class ImageUrlValidator {
       return recommendations;
     }
 
-    console.log(`🔍 Validating ${recommendations.length} recommendation images...`);
+    logger.info(`🔍 Validating ${recommendations.length} recommendation images...`);
 
     const validatedRecommendations: any[] = [];
 
@@ -98,7 +98,7 @@ export class ImageUrlValidator {
         const imageUrl = artwork.image_url || artwork.thumbnail_url || artwork.primaryImage;
         
         if (!imageUrl) {
-          console.log(`⚠️ No image URL found for artwork: ${artwork.title || 'Unknown'}`);
+          logger.info(`⚠️ No image URL found for artwork: ${artwork.title || 'Unknown'}`);
           return null;
         }
 
@@ -107,7 +107,7 @@ export class ImageUrlValidator {
         if (isValid) {
           return rec;
         } else {
-          console.log(`🚫 Filtering out artwork with invalid image: ${artwork.title || 'Unknown'} - ${imageUrl}`);
+          logger.info(`🚫 Filtering out artwork with invalid image: ${artwork.title || 'Unknown'} - ${imageUrl}`);
           return null;
         }
       });
@@ -123,7 +123,7 @@ export class ImageUrlValidator {
 
     const filteredCount = recommendations.length - validatedRecommendations.length;
     if (filteredCount > 0) {
-      console.log(`📊 Filtered out ${filteredCount} artworks with invalid images. ${validatedRecommendations.length} valid artworks remaining.`);
+      logger.info(`📊 Filtered out ${filteredCount} artworks with invalid images. ${validatedRecommendations.length} valid artworks remaining.`);
     }
 
     return validatedRecommendations;

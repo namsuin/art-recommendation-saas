@@ -339,7 +339,7 @@ export class UserFollowService {
       });
 
     } catch (error) {
-      console.error('Failed to update follow counts:', error);
+      logger.error('Failed to update follow counts:', error);
     }
   }
 

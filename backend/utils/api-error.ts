@@ -1,4 +1,5 @@
 // 표준화된 API 에러 처리 시스템
+import { logger } from '../../shared/logger';
 
 export enum ErrorCode {
   // 4xx 클라이언트 에러
@@ -130,7 +131,7 @@ export function createErrorHandler() {
   return async function errorHandler(error: unknown, requestId?: string): Promise<Response> {
     // ApiError인 경우 그대로 반환
     if (error instanceof ApiError) {
-      console.error(`[API Error] ${error.errorCode}: ${error.message}`, {
+      logger.error(`[API Error] ${error.errorCode}: ${error.message}`, {
         statusCode: error.statusCode,
         requestId: error.requestId,
         details: error.details
@@ -140,7 +141,7 @@ export function createErrorHandler() {
 
     // 일반 Error인 경우
     if (error instanceof Error) {
-      console.error(`[Unexpected Error] ${error.name}: ${error.message}`, {
+      logger.error(`[Unexpected Error] ${error.name}: ${error.message}`, {
         stack: error.stack,
         requestId
       });
@@ -154,7 +155,7 @@ export function createErrorHandler() {
     }
 
     // 알 수 없는 에러
-    console.error('[Unknown Error]', { error, requestId });
+    logger.error('[Unknown Error]', { error, requestId });
     return ApiErrors.internal(undefined, requestId).toResponse();
   };
 }

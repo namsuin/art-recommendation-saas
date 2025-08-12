@@ -148,7 +148,7 @@ export class UserBehaviorAnalyticsService {
       };
 
     } catch (error) {
-      console.error('User journey analysis error:', error);
+      logger.error('User journey analysis error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : '사용자 여정 분석 실패'
@@ -241,7 +241,7 @@ export class UserBehaviorAnalyticsService {
       return { success: true, data: segments };
 
     } catch (error) {
-      console.error('User segmentation error:', error);
+      logger.error('User segmentation error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : '사용자 세그먼테이션 실패'
@@ -306,7 +306,7 @@ export class UserBehaviorAnalyticsService {
       return { success: true, data: patterns };
 
     } catch (error) {
-      console.error('Behavior pattern analysis error:', error);
+      logger.error('Behavior pattern analysis error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : '행동 패턴 분석 실패'
@@ -391,7 +391,7 @@ export class UserBehaviorAnalyticsService {
       return { success: true, data: insight };
 
     } catch (error) {
-      console.error('Image analysis insights error:', error);
+      logger.error('Image analysis insights error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : '이미지 분석 인사이트 조회 실패'
@@ -470,7 +470,7 @@ export class UserBehaviorAnalyticsService {
       return { success: true, data: effectiveness };
 
     } catch (error) {
-      console.error('Recommendation effectiveness analysis error:', error);
+      logger.error('Recommendation effectiveness analysis error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : '추천 효과성 분석 실패'

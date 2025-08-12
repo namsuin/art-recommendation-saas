@@ -87,9 +87,9 @@ export class PersonalizationEngine {
           created_at: new Date().toISOString()
         });
 
-      console.log(`📊 Recorded ${interactionType} interaction for user ${userId}`);
+      logger.info(`📊 Recorded ${interactionType} interaction for user ${userId}`);
     } catch (error) {
-      console.error('Failed to record user interaction:', error);
+      logger.error('Failed to record user interaction:', error);
     }
   }
 
@@ -135,7 +135,7 @@ export class PersonalizationEngine {
       };
 
     } catch (error) {
-      console.error('Failed to generate personalized recommendations:', error);
+      logger.error('Failed to generate personalized recommendations:', error);
       return {
         contentBased: [],
         collaborative: [],
@@ -286,7 +286,7 @@ export class PersonalizationEngine {
         .slice(0, limit);
 
     } catch (error) {
-      console.error('Failed to generate collaborative recommendations:', error);
+      logger.error('Failed to generate collaborative recommendations:', error);
       return [];
     }
   }
@@ -340,7 +340,7 @@ export class PersonalizationEngine {
         .slice(0, limit);
 
     } catch (error) {
-      console.error('Failed to find similar users:', error);
+      logger.error('Failed to find similar users:', error);
       return [];
     }
   }
@@ -756,7 +756,7 @@ export class PersonalizationEngine {
       };
 
     } catch (error) {
-      console.error('Failed to analyze recommendation performance:', error);
+      logger.error('Failed to analyze recommendation performance:', error);
       return {
         totalRecommendations: 0,
         clickThroughRate: 0,

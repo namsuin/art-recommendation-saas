@@ -155,7 +155,7 @@ export class AdvancedRecommendationService {
       return { success: true };
 
     } catch (error) {
-      console.error('Record interaction error:', error);
+      logger.error('Record interaction error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : '상호작용 기록 실패'
@@ -221,7 +221,7 @@ export class AdvancedRecommendationService {
       };
 
     } catch (error) {
-      console.error('Generate personalized recommendations error:', error);
+      logger.error('Generate personalized recommendations error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : '개인화 추천 생성 실패'
@@ -261,7 +261,7 @@ export class AdvancedRecommendationService {
       return { success: true, data: preferences };
 
     } catch (error) {
-      console.error('Analyze user preferences error:', error);
+      logger.error('Analyze user preferences error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : '사용자 선호도 분석 실패'
@@ -294,7 +294,7 @@ export class AdvancedRecommendationService {
       return { success: true, data: bestCluster };
 
     } catch (error) {
-      console.error('Get user cluster error:', error);
+      logger.error('Get user cluster error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : '사용자 클러스터 조회 실패'
@@ -335,7 +335,7 @@ export class AdvancedRecommendationService {
       return { success: true, data: analytics };
 
     } catch (error) {
-      console.error('Get recommendation analytics error:', error);
+      logger.error('Get recommendation analytics error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : '추천 분석 조회 실패'
@@ -499,7 +499,7 @@ export class AdvancedRecommendationService {
       
       // Filter out Bluethumb artworks
       if (this.isBluethumbArtwork(rec)) {
-        console.log(`🚫 Filtering out Bluethumb artwork from advanced recommendations: ${rec.artworkId}`);
+        logger.info(`🚫 Filtering out Bluethumb artwork from advanced recommendations: ${rec.artworkId}`);
         return false;
       }
       
@@ -597,7 +597,7 @@ export class AdvancedRecommendationService {
 
   private async batchUpdateUserPreferences(userId: string, interactions: InteractionData[]): Promise<void> {
     // 배치 선호도 업데이트 로직
-    console.log(`Batch updating preferences for user ${userId} with ${interactions.length} interactions`);
+    logger.info(`Batch updating preferences for user ${userId} with ${interactions.length} interactions`);
   }
 
   private initializeClusters(): void {

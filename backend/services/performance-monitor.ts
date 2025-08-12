@@ -160,7 +160,7 @@ export class PerformanceMonitor {
       return { success: true };
 
     } catch (error) {
-      console.error('Record metrics error:', error);
+      logger.error('Record metrics error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : '메트릭 기록 실패'
@@ -240,7 +240,7 @@ export class PerformanceMonitor {
       return { success: true, data: systemHealth };
 
     } catch (error) {
-      console.error('Get system health error:', error);
+      logger.error('Get system health error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : '시스템 상태 조회 실패'
@@ -283,7 +283,7 @@ export class PerformanceMonitor {
       return { success: true, data: formattedAlerts };
 
     } catch (error) {
-      console.error('Get active alerts error:', error);
+      logger.error('Get active alerts error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : '알림 조회 실패'
@@ -327,7 +327,7 @@ export class PerformanceMonitor {
       return { success: true, data: formattedRecommendations };
 
     } catch (error) {
-      console.error('Get optimization recommendations error:', error);
+      logger.error('Get optimization recommendations error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : '최적화 추천 조회 실패'
@@ -412,7 +412,7 @@ export class PerformanceMonitor {
       return { success: true, data: report };
 
     } catch (error) {
-      console.error('Generate performance report error:', error);
+      logger.error('Generate performance report error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : '성능 보고서 생성 실패'

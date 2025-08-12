@@ -1,4 +1,5 @@
 import { AIAnalysisService } from './ai-analysis';
+import { logger } from '../../shared/logger';
 
 interface RegisteredArtwork {
   id: string;
@@ -122,7 +123,7 @@ class ArtworkRegistryService {
     userId: string
   ): Promise<any> {
     try {
-      console.log('🎨 Registering new artwork:', data.title);
+      logger.info('🎨 Registering new artwork:', data.title);
 
       // Generate unique ID
       const id = `artwork-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -133,7 +134,7 @@ class ArtworkRegistryService {
       let colors: string[] = [];
 
       if (data.image_file || data.image_url) {
-        console.log('🔍 Analyzing artwork with Google Vision...');
+        logger.info('🔍 Analyzing artwork with Google Vision...');
         
         const analysisResult = await this.aiService.analyzeImageAndRecommend(
           data.image_file || data.image_url!,
@@ -149,16 +150,16 @@ class ArtworkRegistryService {
           keywords = this.extractKeywords(analysisResult.analysis);
           colors = this.extractColors(analysisResult.analysis);
           
-          console.log('✅ Analysis complete. Keywords:', keywords);
-          console.log('🎨 Dominant colors:', colors);
+          logger.info('✅ Analysis complete. Keywords:', keywords);
+          logger.info('🎨 Dominant colors:', colors);
         } else {
-          console.log('❌ AI Analysis failed, but result has keywords:', analysisResult);
+          logger.info('❌ AI Analysis failed, but result has keywords:', analysisResult);
           // Try to extract keywords from the result even if success is false
           if (analysisResult.analysis) {
             keywords = this.extractKeywords(analysisResult.analysis);
             colors = this.extractColors(analysisResult.analysis);
             analysis = analysisResult.analysis;
-            console.log('🔄 Extracted keywords from failed result:', keywords);
+            logger.info('🔄 Extracted keywords from failed result:', keywords);
           }
         }
       }
@@ -169,7 +170,7 @@ class ArtworkRegistryService {
         // Convert buffer to base64 data URL
         const base64 = data.image_file.toString('base64');
         imageUrl = `data:image/jpeg;base64,${base64}`;
-        console.log('🖼️ Created data URL for uploaded image');
+        logger.info('🖼️ Created data URL for uploaded image');
       }
 
       // Create artwork record
@@ -195,7 +196,7 @@ class ArtworkRegistryService {
       // Save artwork
       this.artworks.set(id, artwork);
       
-      console.log('✅ Artwork registered successfully:', id);
+      logger.info('✅ Artwork registered successfully:', id);
 
       return {
         success: true,
@@ -203,7 +204,7 @@ class ArtworkRegistryService {
         message: 'Artwork registered successfully'
       };
     } catch (error) {
-      console.error('Failed to register artwork:', error);
+      logger.error('Failed to register artwork:', error);
       return {
         success: false,
         error: 'Failed to register artwork'

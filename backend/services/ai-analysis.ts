@@ -6,6 +6,7 @@ import { MetMuseumAPI } from './met-museum-api';
 import { WikiArtAPI } from './wikiart-api';
 import { HarvardMuseumsAPI } from './harvard-museums-api';
 import { EuropeanaAPI } from './europeana-api';
+import { aiLogger } from '../../shared/logger';
 
 export class AIAnalysisService {
   private static instance: AIAnalysisService;
@@ -29,16 +30,16 @@ export class AIAnalysisService {
   private initialize() {
     if (this.initialized) return;
     
-    console.log('🚀 Initializing AI Analysis Service...');
+    aiLogger.info('🚀 Initializing AI Analysis Service...');
     this.aiEnsemble = new AIEnsembleService();
-    console.log('✅ AI Ensemble Service initialized');
+    aiLogger.info('✅ AI Ensemble Service initialized');
     this.performanceOptimizer = new PerformanceOptimizer();
-    console.log('✅ Performance Optimizer initialized');
+    aiLogger.info('✅ Performance Optimizer initialized');
     this.metMuseumAPI = new MetMuseumAPI();
     this.wikiArtAPI = new WikiArtAPI();
     this.harvardAPI = new HarvardMuseumsAPI();
     this.europeanaAPI = new EuropeanaAPI();
-    console.log('🎨 All art source APIs initialized');
+    aiLogger.info('🎨 All art source APIs initialized');
     this.initialized = true;
   }
 
@@ -63,23 +64,23 @@ export class AIAnalysisService {
 
     try {
       // 1. Analyze the uploaded image with Google Vision
-      console.log('🔍 Starting image analysis with Google Vision...');
-      console.log('🔧 AI Ensemble status:', this.aiEnsemble ? 'initialized' : 'not initialized');
+      aiLogger.info('🔍 Starting image analysis with Google Vision...');
+      aiLogger.debug('🔧 AI Ensemble status', { status: this.aiEnsemble ? 'initialized' : 'not initialized' });
       
       // Use AI Ensemble directly for image analysis
       const analysis = await this.aiEnsemble.analyzeImage(imageBuffer);
       
-      console.log(`📊 Analysis complete. Found ${analysis.keywords.length} keywords`);
-      console.log(`🎯 Style: ${analysis.style}, Confidence: ${analysis.confidence}`);
+      aiLogger.info(`📊 Analysis complete. Found ${analysis.keywords.length} keywords`);
+      aiLogger.info(`🎯 Style: ${analysis.style}, Confidence: ${analysis.confidence}`);
 
       // 2. Find similar artworks using vector similarity
       let recommendations: Recommendation[] = [];
       
       if (analysis.embeddings.length > 0) {
-        console.log('🔍 Searching for similar artworks...');
+        aiLogger.info('🔍 Searching for similar artworks...');
         recommendations = await this.findSimilarArtworks(analysis, limit);
       } else {
-        console.log('🔍 Using keyword-based search fallback...');
+        aiLogger.info('🔍 Using keyword-based search fallback...');
         recommendations = await this.findSimilarByKeywords(analysis.keywords, limit);
       }
 
@@ -89,7 +90,7 @@ export class AIAnalysisService {
       }
 
       const processingTime = Date.now() - startTime;
-      console.log(`✅ Analysis and recommendation complete in ${processingTime}ms`);
+      aiLogger.info(`✅ Analysis and recommendation complete in ${processingTime}ms`);
 
       return {
         analysis,
@@ -98,7 +99,7 @@ export class AIAnalysisService {
       };
 
     } catch (error) {
-      console.error('❌ AI Analysis failed:', error);
+      aiLogger.error('❌ AI Analysis failed:', error);
       const processingTime = Date.now() - startTime;
       
       // Return fallback recommendations
@@ -123,7 +124,7 @@ export class AIAnalysisService {
     limit: number
   ): Promise<Recommendation[]> {
     if (!supabase) {
-      console.warn('Supabase not configured, using keyword fallback');
+      aiLogger.warn('Supabase not configured, using keyword fallback');
       return this.findSimilarByKeywords(analysis.keywords, limit);
     }
 
@@ -136,12 +137,12 @@ export class AIAnalysisService {
       });
 
       if (error) {
-        console.error('Vector search error:', error);
+        aiLogger.error('Vector search error:', error);
         return this.findSimilarByKeywords(analysis.keywords, limit);
       }
 
       if (!data || data.length === 0) {
-        console.log('No vector matches found, falling back to keyword search');
+        aiLogger.info('No vector matches found, falling back to keyword search');
         return this.findSimilarByKeywords(analysis.keywords, limit);
       }
 
@@ -154,7 +155,7 @@ export class AIAnalysisService {
         .eq('available', true);
 
       if (artworkError || !artworks) {
-        console.error('Artwork fetch error:', artworkError);
+        aiLogger.error('Artwork fetch error:', artworkError);
         return [];
       }
 
@@ -184,7 +185,7 @@ export class AIAnalysisService {
         .slice(0, limit);
 
     } catch (error) {
-      console.error('Similarity search failed:', error);
+      aiLogger.error('Similarity search failed:', error);
       return this.findSimilarByKeywords(analysis.keywords, limit);
     }
   }
@@ -197,7 +198,7 @@ export class AIAnalysisService {
       return this.getFallbackRecommendations(limit);
     }
 
-    console.log(`🔍 Searching for artworks with keywords: ${keywords.join(', ')}`);
+    aiLogger.info(`🔍 Searching for artworks with keywords: ${keywords.join(', ')}`);
 
     try {
       // 1. FIRST: Check registered artworks from admin (highest priority)
@@ -240,9 +241,9 @@ export class AIAnalysisService {
           };
         });
         
-        console.log(`✨ Found ${registeredRecommendations.length} matching registered artworks`);
+        aiLogger.info(`✨ Found ${registeredRecommendations.length} matching registered artworks`);
       } catch (error) {
-        console.error('Failed to get registered artworks:', error);
+        aiLogger.error('Failed to get registered artworks:', error);
       }
 
       // If we have enough registered artworks, return mostly those
@@ -260,7 +261,7 @@ export class AIAnalysisService {
       }
 
       // 2. Search all art sources in parallel for diverse results
-      console.log('🔍 Searching multiple art sources in parallel...');
+      aiLogger.info('🔍 Searching multiple art sources in parallel...');
       const [metResults, wikiArtResults, harvardResults, europeanaResults] = await Promise.all([
         this.metMuseumAPI.searchByKeywords(keywords, Math.ceil(limit * 0.3)), // 30% Met Museum
         this.wikiArtAPI.searchArtworks(keywords, Math.ceil(limit * 0.25)), // 25% WikiArt
@@ -268,10 +269,10 @@ export class AIAnalysisService {
         this.europeanaAPI.searchArtworks(keywords, Math.ceil(limit * 0.2))  // 20% Europeana
       ]);
       
-      console.log(`🏛️ Found ${metResults.length} Met Museum artworks`);
-      console.log(`🎨 Found ${wikiArtResults.length} WikiArt artworks`);  
-      console.log(`🎓 Found ${harvardResults.length} Harvard artworks`);
-      console.log(`🇪🇺 Found ${europeanaResults.length} Europeana items`);
+      aiLogger.info(`🏛️ Found ${metResults.length} Met Museum artworks`);
+      aiLogger.info(`🎨 Found ${wikiArtResults.length} WikiArt artworks`);  
+      aiLogger.info(`🎓 Found ${harvardResults.length} Harvard artworks`);
+      aiLogger.info(`🇪🇺 Found ${europeanaResults.length} Europeana items`);
 
       // 2. Convert Met Museum results to recommendations
       const metRecommendations: Recommendation[] = metResults.map((artwork, index) => {
@@ -419,7 +420,7 @@ export class AIAnalysisService {
       // 6. Local database search removed - only use real museum APIs
       // 데모 데이터 제거로 인해 Local Database 검색 비활성화
       let localRecommendations: Recommendation[] = [];
-      console.log(`📚 Local database search disabled (demo data removed)`);
+      aiLogger.info(`📚 Local database search disabled (demo data removed)`);
 
       // 7. Combine all recommendations from all sources
       const allRecommendations = [
@@ -435,7 +436,7 @@ export class AIAnalysisService {
       const filteredRecommendations = await this.filterValidRecommendations(allRecommendations);
       
       if (filteredRecommendations.length === 0) {
-        console.log('No matches found, using fallback recommendations');
+        aiLogger.info('No matches found, using fallback recommendations');
         return this.getFallbackRecommendations(limit);
       }
 
@@ -443,7 +444,7 @@ export class AIAnalysisService {
         .sort((a, b) => b.similarity - a.similarity)
         .slice(0, limit);
 
-      console.log(`✅ Returning ${sortedRecommendations.length} total recommendations from ${[
+      aiLogger.info(`✅ Returning ${sortedRecommendations.length} total recommendations from ${[
         metResults.length > 0 ? 'Met Museum' : '',
         wikiArtResults.length > 0 ? 'WikiArt' : '',
         harvardResults.length > 0 ? 'Harvard' : '',
@@ -453,7 +454,7 @@ export class AIAnalysisService {
       return sortedRecommendations;
 
     } catch (error) {
-      console.error('Artwork search failed:', error);
+      aiLogger.error('Artwork search failed:', error);
       return this.getFallbackRecommendations(limit);
     }
   }
@@ -480,7 +481,7 @@ export class AIAnalysisService {
   private async getFallbackRecommendations(limit: number): Promise<Recommendation[]> {
     // Local Database 제거로 인해 Met Museum의 인기 작품 사용
     try {
-      console.log('🏛️ Using Met Museum highlights as fallback');
+      aiLogger.info('🏛️ Using Met Museum highlights as fallback');
       
       // Met Museum의 하이라이트 작품들 검색
       const popularKeywords = ['masterpiece', 'famous', 'highlight', 'collection'];
@@ -502,7 +503,7 @@ export class AIAnalysisService {
       return recommendations;
 
     } catch (error) {
-      console.error('Fallback recommendations failed:', error);
+      aiLogger.error('Fallback recommendations failed:', error);
       // 완전 실패 시 빈 배열 반환
       return [];
     }
@@ -571,7 +572,7 @@ export class AIAnalysisService {
     tasteGroupId?: string
   ): Promise<void> {
     if (!supabase) {
-      console.warn('Cannot store user upload - Supabase not configured');
+      aiLogger.warn('Cannot store user upload - Supabase not configured');
       return;
     }
 
@@ -580,7 +581,7 @@ export class AIAnalysisService {
       const { supabaseAdmin } = await import('./supabase-admin');
       
       if (!supabaseAdmin) {
-        console.warn('📊 Admin client not available - using regular client');
+        aiLogger.warn('📊 Admin client not available - using regular client');
       }
       
       const client = supabaseAdmin || supabase;
@@ -604,23 +605,23 @@ export class AIAnalysisService {
 
       if (error) {
         if (error.code === '42501') {
-          console.warn('📊 RLS policy still blocking - analysis stored locally only');
-          console.info('📋 Local analysis log:', {
+          aiLogger.warn('📊 RLS policy still blocking - analysis stored locally only');
+          aiLogger.info('📋 Local analysis log:', {
             userId,
             keywordCount: analysis.keywords.length,
             confidence: analysis.confidence,
             timestamp: new Date().toISOString()
           });
         } else if (error.code === 'PGRST204') {
-          console.warn('📊 Schema cache issue resolved via alternative approach');
+          aiLogger.warn('📊 Schema cache issue resolved via alternative approach');
         } else {
-          console.warn('📊 Storage failed (non-critical):', error.code, error.message);
+          aiLogger.warn('📊 Storage failed (non-critical):', error.code, error.message);
         }
       } else {
-        console.log('✅ User upload stored successfully via admin client');
+        aiLogger.info('✅ User upload stored successfully via admin client');
       }
     } catch (error) {
-      console.warn('📊 Storage error (non-critical):', error);
+      aiLogger.warn('📊 Storage error (non-critical):', error);
     }
   }
 
@@ -657,7 +658,7 @@ export class AIAnalysisService {
   // Mock recommendations 제거 - 데모 데이터 사용 안 함
   private getMockRecommendations(limit: number): Recommendation[] {
     // 데모 데이터 제거 - 빈 배열 반환
-    console.log('📭 Mock recommendations disabled (demo data removed)');
+    aiLogger.info('📭 Mock recommendations disabled (demo data removed)');
     return [];
   }
 
@@ -679,11 +680,11 @@ export class AIAnalysisService {
       if (isValid) {
         validRecommendations.push(rec);
       } else {
-        console.log(`❌ Excluding artwork with invalid image: ${rec.artwork.title}`);
+        aiLogger.info(`❌ Excluding artwork with invalid image: ${rec.artwork.title}`);
       }
     }
     
-    console.log(`🔍 Filtered ${recommendations.length} → ${validRecommendations.length} valid recommendations`);
+    aiLogger.info(`🔍 Filtered ${recommendations.length} → ${validRecommendations.length} valid recommendations`);
     return validRecommendations;
   }
 
@@ -706,11 +707,11 @@ export class AIAnalysisService {
       
       const isValid = response.ok && response.headers.get('content-type')?.startsWith('image/');
       if (!isValid) {
-        console.log(`⚠️ Invalid image URL: ${imageUrl} (Status: ${response.status})`);
+        aiLogger.info(`⚠️ Invalid image URL: ${imageUrl} (Status: ${response.status})`);
       }
       return isValid;
     } catch (error) {
-      console.log(`⚠️ Image URL validation failed: ${imageUrl} (${error})`);
+      aiLogger.info(`⚠️ Image URL validation failed: ${imageUrl} (${error})`);
       return false;
     }
   }
@@ -735,7 +736,7 @@ export class AIAnalysisService {
         (artwork.search_source && artwork.search_source.toLowerCase().includes('bluethumb'));
       
       if (isBluethumb) {
-        console.log(`🚫 Filtering out Bluethumb artwork: ${artwork.title} (${artwork.id})`);
+        aiLogger.info(`🚫 Filtering out Bluethumb artwork: ${artwork.title} (${artwork.id})`);
         return false;
       }
       
@@ -748,7 +749,7 @@ export class AIAnalysisService {
           !artwork.artist));
       
       if (isLocalUnknown) {
-        console.log(`🚫 Filtering out Local Database Unknown Artist: ${artwork.title} (${artwork.id})`);
+        aiLogger.info(`🚫 Filtering out Local Database Unknown Artist: ${artwork.title} (${artwork.id})`);
         return false;
       }
       
@@ -760,7 +761,7 @@ export class AIAnalysisService {
    * Get recommendations based on search keywords (for multi-image analysis)
    */
   async getRecommendations(searchQuery: string, limit: number = 10): Promise<{ recommendations: Recommendation[] }> {
-    console.log(`🔍 Getting recommendations for query: "${searchQuery}"`);
+    aiLogger.info(`🔍 Getting recommendations for query: "${searchQuery}"`);
     
     try {
       // Convert search query into keywords array
@@ -769,11 +770,11 @@ export class AIAnalysisService {
       // Use existing keyword-based search
       const recommendations = await this.findSimilarByKeywords(keywords, limit);
       
-      console.log(`✅ Found ${recommendations.length} recommendations for multi-image analysis`);
+      aiLogger.info(`✅ Found ${recommendations.length} recommendations for multi-image analysis`);
       
       return { recommendations };
     } catch (error) {
-      console.error('Error getting recommendations:', error);
+      aiLogger.error('Error getting recommendations:', error);
       
       // Return fallback recommendations
       const fallbackRecommendations = await this.getFallbackRecommendations(limit);

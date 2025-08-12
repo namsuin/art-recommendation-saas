@@ -39,7 +39,7 @@ export async function handleArtsoniaSearch(request: Request): Promise<Response> 
     });
 
   } catch (error) {
-    console.error('Artsonia search API error:', error);
+    logger.error('Artsonia search API error:', error);
     return new Response(JSON.stringify({
       success: false,
       error: error instanceof Error ? error.message : '학생 작품 검색 실패'
@@ -77,7 +77,7 @@ export async function handleArtsoniaAvailability(request: Request): Promise<Resp
     });
 
   } catch (error) {
-    console.error('Artsonia availability check error:', error);
+    logger.error('Artsonia availability check error:', error);
     return new Response(JSON.stringify({
       available: false,
       error: error instanceof Error ? error.message : '가용성 확인 실패'

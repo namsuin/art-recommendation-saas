@@ -4,6 +4,7 @@ import { ApiErrors } from '../utils/api-error';
 import { RouteParams, MiddlewareFunction } from '../routes/advanced-router';
 import { AuthAPI } from '../api/auth';
 import { AdminAPI } from '../api/admin';
+import { logger } from '../../shared/logger';
 
 // 인증 토큰 추출기
 export class AuthTokenExtractor {
@@ -129,7 +130,7 @@ export class AuthMiddleware {
           (req as any).token = token;
         } catch (error) {
           // 선택적 인증이므로 에러를 던지지 않음
-          console.warn(`Optional auth failed: ${error}`);
+          logger.warn(`Optional auth failed: ${error}`);
         }
       }
     };
@@ -202,7 +203,7 @@ export class AuthMiddleware {
       if (error) {
         // 토큰 만료 시 상세 처리
         if (error.message.includes('expired') || error.message.includes('invalid claims')) {
-          console.warn('🔄 JWT token expired, client should refresh');
+          logger.warn('🔄 JWT token expired, client should refresh');
           throw new Error('TOKEN_EXPIRED');
         }
         
@@ -261,7 +262,7 @@ export class PermissionChecker {
       }
       
     } catch (error) {
-      console.error('Permission check failed:', error);
+      logger.error('Permission check failed:', error);
       return false;
     }
   }
@@ -272,7 +273,7 @@ export class PermissionChecker {
       // 실제 구현 필요
       return await AdminAPI.isAdmin(userId);
     } catch (error) {
-      console.error('Role check failed:', error);
+      logger.error('Role check failed:', error);
       return false;
     }
   }

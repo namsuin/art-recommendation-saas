@@ -71,7 +71,7 @@ export class AnalyticsService {
 
       return true;
     } catch (error) {
-      console.error('Failed to record usage:', error);
+      logger.error('Failed to record usage:', error);
       return false;
     }
   }
@@ -139,7 +139,7 @@ export class AnalyticsService {
         }
       };
     } catch (error) {
-      console.error('Failed to get user usage stats:', error);
+      logger.error('Failed to get user usage stats:', error);
       return {
         success: false,
         error: 'Failed to fetch usage statistics'
@@ -222,7 +222,7 @@ export class AnalyticsService {
         .gte('date', startDate.toISOString().split('T')[0]);
 
       if (activeUsersError) {
-        console.warn('Failed to get active users:', activeUsersError);
+        logger.warn('Failed to get active users:', activeUsersError);
       }
 
       const uniqueActiveUsers = new Set(activeUsers?.map(u => u.user_id) || []).size;
@@ -243,7 +243,7 @@ export class AnalyticsService {
         }
       };
     } catch (error) {
-      console.error('Failed to get system usage stats:', error);
+      logger.error('Failed to get system usage stats:', error);
       return {
         success: false,
         error: 'Failed to fetch system usage statistics'
@@ -303,7 +303,7 @@ export class AnalyticsService {
         }
       };
     } catch (error) {
-      console.error('Failed to get monthly usage for billing:', error);
+      logger.error('Failed to get monthly usage for billing:', error);
       return {
         success: false,
         error: 'Failed to fetch monthly usage data'
@@ -332,7 +332,7 @@ export class AnalyticsService {
 
       return true;
     } catch (error) {
-      console.error('Failed to update storage usage:', error);
+      logger.error('Failed to update storage usage:', error);
       return false;
     }
   }
@@ -398,7 +398,7 @@ export class AnalyticsService {
         analytics
       };
     } catch (error) {
-      console.error('Failed to get recommendation analytics:', error);
+      logger.error('Failed to get recommendation analytics:', error);
       return {
         success: false,
         error: 'Failed to fetch recommendation analytics'

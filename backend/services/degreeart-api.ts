@@ -47,7 +47,7 @@ export class DegreeArtAPI {
     error?: string;
   }> {
     try {
-      console.log(`🇬🇧 DegreeArt 검색: ${keywords.join(', ')}`);
+      logger.info(`🇬🇧 DegreeArt 검색: ${keywords.join(', ')}`);
       
       // 실제 API 연동이 불가능하므로 교육적 목적의 Mock 데이터 생성
       const mockArtworks = this.generateDegreeArtMockData(keywords, limit);
@@ -59,7 +59,7 @@ export class DegreeArtAPI {
       };
 
     } catch (error) {
-      console.error('DegreeArt search error:', error);
+      logger.error('DegreeArt search error:', error);
       return {
         success: false,
         artworks: [],
@@ -98,7 +98,7 @@ export class DegreeArtAPI {
       };
 
     } catch (error) {
-      console.error('DegreeArt medium search error:', error);
+      logger.error('DegreeArt medium search error:', error);
       return {
         success: false,
         artworks: [],
@@ -138,7 +138,7 @@ export class DegreeArtAPI {
       };
 
     } catch (error) {
-      console.error('DegreeArt theme search error:', error);
+      logger.error('DegreeArt theme search error:', error);
       return {
         success: false,
         artworks: [],
@@ -179,7 +179,7 @@ export class DegreeArtAPI {
       };
 
     } catch (error) {
-      console.error('DegreeArt price search error:', error);
+      logger.error('DegreeArt price search error:', error);
       return {
         success: false,
         artworks: [],
@@ -213,7 +213,7 @@ export class DegreeArtAPI {
       };
 
     } catch (error) {
-      console.error('DegreeArt emerging artists search error:', error);
+      logger.error('DegreeArt emerging artists search error:', error);
       return {
         success: false,
         artworks: [],

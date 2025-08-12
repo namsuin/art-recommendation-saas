@@ -1,4 +1,5 @@
 import { supabase } from '../services/supabase';
+import { logger } from '../../shared/logger';
 
 export class AdminAPI {
   
@@ -20,7 +21,7 @@ export class AdminAPI {
       const adminEmails = process.env.ADMIN_EMAILS?.split(',') || [];
       return adminEmails.includes(user.email);
     } catch (error) {
-      console.error('Admin check failed:', error);
+      logger.error('Admin check failed:', error);
       return false;
     }
   }
@@ -67,7 +68,7 @@ export class AdminAPI {
         }
       };
     } catch (error) {
-      console.error('Failed to get user stats:', error);
+      logger.error('Failed to get user stats:', error);
       return {
         success: false,
         error: 'Failed to fetch user statistics'
@@ -127,7 +128,7 @@ export class AdminAPI {
         }
       };
     } catch (error) {
-      console.error('Failed to get usage stats:', error);
+      logger.error('Failed to get usage stats:', error);
       return {
         success: false,
         error: 'Failed to fetch usage statistics'
@@ -164,7 +165,7 @@ export class AdminAPI {
         .limit(10);
 
       if (uploadsError) {
-        console.warn('Failed to fetch recent uploads:', uploadsError);
+        logger.warn('Failed to fetch recent uploads:', uploadsError);
       }
 
       return {
@@ -173,7 +174,7 @@ export class AdminAPI {
         recentUploads: recentUploads || []
       };
     } catch (error) {
-      console.error('Failed to get recent activity:', error);
+      logger.error('Failed to get recent activity:', error);
       return {
         success: false,
         error: 'Failed to fetch recent activity'
@@ -208,7 +209,7 @@ export class AdminAPI {
         totalPages: Math.ceil((count || 0) / limit)
       };
     } catch (error) {
-      console.error('Failed to get artworks:', error);
+      logger.error('Failed to get artworks:', error);
       return {
         success: false,
         error: 'Failed to fetch artworks'
@@ -247,7 +248,7 @@ export class AdminAPI {
         artwork
       };
     } catch (error) {
-      console.error('Failed to create artwork:', error);
+      logger.error('Failed to create artwork:', error);
       return {
         success: false,
         error: 'Failed to create artwork'
@@ -287,7 +288,7 @@ export class AdminAPI {
         artwork
       };
     } catch (error) {
-      console.error('Failed to update artwork:', error);
+      logger.error('Failed to update artwork:', error);
       return {
         success: false,
         error: 'Failed to update artwork'
@@ -313,7 +314,7 @@ export class AdminAPI {
 
       return { success: true };
     } catch (error) {
-      console.error('Failed to delete artwork:', error);
+      logger.error('Failed to delete artwork:', error);
       return {
         success: false,
         error: 'Failed to delete artwork'
@@ -344,7 +345,7 @@ export class AdminAPI {
         user
       };
     } catch (error) {
-      console.error('Failed to update user subscription:', error);
+      logger.error('Failed to update user subscription:', error);
       return {
         success: false,
         error: 'Failed to update user subscription'

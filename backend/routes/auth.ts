@@ -1,4 +1,5 @@
 import { AuthAPI } from "../api/auth";
+import { logger } from '../../shared/logger';
 
 export interface RouteHandler {
   (req: Request): Promise<Response>;
@@ -29,7 +30,7 @@ authRoutes.set("POST:/api/auth/signup", async (req: Request) => {
       headers: { "Content-Type": "application/json" }
     });
   } catch (error) {
-    console.error('Signup error:', error);
+    logger.error('Signup error:', error);
     return new Response(JSON.stringify({
       success: false,
       error: "회원가입 처리 중 오류가 발생했습니다."
@@ -62,7 +63,7 @@ authRoutes.set("POST:/api/auth/signin", async (req: Request) => {
       headers: { "Content-Type": "application/json" }
     });
   } catch (error) {
-    console.error('Signin error:', error);
+    logger.error('Signin error:', error);
     return new Response(JSON.stringify({
       success: false,
       error: "로그인 처리 중 오류가 발생했습니다."
@@ -83,7 +84,7 @@ authRoutes.set("POST:/api/auth/signout", async (req: Request) => {
       headers: { "Content-Type": "application/json" }
     });
   } catch (error) {
-    console.error('Signout error:', error);
+    logger.error('Signout error:', error);
     return new Response(JSON.stringify({
       success: false,
       error: "로그아웃 처리 중 오류가 발생했습니다."
@@ -104,7 +105,7 @@ authRoutes.set("GET:/api/auth/user", async (req: Request) => {
       headers: { "Content-Type": "application/json" }
     });
   } catch (error) {
-    console.error('Get user error:', error);
+    logger.error('Get user error:', error);
     return new Response(JSON.stringify({
       success: false,
       error: "사용자 정보 조회 중 오류가 발생했습니다."
@@ -141,7 +142,7 @@ authRoutes.set("PUT:/api/auth/profile", async (req: Request) => {
       headers: { "Content-Type": "application/json" }
     });
   } catch (error) {
-    console.error('Update profile error:', error);
+    logger.error('Update profile error:', error);
     return new Response(JSON.stringify({
       success: false,
       error: "프로필 업데이트 중 오류가 발생했습니다."
@@ -175,7 +176,7 @@ authRoutes.set("GET:/api/auth/upload-limit", async (req: Request) => {
       headers: { "Content-Type": "application/json" }
     });
   } catch (error) {
-    console.error('Upload limit check error:', error);
+    logger.error('Upload limit check error:', error);
     return new Response(JSON.stringify({
       canUpload: true,
       remainingUploads: 10,

@@ -34,7 +34,7 @@ export class AdvancedRouter {
   private initializeRoutes() {
     // 기존 라우트들을 새로운 형식으로 변환
     this.convertLegacyRoutes();
-    console.log(`🚀 Advanced Router initialized with ${this.getTotalRoutes()} routes`);
+    logger.info(`🚀 Advanced Router initialized with ${this.getTotalRoutes()} routes`);
   }
   
   private convertLegacyRoutes() {

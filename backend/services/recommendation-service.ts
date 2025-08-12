@@ -24,16 +24,16 @@ export class RecommendationService {
    * 내부 추천 작품 가져오기 (Mock 데이터 포함)
    */
   async getInternalRecommendations(keywords: string[]): Promise<RecommendationItem[]> {
-    console.log('🎯 Getting internal recommendations with keywords:', keywords);
+    logger.info('🎯 Getting internal recommendations with keywords:', keywords);
     
     try {
       // Mock 데이터로부터 추천 작품 가져오기
       const mockRecommendations = await mockDB.getRecommendations(keywords);
-      console.log('📊 Mock recommendations found:', mockRecommendations.length);
+      logger.info('📊 Mock recommendations found:', mockRecommendations.length);
       
       return mockRecommendations;
     } catch (error) {
-      console.error('❌ Failed to get internal recommendations:', error);
+      logger.error('❌ Failed to get internal recommendations:', error);
       return [];
     }
   }
@@ -49,7 +49,7 @@ export class RecommendationService {
       return [];
     }
 
-    console.log('🌍 Getting external recommendations with keywords:', keywords);
+    logger.info('🌍 Getting external recommendations with keywords:', keywords);
     const externalRecommendations: RecommendationItem[] = [];
     const topKeywords = keywords.slice(0, 5);
 
@@ -69,11 +69,11 @@ export class RecommendationService {
         (a.similarity_score?.total || a.similarity || 0)
       );
 
-      console.log(`📊 External recommendations found: ${externalRecommendations.length}`);
+      logger.info(`📊 External recommendations found: ${externalRecommendations.length}`);
       return externalRecommendations;
 
     } catch (error) {
-      console.error('🚫 External search failed:', error);
+      logger.error('🚫 External search failed:', error);
       return [];
     }
   }
@@ -104,12 +104,12 @@ export class RecommendationService {
 
       if (expandedSearchResults.success) {
         expandedSearchResults.results.forEach(sourceResult => {
-          console.log(`📍 ${sourceResult.source}: Found ${sourceResult.artworks.length} artworks`);
+          logger.info(`📍 ${sourceResult.source}: Found ${sourceResult.artworks.length} artworks`);
           results.push(...sourceResult.artworks);
         });
       }
     } catch (error) {
-      console.error('❌ Museum search failed:', error);
+      logger.error('❌ Museum search failed:', error);
     }
   }
 
@@ -126,9 +126,9 @@ export class RecommendationService {
         this.artsyIntegration.formatForDisplay(artwork)
       );
       results.push(...formattedResults);
-      console.log(`🎨 Artsy: Found ${formattedResults.length} artworks`);
+      logger.info(`🎨 Artsy: Found ${formattedResults.length} artworks`);
     } catch (error) {
-      console.error('❌ Artsy search failed:', error);
+      logger.error('❌ Artsy search failed:', error);
     }
   }
 
@@ -146,9 +146,9 @@ export class RecommendationService {
         5
       );
       results.push(...socialResults.results);
-      console.log(`📱 Social: Found ${socialResults.results.length} artworks`);
+      logger.info(`📱 Social: Found ${socialResults.results.length} artworks`);
     } catch (error) {
-      console.error('❌ Social media search failed:', error);
+      logger.error('❌ Social media search failed:', error);
     }
   }
 

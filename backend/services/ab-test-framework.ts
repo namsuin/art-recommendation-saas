@@ -129,7 +129,7 @@ export class ABTestFramework {
       return { success: true, experimentId };
 
     } catch (error) {
-      console.error('Create experiment error:', error);
+      logger.error('Create experiment error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : '실험 생성 실패'
@@ -210,7 +210,7 @@ export class ABTestFramework {
       return { success: true, assignment };
 
     } catch (error) {
-      console.error('User assignment error:', error);
+      logger.error('User assignment error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : '사용자 할당 실패'
@@ -278,7 +278,7 @@ export class ABTestFramework {
       return { success: true };
 
     } catch (error) {
-      console.error('Record conversion error:', error);
+      logger.error('Record conversion error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : '전환 기록 실패'
@@ -387,13 +387,13 @@ export class ABTestFramework {
         .eq('id', experimentId);
 
       if (updateError) {
-        console.warn('Failed to save results to experiment:', updateError);
+        logger.warn('Failed to save results to experiment:', updateError);
       }
 
       return { success: true, results };
 
     } catch (error) {
-      console.error('Analyze experiment results error:', error);
+      logger.error('Analyze experiment results error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : '실험 결과 분석 실패'
@@ -450,7 +450,7 @@ export class ABTestFramework {
       return { success: true, experiments: formattedExperiments };
 
     } catch (error) {
-      console.error('Get experiments error:', error);
+      logger.error('Get experiments error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : '실험 목록 조회 실패'
@@ -493,7 +493,7 @@ export class ABTestFramework {
       return { success: true };
 
     } catch (error) {
-      console.error('Update experiment status error:', error);
+      logger.error('Update experiment status error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : '실험 상태 업데이트 실패'

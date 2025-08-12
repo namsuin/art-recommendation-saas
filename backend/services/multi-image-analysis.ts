@@ -85,19 +85,19 @@ export class MultiImageAnalysisService {
     // 빈 문자열도 null로 처리
     const normalizedUserId = userId && userId.trim() !== '' ? userId : null;
     
-    console.log('🔍 Checking analysis permission...');
-    console.log('📋 Original userId:', userId, typeof userId);
-    console.log('📋 Normalized userId:', normalizedUserId, typeof normalizedUserId);
-    console.log('📋 imageCount:', imageCount);
-    console.log('📋 Is guest user?', normalizedUserId === null);
+    logger.info('🔍 Checking analysis permission...');
+    logger.info('📋 Original userId:', userId, typeof userId);
+    logger.info('📋 Normalized userId:', normalizedUserId, typeof normalizedUserId);
+    logger.info('📋 imageCount:', imageCount);
+    logger.info('📋 Is guest user?', normalizedUserId === null);
     
     const tier = MultiImageAnalysisService.calculatePaymentTier(imageCount);
-    console.log('📊 Calculated tier:', tier);
+    logger.info('📊 Calculated tier:', tier);
 
     // 무료 티어인 경우 (3장 이하) - 로그인 여부와 관계없이 허용
     if (tier.price === 0) {
-      console.log('✅ Free tier (≤3 images): Analysis allowed for guest user');
-      console.log('🔑 User status:', normalizedUserId === null ? 'GUEST' : 'LOGGED_IN');
+      logger.info('✅ Free tier (≤3 images): Analysis allowed for guest user');
+      logger.info('🔑 User status:', normalizedUserId === null ? 'GUEST' : 'LOGGED_IN');
       return {
         canAnalyze: true,
         paymentRequired: false,
@@ -107,7 +107,7 @@ export class MultiImageAnalysisService {
 
     // 게스트 사용자는 3장 초과 시에만 로그인 필요
     if (!normalizedUserId) {
-      console.log('❌ Guest user with >3 images: Login required');
+      logger.info('❌ Guest user with >3 images: Login required');
       return {
         canAnalyze: false,
         paymentRequired: true,
@@ -138,7 +138,7 @@ export class MultiImageAnalysisService {
       .limit(1);
 
     if (error) {
-      console.error('Payment check error:', error);
+      logger.error('Payment check error:', error);
       return {
         canAnalyze: false,
         paymentRequired: true,
@@ -283,16 +283,16 @@ export class MultiImageAnalysisService {
     try {
       // userId 정규화 (빈 문자열도 null로 처리)
       const normalizedUserId = options.userId && options.userId.trim() !== '' ? options.userId : null;
-      console.log('📋 analyzeMultipleImages - Original userId:', options.userId);
-      console.log('📋 analyzeMultipleImages - Normalized userId:', normalizedUserId);
-      console.log('📋 analyzeMultipleImages - Image count:', imageBuffers.length);
+      logger.info('📋 analyzeMultipleImages - Original userId:', options.userId);
+      logger.info('📋 analyzeMultipleImages - Normalized userId:', normalizedUserId);
+      logger.info('📋 analyzeMultipleImages - Image count:', imageBuffers.length);
       
       // 권한 확인
       const permission = await this.checkAnalysisPermission(normalizedUserId, imageBuffers.length);
-      console.log('📋 Permission check result:', permission);
+      logger.info('📋 Permission check result:', permission);
       
       if (!permission.canAnalyze) {
-        console.log('❌ Analysis not allowed:', permission);
+        logger.info('❌ Analysis not allowed:', permission);
         return {
           success: false,
           error: permission.paymentRequired 
@@ -308,7 +308,7 @@ export class MultiImageAnalysisService {
         const buffer = imageBuffers[i];
         
         try {
-          console.log(`🔍 Analyzing image ${i + 1}/${imageBuffers.length}`);
+          logger.info(`🔍 Analyzing image ${i + 1}/${imageBuffers.length}`);
           
           // AI 분석 실행
           const analysisResult = await this.aiService.analyzeImageAndRecommend(
@@ -334,7 +334,7 @@ export class MultiImageAnalysisService {
           }
 
         } catch (error) {
-          console.error(`Failed to analyze image ${i + 1}:`, error);
+          logger.error(`Failed to analyze image ${i + 1}:`, error);
           // 개별 이미지 실패는 전체를 중단하지 않고 계속 진행
           results.push({
             keywords: [],
@@ -350,7 +350,7 @@ export class MultiImageAnalysisService {
       let commonKeywords: CommonKeywords | undefined;
       if (options.findCommonKeywords && results.length > 1) {
         commonKeywords = this.extractCommonKeywords(results);
-        console.log(`📊 Found ${commonKeywords.keywords.length} common keywords`);
+        logger.info(`📊 Found ${commonKeywords.keywords.length} common keywords`);
       }
 
       // 공통 키워드 기반 추천 생성 (유사도 포함)
@@ -361,7 +361,7 @@ export class MultiImageAnalysisService {
           recommendations = await this.getRecommendationsByKeywords(combinedKeywords, 20);
           
           // 각 추천 작품에 대해 유사도 계산
-          console.log(`🎯 Calculating similarity for ${recommendations.length} artworks`);
+          logger.info(`🎯 Calculating similarity for ${recommendations.length} artworks`);
           recommendations = recommendations.map(artwork => {
             const similarity = this.calculateSimilarityScore(
               combinedKeywords,
@@ -369,7 +369,7 @@ export class MultiImageAnalysisService {
               commonKeywords.confidence
             );
             
-            console.log(`📊 ${artwork.title}: ${Math.round(similarity.total * 100)}% similarity`);
+            logger.info(`📊 ${artwork.title}: ${Math.round(similarity.total * 100)}% similarity`);
             
             return {
               ...artwork,
@@ -386,7 +386,7 @@ export class MultiImageAnalysisService {
           recommendations.sort((a, b) => b.similarity_score.total - a.similarity_score.total);
           
         } catch (error) {
-          console.error('Failed to get recommendations:', error);
+          logger.error('Failed to get recommendations:', error);
         }
       }
 
@@ -407,9 +407,9 @@ export class MultiImageAnalysisService {
         if (saveError) {
           // 기술 부채 해결: DB 저장 실패를 치명적이지 않은 경고로 처리
           if (saveError.code === 'PGRST204') {
-            console.warn('📊 DB schema outdated - analysis results not saved (non-critical)');
+            logger.warn('📊 DB schema outdated - analysis results not saved (non-critical)');
           } else {
-            console.warn('Failed to save analysis results (non-critical):', saveError.message);
+            logger.warn('Failed to save analysis results (non-critical):', saveError.message);
           }
         }
       }
@@ -423,7 +423,7 @@ export class MultiImageAnalysisService {
       };
 
     } catch (error) {
-      console.error('Multi-image analysis failed:', error);
+      logger.error('Multi-image analysis failed:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : '분석 중 오류가 발생했습니다.',
@@ -459,7 +459,7 @@ export class MultiImageAnalysisService {
           );
           
           if (universityArtworks.length > 0) {
-            console.log(`🚨 FOUND UNIVERSITY DATA from ${result.source}:`, universityArtworks.map((a: any) => ({
+            logger.info(`🚨 FOUND UNIVERSITY DATA from ${result.source}:`, universityArtworks.map((a: any) => ({
               title: a.title,
               source_url: a.source_url,
               source: a.source,
@@ -521,11 +521,11 @@ export class MultiImageAnalysisService {
               
               // 🔍 LOGGING: Log when filtered data is found
               if (isKoreanUniversity && artwork.source_url && artwork.source_url.includes('.ac.kr')) {
-                console.log(`🚫 FILTERING OUT UNIVERSITY DATA: ${artwork.title} from ${artwork.source_url}`);
+                logger.info(`🚫 FILTERING OUT UNIVERSITY DATA: ${artwork.title} from ${artwork.source_url}`);
               }
               
               if (isBluethumb) {
-                console.log(`🚫 FILTERING OUT BLUETHUMB ARTWORK: ${artwork.title} (${artwork.id || 'no-id'})`);
+                logger.info(`🚫 FILTERING OUT BLUETHUMB ARTWORK: ${artwork.title} (${artwork.id || 'no-id'})`);
               }
               
               return !isTumblbug && !isGrafolio && !isBluethumb && !isKoreanUniversity;
@@ -566,10 +566,10 @@ export class MultiImageAnalysisService {
               platform: 'registered_artworks'
             }));
             allArtworks.push(...formattedRegisteredArtworks);
-            console.log(`📋 Found ${registeredArtworks.length} registered artworks`);
+            logger.info(`📋 Found ${registeredArtworks.length} registered artworks`);
           }
         } catch (error) {
-          console.error('Error fetching registered artworks:', error);
+          logger.error('Error fetching registered artworks:', error);
         }
 
         // 3. 기존 Supabase 데이터베이스에서도 검색 (호환성 유지)
@@ -636,7 +636,7 @@ export class MultiImageAnalysisService {
                 
                 // 🔍 LOGGING: Log when Bluethumb data is filtered out from database
                 if (isBluethumb) {
-                  console.log(`🚫 FILTERING OUT BLUETHUMB FROM DB: ${artwork.title} (${artwork.id || 'no-id'})`);
+                  logger.info(`🚫 FILTERING OUT BLUETHUMB FROM DB: ${artwork.title} (${artwork.id || 'no-id'})`);
                 }
                 
                 return !isTumblbug && !isGrafolio && !isBluethumb && !isKoreanUniversity;
@@ -651,7 +651,7 @@ export class MultiImageAnalysisService {
             allArtworks.push(...dbArtworksWithMeta);
           }
         } catch (error) {
-          console.error('Database search error:', error);
+          logger.error('Database search error:', error);
         }
       }
 
@@ -661,7 +661,7 @@ export class MultiImageAnalysisService {
         .slice(0, limit);
 
     } catch (error) {
-      console.error('Failed to get recommendations by keywords:', error);
+      logger.error('Failed to get recommendations by keywords:', error);
       return [];
     }
   }

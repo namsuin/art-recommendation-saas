@@ -42,7 +42,7 @@ export class HarvardMuseumsAPI {
     private cacheTimeout = 60 * 60 * 1000; // 1시간
 
     constructor() {
-        console.log('🏛️ Harvard Art Museums API initialized');
+        logger.info('🏛️ Harvard Art Museums API initialized');
     }
 
     /**
@@ -50,14 +50,14 @@ export class HarvardMuseumsAPI {
      */
     async searchArtworks(keywords: string[], limit: number = 15): Promise<HarvardArtwork[]> {
         try {
-            console.log(`🔍 Harvard: Searching for ${keywords.slice(0, 5).join(', ')}...`);
+            logger.info(`🔍 Harvard: Searching for ${keywords.slice(0, 5).join(', ')}...`);
             
             const cacheKey = `search:${keywords.join(',')}:${limit}`;
             
             // 캐시 확인
             const cached = this.getFromCache(cacheKey);
             if (cached) {
-                console.log(`💾 Harvard: Using cached results (${cached.length} items)`);
+                logger.info(`💾 Harvard: Using cached results (${cached.length} items)`);
                 return cached;
             }
 
@@ -78,7 +78,7 @@ export class HarvardMuseumsAPI {
                 .filter(artwork => artwork.primaryimageurl) // 이미지가 있는 작품만
                 .slice(0, limit);
 
-            console.log(`✅ Harvard: Found ${allResults.length} artworks`);
+            logger.info(`✅ Harvard: Found ${allResults.length} artworks`);
             
             // 캐시 저장
             this.setCache(cacheKey, allResults);
@@ -86,7 +86,7 @@ export class HarvardMuseumsAPI {
             return allResults;
             
         } catch (error) {
-            console.error('❌ Harvard Art Museums API error:', error);
+            logger.error('❌ Harvard Art Museums API error:', error);
             return this.generateMockArtworks(limit);
         }
     }
@@ -108,7 +108,7 @@ export class HarvardMuseumsAPI {
             });
             
         } catch (error) {
-            console.error('❌ Harvard keyword search error:', error);
+            logger.error('❌ Harvard keyword search error:', error);
             return [];
         }
     }
@@ -169,7 +169,7 @@ export class HarvardMuseumsAPI {
             // Mock implementation
             return this.generateMockArtworks(limit, 'highlights');
         } catch (error) {
-            console.error('❌ Harvard highlights error:', error);
+            logger.error('❌ Harvard highlights error:', error);
             return [];
         }
     }

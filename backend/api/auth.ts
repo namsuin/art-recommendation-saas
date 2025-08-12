@@ -2,6 +2,7 @@ import { supabase, supabaseAdmin, auth } from '../services/supabase';
 import { mockDB } from '../services/mock-database';
 import { EmailService } from '../services/email';
 import { RoleAuthService, UserRole } from '../services/role-auth';
+import { logger } from '../../shared/logger';
 
 export class AuthAPI {
   // 회원가입
@@ -86,7 +87,7 @@ export class AuthAPI {
           .insert(profileData);
 
         if (profileError) {
-          console.error('Profile creation failed:', profileError);
+          logger.error('Profile creation failed:', profileError);
         }
 
         // 예술가인 경우 자동으로 인증 요청 생성
@@ -109,7 +110,7 @@ export class AuthAPI {
             });
 
           if (verificationError) {
-            console.error('Verification request creation failed:', verificationError);
+            logger.error('Verification request creation failed:', verificationError);
           }
         }
 
@@ -124,7 +125,7 @@ export class AuthAPI {
           });
 
         if (groupError) {
-          console.error('Default taste group creation failed:', groupError);
+          logger.error('Default taste group creation failed:', groupError);
         }
       }
 
@@ -239,7 +240,7 @@ export class AuthAPI {
             updatedUser = adminUser.user;
           }
         } catch (adminError) {
-          console.warn('Admin user fetch failed, using regular user data:', adminError);
+          logger.warn('Admin user fetch failed, using regular user data:', adminError);
         }
       }
 
@@ -347,15 +348,15 @@ export class AuthAPI {
       const remainingUploads = Math.max(0, dailyLimit - user.upload_count_today);
       const canUpload = remainingUploads > 0;
 
-      console.log('🔍 Upload limit calculation for user:', userId);
-      console.log('  - subscription_tier:', user.subscription_tier);
-      console.log('  - dailyLimit:', dailyLimit);
-      console.log('  - upload_count_today:', user.upload_count_today);
-      console.log('  - remainingUploads:', remainingUploads);
-      console.log('  - canUpload:', canUpload);
-      console.log('  - resetTime:', resetTime.toISOString());
-      console.log('  - now:', now.toISOString());
-      console.log('  - should reset:', now > resetTime);
+      logger.info('🔍 Upload limit calculation for user:', userId);
+      logger.info('  - subscription_tier:', user.subscription_tier);
+      logger.info('  - dailyLimit:', dailyLimit);
+      logger.info('  - upload_count_today:', user.upload_count_today);
+      logger.info('  - remainingUploads:', remainingUploads);
+      logger.info('  - canUpload:', canUpload);
+      logger.info('  - resetTime:', resetTime.toISOString());
+      logger.info('  - now:', now.toISOString());
+      logger.info('  - should reset:', now > resetTime);
 
       return {
         canUpload,
@@ -363,7 +364,7 @@ export class AuthAPI {
         resetTime: canUpload ? undefined : new Date(resetTime.getTime() + 24 * 60 * 60 * 1000).toISOString()
       };
     } catch (error) {
-      console.error('Upload limit check failed:', error);
+      logger.error('Upload limit check failed:', error);
       return { canUpload: true, remainingUploads: 50 }; // 에러 시 50개 허용
     }
   }
@@ -389,7 +390,7 @@ export class AuthAPI {
         }
       };
     } catch (error) {
-      console.error('Token validation error:', error);
+      logger.error('Token validation error:', error);
       return { success: false };
     }
   }
@@ -409,7 +410,7 @@ export class AuthAPI {
         })
         .eq('id', userId);
     } catch (error) {
-      console.error('Upload count increment failed:', error);
+      logger.error('Upload count increment failed:', error);
     }
   }
 
@@ -608,7 +609,7 @@ export class AuthAPI {
           const profileImage = formData.get('profileImage');
           if (profileImage && profileImage instanceof File) {
             // 이미지 업로드 처리 로직 필요
-            console.log('Profile image received:', profileImage.name);
+            logger.info('Profile image received:', profileImage.name);
           }
         } else {
           // JSON 처리 (기존 방식)
@@ -654,7 +655,7 @@ export class AuthAPI {
           headers: { 'Content-Type': 'application/json' }
         });
       } catch (error) {
-        console.error('Signup request error:', error);
+        logger.error('Signup request error:', error);
         return new Response(JSON.stringify({
           success: false,
           error: '회원가입 요청 처리 실패'

@@ -1,4 +1,5 @@
 // Mock database service for development when Supabase is not available
+import { logger } from '../../shared/logger';
 export class MockDatabaseService {
   private users: Map<string, any> = new Map();
   private uploads: Map<string, any> = new Map();
@@ -238,7 +239,7 @@ export class MockDatabaseService {
 
   // Get recommendations (simple keyword matching)
   async getRecommendations(keywords: string[] = []) {
-    console.log('🎯 Mock DB getting recommendations for keywords:', keywords);
+    logger.info('🎯 Mock DB getting recommendations for keywords:', keywords);
     
     if (keywords.length === 0) {
       // Return random artworks if no keywords
@@ -249,7 +250,7 @@ export class MockDatabaseService {
         reasons: ["AI 분석 결과", "색상 유사성", "스타일 매치"],
         matchingKeywords: ["artwork", "creative"]
       }));
-      console.log('📊 Returning random recommendations:', recommendations.length);
+      logger.info('📊 Returning random recommendations:', recommendations.length);
       return recommendations;
     }
 
@@ -286,11 +287,11 @@ export class MockDatabaseService {
       .sort((a, b) => b.similarity - a.similarity)
       .slice(0, 5);
 
-    console.log('📊 Keyword matches found:', matches.length);
+    logger.info('📊 Keyword matches found:', matches.length);
     
     // Always return at least some recommendations
     if (matches.length === 0) {
-      console.log('🔄 No matches found, using fallback recommendations');
+      logger.info('🔄 No matches found, using fallback recommendations');
       return this.getRecommendations(); // Fallback to random
     }
     
@@ -333,7 +334,7 @@ export class MockDatabaseService {
     }
     
     if (!user) {
-      console.log(`📝 Mock: Creating new user for role update - ${email}`);
+      logger.info(`📝 Mock: Creating new user for role update - ${email}`);
       // 사용자가 없으면 새로 생성
       user = {
         id: userId,
@@ -359,7 +360,7 @@ export class MockDatabaseService {
     
     this.users.set(userId, user);
     
-    console.log(`✅ Mock: User role updated to ${role} for ${email}`);
+    logger.info(`✅ Mock: User role updated to ${role} for ${email}`);
     
     return {
       data: [user],

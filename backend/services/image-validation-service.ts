@@ -46,11 +46,11 @@ export class ImageValidationService {
       this.cache.set(url, { valid: isValid, timestamp: Date.now() });
       return isValid;
     } catch (error) {
-      console.log(`❌ Image URL validation failed for ${url}:`, error.message);
+      logger.info(`❌ Image URL validation failed for ${url}:`, error.message);
       
       // 재시도 로직
       if (retryCount < this.config.retries!) {
-        console.log(`🔄 Retrying validation for ${url} (attempt ${retryCount + 1})`);
+        logger.info(`🔄 Retrying validation for ${url} (attempt ${retryCount + 1})`);
         await this.delay(1000 * (retryCount + 1)); // 지수적 백오프
         return this.isValidImageUrl(url, retryCount + 1);
       }
@@ -121,7 +121,7 @@ export class ImageValidationService {
       return recommendations;
     }
 
-    console.log(`🔍 Validating ${recommendations.length} recommendation images...`);
+    logger.info(`🔍 Validating ${recommendations.length} recommendation images...`);
     const validatedRecommendations: RecommendationItem[] = [];
 
     // 배치 처리
@@ -133,7 +133,7 @@ export class ImageValidationService {
         const imageUrl = this.getBestImageUrl(artwork);
         
         if (!imageUrl) {
-          console.log(`⚠️ No image URL found for artwork: ${artwork.title || 'Unknown'}`);
+          logger.info(`⚠️ No image URL found for artwork: ${artwork.title || 'Unknown'}`);
           return null;
         }
 
@@ -142,7 +142,7 @@ export class ImageValidationService {
         if (isValid) {
           return rec;
         } else {
-          console.log(`🚫 Filtering out artwork with invalid image: ${artwork.title || 'Unknown'} - ${imageUrl}`);
+          logger.info(`🚫 Filtering out artwork with invalid image: ${artwork.title || 'Unknown'} - ${imageUrl}`);
           return null;
         }
       });
@@ -158,7 +158,7 @@ export class ImageValidationService {
 
     const filteredCount = recommendations.length - validatedRecommendations.length;
     if (filteredCount > 0) {
-      console.log(`📊 Filtered out ${filteredCount} artworks with invalid images. ${validatedRecommendations.length} valid artworks remaining.`);
+      logger.info(`📊 Filtered out ${filteredCount} artworks with invalid images. ${validatedRecommendations.length} valid artworks remaining.`);
     }
 
     return validatedRecommendations;
@@ -217,7 +217,7 @@ export class ImageValidationService {
     }
 
     if (cleanedCount > 0) {
-      console.log(`🧹 Cleaned ${cleanedCount} expired cache entries`);
+      logger.info(`🧹 Cleaned ${cleanedCount} expired cache entries`);
     }
   }
 
@@ -236,6 +236,6 @@ export class ImageValidationService {
    */
   clearCache(): void {
     this.cache.clear();
-    console.log('🧹 Image validation cache cleared');
+    logger.info('🧹 Image validation cache cleared');
   }
 }

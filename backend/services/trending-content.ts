@@ -538,7 +538,7 @@ export class TrendingContentService {
       };
 
     } catch (error) {
-      console.error('Failed to calculate trending stats:', error);
+      logger.error('Failed to calculate trending stats:', error);
       return {
         period: period as any,
         total_artworks: 0,

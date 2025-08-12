@@ -482,7 +482,7 @@ export class CommentSystemService {
                 break;
             }
           } catch (err) {
-            console.error('Failed to fetch target info:', err);
+            logger.error('Failed to fetch target info:', err);
           }
 
           return {

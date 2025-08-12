@@ -35,15 +35,15 @@ export class MultiImageAnalysisController {
   analyzeMultipleImages = ErrorHandler.asyncHandler(async (req: Request): Promise<Response> => {
     const { userId, imageFiles } = await this.extractRequestData(req);
     
-    console.log(`🚀 Starting multi-image analysis for ${imageFiles.length} images`);
-    console.log(`👤 User: ${userId || 'anonymous'}`);
+    logger.info(`🚀 Starting multi-image analysis for ${imageFiles.length} images`);
+    logger.info(`👤 User: ${userId || 'anonymous'}`);
 
     // 이미지 개수 검증
     this.validateImageCount(imageFiles);
 
     // Mock 모드 처리
     if (!supabase) {
-      console.log('🎭 Running in Mock mode');
+      logger.info('🎭 Running in Mock mode');
       return await this.handleMockAnalysis(userId, imageFiles);
     }
 
@@ -99,7 +99,7 @@ export class MultiImageAnalysisController {
       }
     }
 
-    console.log(`📋 Extracted: userId=${userId}, images=${imageFiles.length}`);
+    logger.info(`📋 Extracted: userId=${userId}, images=${imageFiles.length}`);
     
     return { userId, imageFiles };
   }
@@ -129,7 +129,7 @@ export class MultiImageAnalysisController {
     processingTime: number;
     recommendations?: RecommendationItem[];
   }> {
-    console.log('🎯 Starting AI analysis...');
+    logger.info('🎯 Starting AI analysis...');
     const imageBuffers = await this.convertFilesToBuffers(imageFiles);
 
     const analysisResult = await this.multiImageService.analyzeMultipleImages(imageBuffers, {
@@ -158,11 +158,11 @@ export class MultiImageAnalysisController {
    * 파일을 버퍼로 변환
    */
   private async convertFilesToBuffers(imageFiles: File[]): Promise<Buffer[]> {
-    console.log('🔄 Converting images to buffers...');
+    logger.info('🔄 Converting images to buffers...');
     const buffers = await Promise.all(
       imageFiles.map(async (file) => Buffer.from(await file.arrayBuffer()))
     );
-    console.log('✅ Buffer conversion complete');
+    logger.info('✅ Buffer conversion complete');
     return buffers;
   }
 
@@ -183,11 +183,11 @@ export class MultiImageAnalysisController {
     );
 
     // 이미지 URL 유효성 검증
-    console.log('🔍 Validating recommendation image URLs...');
+    logger.info('🔍 Validating recommendation image URLs...');
     const validatedInternal = await this.imageValidationService.filterValidRecommendations(internalRecommendations);
     const validatedExternal = await this.imageValidationService.filterValidRecommendations(externalRecommendations);
 
-    console.log(`📊 Validation complete - Internal: ${validatedInternal.length}/${internalRecommendations.length}, External: ${validatedExternal.length}/${externalRecommendations.length}`);
+    logger.info(`📊 Validation complete - Internal: ${validatedInternal.length}/${internalRecommendations.length}, External: ${validatedExternal.length}/${externalRecommendations.length}`);
 
     return {
       internal: validatedInternal,

@@ -65,7 +65,7 @@ export class ArtPIService {
     };
 
     if (!this.apiKey) {
-      console.warn('⚠️ ArtPI API key not configured - using mock responses');
+      logger.warn('⚠️ ArtPI API key not configured - using mock responses');
     }
   }
 
@@ -74,12 +74,12 @@ export class ArtPIService {
    */
   async analyzeArtwork(imageBuffer: Buffer): Promise<ArtPIAnalysisResult> {
     if (!this.apiKey) {
-      console.log('🎭 Using mock ArtPI analysis');
+      logger.info('🎭 Using mock ArtPI analysis');
       return this.getMockAnalysis();
     }
 
     try {
-      console.log('🎨 Analyzing artwork with ArtPI...');
+      logger.info('🎨 Analyzing artwork with ArtPI...');
       
       const formData = new FormData();
       formData.append('image', new Blob([imageBuffer]), 'artwork.jpg');
@@ -104,11 +104,11 @@ export class ArtPIService {
       return this.parseArtPIResponse(result);
 
     } catch (error) {
-      console.error('❌ ArtPI analysis failed:', error);
+      logger.error('❌ ArtPI analysis failed:', error);
       
       // 네트워크 오류 시 재시도
       if (error.name === 'TypeError' && error.message.includes('fetch')) {
-        console.log('🔄 Retrying ArtPI request...');
+        logger.info('🔄 Retrying ArtPI request...');
         return this.analyzeArtworkWithRetry(imageBuffer, 1);
       }
       
@@ -152,7 +152,7 @@ export class ArtPIService {
       return this.parseSimilarArtworks(result);
 
     } catch (error) {
-      console.error('❌ ArtPI similar search failed:', error);
+      logger.error('❌ ArtPI similar search failed:', error);
       return this.getMockSimilarArtworks();
     }
   }
@@ -187,7 +187,7 @@ export class ArtPIService {
       return this.parseArtistStyle(result);
 
     } catch (error) {
-      console.error('❌ ArtPI artist analysis failed:', error);
+      logger.error('❌ ArtPI artist analysis failed:', error);
       return this.getMockArtistStyle(artistName);
     }
   }
@@ -197,7 +197,7 @@ export class ArtPIService {
    */
   private async analyzeArtworkWithRetry(imageBuffer: Buffer, attempt: number): Promise<ArtPIAnalysisResult> {
     if (attempt >= this.config.retries!) {
-      console.log('🎭 Max retries reached, using mock analysis');
+      logger.info('🎭 Max retries reached, using mock analysis');
       return this.getMockAnalysis();
     }
 

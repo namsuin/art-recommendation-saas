@@ -123,7 +123,7 @@ export class PlayformService {
     };
 
     if (!this.apiKey) {
-      console.warn('⚠️ Playform.io API key not configured - using mock responses');
+      logger.warn('⚠️ Playform.io API key not configured - using mock responses');
     }
   }
 
@@ -132,12 +132,12 @@ export class PlayformService {
    */
   async analyzeArtwork(imageBuffer: Buffer): Promise<PlayformAnalysisResult> {
     if (!this.apiKey) {
-      console.log('🎨 Using mock Playform analysis');
+      logger.info('🎨 Using mock Playform analysis');
       return this.getMockAnalysis();
     }
 
     try {
-      console.log('🚀 Analyzing artwork with Playform.io...');
+      logger.info('🚀 Analyzing artwork with Playform.io...');
 
       const formData = new FormData();
       formData.append('image', new Blob([imageBuffer]), 'artwork.jpg');
@@ -165,7 +165,7 @@ export class PlayformService {
       });
 
     } catch (error) {
-      console.error('❌ Playform analysis failed:', error);
+      logger.error('❌ Playform analysis failed:', error);
       return this.getMockAnalysis();
     }
   }
@@ -335,7 +335,7 @@ export class PlayformService {
       })) || [];
 
     } catch (error) {
-      console.error('❌ Style generation failed:', error);
+      logger.error('❌ Style generation failed:', error);
       return this.getMockGeneratedStyles();
     }
   }

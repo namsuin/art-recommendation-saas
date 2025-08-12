@@ -7,22 +7,22 @@ export class ArtworkManagementAPI {
    */
   static async registerArtwork(req: Request): Promise<Response> {
     try {
-      console.log('🎨 Starting artwork registration...');
+      logger.info('🎨 Starting artwork registration...');
       const formData = await req.formData();
-      console.log('📝 Form data parsed successfully');
+      logger.info('📝 Form data parsed successfully');
       const userId = formData.get('userId') as string;
-      console.log('👤 User ID extracted:', userId);
+      logger.info('👤 User ID extracted:', userId);
       
       // 예술가 권한 확인 (개발 환경에서는 mock 데이터 허용)
-      console.log('🎨 Artwork registration request:', { userId, supabase: !!supabase });
+      logger.info('🎨 Artwork registration request:', { userId, supabase: !!supabase });
       
       const isArtist = await RoleAuthService.isArtist(userId);
-      console.log('🔍 Artist check result:', { userId, isArtist });
+      logger.info('🔍 Artist check result:', { userId, isArtist });
       
       // Mock 환경에서는 특정 패턴의 userId 허용
       const mockArtistPatterns = ['artist-', 'user-', '04acf223-'];
       const isMockArtist = mockArtistPatterns.some(pattern => userId.includes(pattern));
-      console.log('🎭 Mock artist check:', { userId, isMockArtist, hasSupabase: !!supabase, isArtist });
+      logger.info('🎭 Mock artist check:', { userId, isMockArtist, hasSupabase: !!supabase, isArtist });
       
       if (!isArtist && !isMockArtist) {
         return new Response(JSON.stringify({
@@ -35,7 +35,7 @@ export class ArtworkManagementAPI {
       }
 
       // 폼 데이터 추출
-      console.log('📋 Extracting form data...');
+      logger.info('📋 Extracting form data...');
       const artworkData = {
         title: formData.get('title') as string,
         description: formData.get('description') as string,
@@ -55,7 +55,7 @@ export class ArtworkManagementAPI {
         image_url: formData.get('imageUrl') as string
       };
       
-      console.log('📋 Form data extracted:', artworkData);
+      logger.info('📋 Form data extracted:', artworkData);
 
       // 작가명 가져오기
       if (supabase) {
@@ -67,13 +67,13 @@ export class ArtworkManagementAPI {
             .single();
           
           if (userError) {
-            console.log('User data fetch error:', userError);
+            logger.info('User data fetch error:', userError);
             artworkData.artist_name = '알 수 없음';
           } else {
             artworkData.artist_name = userData?.display_name || '알 수 없음';
           }
         } catch (userFetchError) {
-          console.log('User fetch error:', userFetchError);
+          logger.info('User fetch error:', userFetchError);
           artworkData.artist_name = '알 수 없음';
         }
       } else {
@@ -87,10 +87,10 @@ export class ArtworkManagementAPI {
       }
 
       // 데이터베이스에 저장 (개발 환경에서는 mock 처리)
-      console.log('💾 Saving to database...');
+      logger.info('💾 Saving to database...');
       
       if (!supabase) {
-        console.log('❌ No Supabase connection - using mock mode');
+        logger.info('❌ No Supabase connection - using mock mode');
         
         // Mock 환경에서는 성공 응답 반환
         const mockData = {
@@ -100,7 +100,7 @@ export class ArtworkManagementAPI {
           updated_at: new Date().toISOString()
         };
         
-        console.log('🎭 Mock artwork created:', mockData);
+        logger.info('🎭 Mock artwork created:', mockData);
         
         return new Response(JSON.stringify({
           success: true,
@@ -111,7 +111,7 @@ export class ArtworkManagementAPI {
         });
       }
 
-      console.log('💾 Final artwork data to insert:', artworkData);
+      logger.info('💾 Final artwork data to insert:', artworkData);
       try {
         const { data, error } = await supabase
           .from('registered_artworks')
@@ -119,9 +119,9 @@ export class ArtworkManagementAPI {
           .select('*')
           .single();
 
-        console.log('💾 Database response:', { data, error });
+        logger.info('💾 Database response:', { data, error });
         if (error) {
-          console.log('🔧 Database error - falling back to mock mode');
+          logger.info('🔧 Database error - falling back to mock mode');
           
           // 데이터베이스 오류 시 mock 모드로 대체
           const mockData = {
@@ -148,7 +148,7 @@ export class ArtworkManagementAPI {
         });
         
       } catch (dbError) {
-        console.log('🔧 Database connection error - using mock mode:', dbError);
+        logger.info('🔧 Database connection error - using mock mode:', dbError);
         
         // 데이터베이스 연결 오류 시 mock 모드로 대체
         const mockData = {
@@ -175,8 +175,8 @@ export class ArtworkManagementAPI {
       });
 
     } catch (error) {
-      console.error('Artwork registration error:', error);
-      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+      logger.error('Artwork registration error:', error);
+      logger.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
       return new Response(JSON.stringify({
         success: false,
         error: error instanceof Error ? error.message : '작품 등록 실패',
@@ -239,7 +239,7 @@ export class ArtworkManagementAPI {
       });
 
     } catch (error) {
-      console.error('Artwork approval error:', error);
+      logger.error('Artwork approval error:', error);
       return new Response(JSON.stringify({
         success: false,
         error: error instanceof Error ? error.message : '작품 승인 실패'
@@ -302,7 +302,7 @@ export class ArtworkManagementAPI {
       });
 
     } catch (error) {
-      console.error('Artwork rejection error:', error);
+      logger.error('Artwork rejection error:', error);
       return new Response(JSON.stringify({
         success: false,
         error: error instanceof Error ? error.message : '작품 거부 실패'
@@ -377,7 +377,7 @@ export class ArtworkManagementAPI {
       });
 
     } catch (error) {
-      console.error('Error fetching approved artworks:', error);
+      logger.error('Error fetching approved artworks:', error);
       return new Response(JSON.stringify({
         success: false,
         error: error instanceof Error ? error.message : '작품 목록 조회 실패'
@@ -432,7 +432,7 @@ export class ArtworkManagementAPI {
       });
 
     } catch (error) {
-      console.error('Error fetching artist artworks:', error);
+      logger.error('Error fetching artist artworks:', error);
       return new Response(JSON.stringify({
         success: false,
         error: error instanceof Error ? error.message : '작가 작품 목록 조회 실패'
@@ -530,7 +530,7 @@ export class ArtworkManagementAPI {
       });
 
     } catch (error) {
-      console.error('Error fetching artwork stats:', error);
+      logger.error('Error fetching artwork stats:', error);
       return new Response(JSON.stringify({
         success: false,
         error: error instanceof Error ? error.message : '통계 조회 실패'

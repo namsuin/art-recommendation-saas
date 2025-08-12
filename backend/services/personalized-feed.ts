@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { logger } from '../../shared/logger';
 
 interface FeedItem {
   id: string;
@@ -212,7 +213,7 @@ export class PersonalizedFeedService {
       };
 
     } catch (error) {
-      console.error('Failed to analyze user preferences:', error);
+      logger.error('Failed to analyze user preferences:', error);
       return {
         preferred_styles: [],
         preferred_colors: [],
@@ -274,7 +275,7 @@ export class PersonalizedFeedService {
       return feedItems;
 
     } catch (error) {
-      console.error('Failed to get following artworks:', error);
+      logger.error('Failed to get following artworks:', error);
       return [];
     }
   }
@@ -326,7 +327,7 @@ export class PersonalizedFeedService {
       return feedItems;
 
     } catch (error) {
-      console.error('Failed to get recommended artworks:', error);
+      logger.error('Failed to get recommended artworks:', error);
       return [];
     }
   }
@@ -369,7 +370,7 @@ export class PersonalizedFeedService {
       return feedItems;
 
     } catch (error) {
-      console.error('Failed to get new collections:', error);
+      logger.error('Failed to get new collections:', error);
       return [];
     }
   }
@@ -415,7 +416,7 @@ export class PersonalizedFeedService {
       return feedItems;
 
     } catch (error) {
-      console.error('Failed to get relevant reviews:', error);
+      logger.error('Failed to get relevant reviews:', error);
       return [];
     }
   }
@@ -459,7 +460,7 @@ export class PersonalizedFeedService {
       return feedItems;
 
     } catch (error) {
-      console.error('Failed to get follow suggestions:', error);
+      logger.error('Failed to get follow suggestions:', error);
       return [];
     }
   }

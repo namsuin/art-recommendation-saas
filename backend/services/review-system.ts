@@ -268,7 +268,7 @@ export class ReviewSystemService {
       };
 
     } catch (error) {
-      console.error('Failed to get review stats:', error);
+      logger.error('Failed to get review stats:', error);
       return {
         total_reviews: 0,
         average_rating: 0,
@@ -557,7 +557,7 @@ export class ReviewSystemService {
         .eq('id', artworkId);
 
     } catch (error) {
-      console.error('Failed to update artwork rating:', error);
+      logger.error('Failed to update artwork rating:', error);
     }
   }
 
@@ -583,7 +583,7 @@ export class ReviewSystemService {
       return helpfulCount;
 
     } catch (error) {
-      console.error('Failed to update review helpful count:', error);
+      logger.error('Failed to update review helpful count:', error);
       return 0;
     }
   }

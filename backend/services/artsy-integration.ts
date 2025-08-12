@@ -53,7 +53,7 @@ export class ArtsyIntegration {
     }
 
     if (!this.clientId || !this.clientSecret) {
-      console.warn('Artsy API credentials not configured');
+      logger.warn('Artsy API credentials not configured');
       return false;
     }
 
@@ -66,10 +66,10 @@ export class ArtsyIntegration {
       this.accessToken = response.data.token;
       this.tokenExpiry = new Date(response.data.expires_at);
       
-      console.log('✅ Artsy API authenticated successfully');
+      logger.info('✅ Artsy API authenticated successfully');
       return true;
     } catch (error) {
-      console.error('Failed to authenticate with Artsy API:', error);
+      logger.error('Failed to authenticate with Artsy API:', error);
       return false;
     }
   }
@@ -81,7 +81,7 @@ export class ArtsyIntegration {
     const isAuthenticated = await this.authenticate();
     
     if (!isAuthenticated) {
-      console.warn('Artsy API not available - returning empty results');
+      logger.warn('Artsy API not available - returning empty results');
       return { artworks: [], total: 0, source: 'artsy' };
     }
 
@@ -121,7 +121,7 @@ export class ArtsyIntegration {
       };
 
     } catch (error) {
-      console.error('Artsy search failed:', error);
+      logger.error('Artsy search failed:', error);
       return { artworks: [], total: 0, source: 'artsy' };
     }
   }
@@ -167,7 +167,7 @@ export class ArtsyIntegration {
       };
 
     } catch (error) {
-      console.error(`Failed to get artwork details for ${artworkId}:`, error);
+      logger.error(`Failed to get artwork details for ${artworkId}:`, error);
       return null;
     }
   }
@@ -223,7 +223,7 @@ export class ArtsyIntegration {
       return similarArtworks;
 
     } catch (error) {
-      console.error('Failed to find similar artworks:', error);
+      logger.error('Failed to find similar artworks:', error);
       return [];
     }
   }

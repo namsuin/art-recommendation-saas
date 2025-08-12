@@ -24,7 +24,7 @@ export class Router {
       this.routes.set(route, handler);
     }
     
-    console.log(`📋 Total routes registered: ${this.routes.size}`);
+    logger.info(`📋 Total routes registered: ${this.routes.size}`);
   }
   
   async handleRequest(req: Request): Promise<Response> {

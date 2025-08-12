@@ -111,7 +111,7 @@ export class ExpandedArtSearchService {
     // 한국 창작 플랫폼들 (완전 제거됨)
     // NOTE: 사용자 요청에 따라 한국 창작 플랫폼 완전 제거 - 검색 자체를 하지 않음
     if (sources.includes('korean-creative') && includeKorean) {
-      console.log('🚫 한국 창작 플랫폼이 완전히 제거되었습니다. 검색하지 않음.');
+      logger.info('🚫 한국 창작 플랫폼이 완전히 제거되었습니다. 검색하지 않음.');
       // 어떤 검색도 하지 않음 - 완전히 건너뜀
     }
 
@@ -169,8 +169,8 @@ export class ExpandedArtSearchService {
           );
           
           if (hasUniversityData) {
-            console.log(`🚨 UNIVERSITY DATA DETECTED from source: ${source}`);
-            console.log(`🎓 University artworks:`, artworks.filter((artwork: any) => 
+            logger.info(`🚨 UNIVERSITY DATA DETECTED from source: ${source}`);
+            logger.info(`🎓 University artworks:`, artworks.filter((artwork: any) => 
               artwork.source_url && artwork.source_url.includes('.ac.kr')
             ));
           }
@@ -204,7 +204,7 @@ export class ExpandedArtSearchService {
             ));
             
             if (isUniversity) {
-              console.log(`🚫 BLOCKED AT SOURCE LEVEL: ${artwork.title} from ${source}`);
+              logger.info(`🚫 BLOCKED AT SOURCE LEVEL: ${artwork.title} from ${source}`);
             }
             
             return !isUniversity;
@@ -216,7 +216,7 @@ export class ExpandedArtSearchService {
             total: filteredArtworks.length
           };
         } else {
-          console.error(`${source} search failed:`, result);
+          logger.error(`${source} search failed:`, result);
           return {
             source: this.getSourceDisplayName(source),
             artworks: [],
@@ -236,7 +236,7 @@ export class ExpandedArtSearchService {
       };
 
     } catch (error) {
-      console.error('Expanded art search error:', error);
+      logger.error('Expanded art search error:', error);
       return {
         success: false,
         results: [],

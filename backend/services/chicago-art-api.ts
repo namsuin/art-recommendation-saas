@@ -81,7 +81,7 @@ export class ChicagoArtAPI {
       };
 
     } catch (error) {
-      console.error('Chicago Art API search error:', error);
+      logger.error('Chicago Art API search error:', error);
       return {
         success: false,
         artworks: [],
@@ -119,7 +119,7 @@ export class ChicagoArtAPI {
       };
 
     } catch (error) {
-      console.error('Chicago Art API classification search error:', error);
+      logger.error('Chicago Art API classification search error:', error);
       return {
         success: false,
         artworks: [],
@@ -201,7 +201,7 @@ export class ChicagoArtAPI {
       };
 
     } catch (error) {
-      console.error('Chicago Art API color search error:', error);
+      logger.error('Chicago Art API color search error:', error);
       return {
         success: false,
         artworks: [],

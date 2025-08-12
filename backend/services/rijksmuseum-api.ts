@@ -82,7 +82,7 @@ export class RijksmuseumAPI {
       };
 
     } catch (error) {
-      console.error('Rijksmuseum API search error:', error);
+      logger.error('Rijksmuseum API search error:', error);
       return {
         success: false,
         artworks: [],
@@ -122,7 +122,7 @@ export class RijksmuseumAPI {
       };
 
     } catch (error) {
-      console.error('Rijksmuseum API artist search error:', error);
+      logger.error('Rijksmuseum API artist search error:', error);
       return {
         success: false,
         artworks: [],
@@ -162,7 +162,7 @@ export class RijksmuseumAPI {
       };
 
     } catch (error) {
-      console.error('Rijksmuseum API color search error:', error);
+      logger.error('Rijksmuseum API color search error:', error);
       return {
         success: false,
         artworks: [],

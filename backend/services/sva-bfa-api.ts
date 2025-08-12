@@ -43,7 +43,7 @@ export class SVABfaAPI {
     error?: string;
   }> {
     try {
-      console.log(`🎓 SVA BFA Fine Arts 검색: ${keywords.join(', ')}`);
+      logger.info(`🎓 SVA BFA Fine Arts 검색: ${keywords.join(', ')}`);
       
       // 실제 API 연동이 불가능하므로 교육적 목적의 Mock 데이터 생성
       const mockArtworks = this.generateSVAMockData(keywords, limit);
@@ -55,7 +55,7 @@ export class SVABfaAPI {
       };
 
     } catch (error) {
-      console.error('SVA BFA search error:', error);
+      logger.error('SVA BFA search error:', error);
       return {
         success: false,
         artworks: [],
@@ -94,7 +94,7 @@ export class SVABfaAPI {
       };
 
     } catch (error) {
-      console.error('SVA BFA concentration search error:', error);
+      logger.error('SVA BFA concentration search error:', error);
       return {
         success: false,
         artworks: [],
@@ -138,7 +138,7 @@ export class SVABfaAPI {
       };
 
     } catch (error) {
-      console.error('SVA BFA exhibition search error:', error);
+      logger.error('SVA BFA exhibition search error:', error);
       return {
         success: false,
         artworks: [],
@@ -179,7 +179,7 @@ export class SVABfaAPI {
       };
 
     } catch (error) {
-      console.error('SVA BFA level search error:', error);
+      logger.error('SVA BFA level search error:', error);
       return {
         success: false,
         artworks: [],
@@ -213,7 +213,7 @@ export class SVABfaAPI {
       };
 
     } catch (error) {
-      console.error('SVA BFA senior thesis search error:', error);
+      logger.error('SVA BFA senior thesis search error:', error);
       return {
         success: false,
         artworks: [],

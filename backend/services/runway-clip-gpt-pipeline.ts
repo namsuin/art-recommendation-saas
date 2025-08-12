@@ -140,7 +140,7 @@ export class RunwayClipGptPipeline {
     };
 
     if (!this.runwayApiKey || !this.openaiApiKey) {
-      console.warn('⚠️ RunwayML/OpenAI API keys not configured - using mock responses');
+      logger.warn('⚠️ RunwayML/OpenAI API keys not configured - using mock responses');
     }
   }
 
@@ -149,19 +149,19 @@ export class RunwayClipGptPipeline {
    */
   async analyzeArtwork(imageBuffer: Buffer): Promise<RunwayClipGptResult> {
     if (!this.runwayApiKey || !this.openaiApiKey) {
-      console.log('🎭 Using mock RunwayML + CLIP + GPT analysis');
+      logger.info('🎭 Using mock RunwayML + CLIP + GPT analysis');
       return this.getMockAnalysis();
     }
 
     try {
-      console.log('🚀 Starting RunwayML + CLIP + GPT pipeline...');
+      logger.info('🚀 Starting RunwayML + CLIP + GPT pipeline...');
 
       // Step 1: CLIP 분석 (병렬)
-      console.log('📊 Step 1: CLIP analysis...');
+      logger.info('📊 Step 1: CLIP analysis...');
       const clipAnalysisPromise = this.runClipAnalysis(imageBuffer);
 
       // Step 2: RunwayML 분석 (병렬)
-      console.log('🎨 Step 2: RunwayML analysis...');
+      logger.info('🎨 Step 2: RunwayML analysis...');
       const runwayAnalysisPromise = this.runRunwayAnalysis(imageBuffer);
 
       // 병렬 실행 대기
@@ -174,11 +174,11 @@ export class RunwayClipGptPipeline {
       const runwayAnalysis = this.extractResult(runwayResult, this.getDefaultRunwayAnalysis());
 
       // Step 3: GPT 해석 (CLIP과 RunwayML 결과 기반)
-      console.log('🧠 Step 3: GPT interpretation...');
+      logger.info('🧠 Step 3: GPT interpretation...');
       const gptInterpretation = await this.runGptInterpretation(clipAnalysis, runwayAnalysis);
 
       // Step 4: 결과 통합
-      console.log('🔗 Step 4: Synthesizing results...');
+      logger.info('🔗 Step 4: Synthesizing results...');
       const synthesizedAnalysis = await this.synthesizeResults(clipAnalysis, runwayAnalysis, gptInterpretation);
 
       const result = {
@@ -188,11 +188,11 @@ export class RunwayClipGptPipeline {
         synthesizedAnalysis
       };
 
-      console.log('✅ RunwayML + CLIP + GPT pipeline completed');
+      logger.info('✅ RunwayML + CLIP + GPT pipeline completed');
       return result;
 
     } catch (error) {
-      console.error('❌ Pipeline failed:', error);
+      logger.error('❌ Pipeline failed:', error);
       return this.getMockAnalysis();
     }
   }
@@ -257,7 +257,7 @@ export class RunwayClipGptPipeline {
       };
 
     } catch (error) {
-      console.error('CLIP analysis failed:', error);
+      logger.error('CLIP analysis failed:', error);
       return this.getDefaultClipAnalysis();
     }
   }
@@ -301,7 +301,7 @@ export class RunwayClipGptPipeline {
             quality: transferResult.quality || Math.random() * 0.4 + 0.6
           });
         } catch (transferError) {
-          console.warn(`Style transfer failed for ${style}:`, transferError);
+          logger.warn(`Style transfer failed for ${style}:`, transferError);
         }
       }
 
@@ -318,7 +318,7 @@ export class RunwayClipGptPipeline {
       };
 
     } catch (error) {
-      console.error('RunwayML analysis failed:', error);
+      logger.error('RunwayML analysis failed:', error);
       return this.getDefaultRunwayAnalysis();
     }
   }
@@ -365,7 +365,7 @@ export class RunwayClipGptPipeline {
       return this.parseGptResponse(interpretation);
 
     } catch (error) {
-      console.error('GPT interpretation failed:', error);
+      logger.error('GPT interpretation failed:', error);
       return this.getDefaultGptInterpretation();
     }
   }

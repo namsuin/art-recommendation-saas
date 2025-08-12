@@ -33,7 +33,7 @@ export class ArtsoniaAPI {
   private imageBaseUrl = 'https://images.artsonia.com/art';
 
   constructor() {
-    console.log('🎨 Artsonia API initialized - Limited mock implementation for student art');
+    logger.info('🎨 Artsonia API initialized - Limited mock implementation for student art');
   }
 
   /**
@@ -52,7 +52,7 @@ export class ArtsoniaAPI {
       };
 
     } catch (error) {
-      console.error('Artsonia search error:', error);
+      logger.error('Artsonia search error:', error);
       return {
         success: false,
         artworks: [],
@@ -90,7 +90,7 @@ export class ArtsoniaAPI {
       };
 
     } catch (error) {
-      console.error('Artsonia grade search error:', error);
+      logger.error('Artsonia grade search error:', error);
       return {
         success: false,
         artworks: [],
@@ -122,7 +122,7 @@ export class ArtsoniaAPI {
       };
 
     } catch (error) {
-      console.error('Artsonia project search error:', error);
+      logger.error('Artsonia project search error:', error);
       return {
         success: false,
         artworks: [],
@@ -241,10 +241,10 @@ export class ArtsoniaAPI {
   async checkAvailability(): Promise<boolean> {
     try {
       // 실제 환경에서는 Artsonia API 엔드포인트 확인
-      console.log('🎓 Artsonia API: Mock implementation active (Educational use only)');
+      logger.info('🎓 Artsonia API: Mock implementation active (Educational use only)');
       return true;
     } catch (error) {
-      console.error('Artsonia availability check failed:', error);
+      logger.error('Artsonia availability check failed:', error);
       return false;
     }
   }

@@ -111,7 +111,7 @@ export class AIArtGeneratorService {
       return { success: true, data: styles };
 
     } catch (error) {
-      console.error('Get available styles error:', error);
+      logger.error('Get available styles error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : '스타일 목록 조회 실패'
@@ -169,7 +169,7 @@ export class AIArtGeneratorService {
       return { success: true, data: result };
 
     } catch (error) {
-      console.error('Style transfer error:', error);
+      logger.error('Style transfer error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : '스타일 전이 실패'
@@ -228,7 +228,7 @@ export class AIArtGeneratorService {
       return { success: true, data: result };
 
     } catch (error) {
-      console.error('Text to image error:', error);
+      logger.error('Text to image error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : '이미지 생성 실패'
@@ -283,7 +283,7 @@ export class AIArtGeneratorService {
       return { success: true, data: results };
 
     } catch (error) {
-      console.error('Image variations error:', error);
+      logger.error('Image variations error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : '이미지 변형 생성 실패'
@@ -337,7 +337,7 @@ export class AIArtGeneratorService {
       return { success: true, data: formattedHistory };
 
     } catch (error) {
-      console.error('Get generation history error:', error);
+      logger.error('Get generation history error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : '생성 히스토리 조회 실패'
@@ -386,7 +386,7 @@ export class AIArtGeneratorService {
       return { success: true, data: formattedPopular };
 
     } catch (error) {
-      console.error('Get popular generations error:', error);
+      logger.error('Get popular generations error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : '인기 작품 조회 실패'
@@ -593,7 +593,7 @@ export class AIArtGeneratorService {
           downloads: history.downloads
         }]);
     } catch (error) {
-      console.error('Save generation history error:', error);
+      logger.error('Save generation history error:', error);
     }
   }
 

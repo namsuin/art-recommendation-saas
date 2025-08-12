@@ -31,7 +31,7 @@ export async function serveIndexHTML(): Promise<Response> {
       },
     });
   } catch (error) {
-    console.error('Failed to serve index.html:', error);
+    logger.error('Failed to serve index.html:', error);
     
     // Fallback HTML
     const fallbackHTML = `
@@ -124,7 +124,7 @@ export async function serveStaticFile(filePath: string): Promise<Response> {
           throw new Error('Transpilation failed - no output');
         }
       } catch (transpileError) {
-        console.error(`Failed to transpile ${filePath}:`, transpileError);
+        logger.error(`Failed to transpile ${filePath}:`, transpileError);
         // Fallback to serving raw content with JavaScript MIME type
         const content = await readFile(fullPath, 'utf-8');
         return new Response(content, {
@@ -147,7 +147,7 @@ export async function serveStaticFile(filePath: string): Promise<Response> {
       },
     });
   } catch (error) {
-    console.error(`Failed to serve static file ${filePath}:`, error);
+    logger.error(`Failed to serve static file ${filePath}:`, error);
     return new Response('Not Found', { status: 404 });
   }
 }

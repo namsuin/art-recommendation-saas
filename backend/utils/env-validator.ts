@@ -72,29 +72,29 @@ export function validateEnvironment(): {
 export function printEnvironmentStatus(): void {
   const { isValid, warnings, errors } = validateEnvironment();
   
-  console.log('\n🔧 Environment Configuration:');
+  logger.info('\n🔧 Environment Configuration:');
   
   if (errors.length > 0) {
-    console.log('\n❌ ERRORS:');
-    errors.forEach(error => console.log(`  - ${error}`));
+    logger.info('\n❌ ERRORS:');
+    errors.forEach(error => logger.info(`  - ${error}`));
   }
   
   if (warnings.length > 0) {
-    console.log('\n⚠️  WARNINGS:');
-    warnings.forEach(warning => console.log(`  - ${warning}`));
+    logger.info('\n⚠️  WARNINGS:');
+    warnings.forEach(warning => logger.info(`  - ${warning}`));
   }
   
   if (isValid) {
-    console.log('\n✅ Basic configuration is valid');
+    logger.info('\n✅ Basic configuration is valid');
   } else {
-    console.log('\n❌ Configuration has errors - server may not work properly');
+    logger.info('\n❌ Configuration has errors - server may not work properly');
   }
   
-  console.log('\n📋 Configured Services:');
-  console.log(`  - Supabase: ${process.env.SUPABASE_URL ? '✅' : '❌'}`);
-  console.log(`  - Google Vision: ${(process.env.GOOGLE_CLOUD_PROJECT_ID || process.env.GOOGLE_CLOUD_KEY_FILE) ? '✅' : '⚠️'}`);
-  console.log(`  - Replicate: ${process.env.REPLICATE_API_TOKEN ? '✅' : '⚠️'}`);
-  console.log(`  - Clarifai: ${process.env.CLARIFAI_API_KEY ? '✅' : '⚠️'}`);
-  console.log(`  - Stripe: ${process.env.STRIPE_SECRET_KEY ? '✅' : '⚠️'}`);
-  console.log('');
+  logger.info('\n📋 Configured Services:');
+  logger.info(`  - Supabase: ${process.env.SUPABASE_URL ? '✅' : '❌'}`);
+  logger.info(`  - Google Vision: ${(process.env.GOOGLE_CLOUD_PROJECT_ID || process.env.GOOGLE_CLOUD_KEY_FILE) ? '✅' : '⚠️'}`);
+  logger.info(`  - Replicate: ${process.env.REPLICATE_API_TOKEN ? '✅' : '⚠️'}`);
+  logger.info(`  - Clarifai: ${process.env.CLARIFAI_API_KEY ? '✅' : '⚠️'}`);
+  logger.info(`  - Stripe: ${process.env.STRIPE_SECRET_KEY ? '✅' : '⚠️'}`);
+  logger.info('');
 }

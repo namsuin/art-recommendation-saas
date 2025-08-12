@@ -109,7 +109,7 @@ export class AICuratorChatbotService {
       return response;
 
     } catch (error) {
-      console.error('Chat processing error:', error);
+      logger.error('Chat processing error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : '채팅 처리 중 오류가 발생했습니다.'
@@ -339,7 +339,7 @@ export class AICuratorChatbotService {
         recentInteractions: []
       };
     } catch (error) {
-      console.error('Error loading user context:', error);
+      logger.error('Error loading user context:', error);
       return null;
     }
   }
@@ -735,7 +735,7 @@ export class AICuratorChatbotService {
         data: history.slice(-limit)
       };
     } catch (error) {
-      console.error('Get chat history error:', error);
+      logger.error('Get chat history error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : '채팅 히스토리 조회 실패'

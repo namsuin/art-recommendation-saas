@@ -1,6 +1,7 @@
 import Stripe from 'stripe';
 import { supabase } from './supabase';
 import { EmailService } from './email';
+import { logger } from '../../shared/logger';
 
 // Stripe 초기화
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY, {
@@ -56,7 +57,7 @@ export class StripeService {
   // 고객 생성 또는 조회
   static async getOrCreateCustomer(userId: string, email: string, name?: string): Promise<Stripe.Customer | null> {
     if (!stripe) {
-      console.warn('Stripe not configured');
+      logger.warn('Stripe not configured');
       return null;
     }
 
@@ -82,7 +83,7 @@ export class StripeService {
 
       return customer;
     } catch (error) {
-      console.error('Failed to get or create Stripe customer:', error);
+      logger.error('Failed to get or create Stripe customer:', error);
       return null;
     }
   }
@@ -142,7 +143,7 @@ export class StripeService {
           });
 
         if (dbError) {
-          console.error('Failed to save subscription to database:', dbError);
+          logger.error('Failed to save subscription to database:', dbError);
         }
 
         // 사용자 tier 업데이트
@@ -161,7 +162,7 @@ export class StripeService {
       };
 
     } catch (error) {
-      console.error('Failed to create subscription:', error);
+      logger.error('Failed to create subscription:', error);
       return { 
         success: false, 
         error: error instanceof Error ? error.message : 'Subscription creation failed' 
@@ -190,7 +191,7 @@ export class StripeService {
           .eq('stripe_subscription_id', subscriptionId);
 
         if (dbError) {
-          console.error('Failed to update subscription in database:', dbError);
+          logger.error('Failed to update subscription in database:', dbError);
         }
 
         // 사용자 tier를 free로 변경
@@ -202,7 +203,7 @@ export class StripeService {
 
       return { success: true, subscription };
     } catch (error) {
-      console.error('Failed to cancel subscription:', error);
+      logger.error('Failed to cancel subscription:', error);
       return { 
         success: false, 
         error: error instanceof Error ? error.message : 'Subscription cancellation failed' 
@@ -235,7 +236,7 @@ export class StripeService {
 
       return { success: true, subscription };
     } catch (error) {
-      console.error('Failed to resume subscription:', error);
+      logger.error('Failed to resume subscription:', error);
       return { 
         success: false, 
         error: error instanceof Error ? error.message : 'Subscription resume failed' 
@@ -263,7 +264,7 @@ export class StripeService {
 
       return { success: true, subscription };
     } catch (error) {
-      console.error('Failed to get user subscription:', error);
+      logger.error('Failed to get user subscription:', error);
       return { 
         success: false, 
         error: error instanceof Error ? error.message : 'Failed to get subscription' 
@@ -303,12 +304,12 @@ export class StripeService {
           break;
 
         default:
-          console.log(`Unhandled event type ${event.type}`);
+          logger.info(`Unhandled event type ${event.type}`);
       }
 
       return { success: true };
     } catch (error) {
-      console.error('Webhook error:', error);
+      logger.error('Webhook error:', error);
       return { 
         success: false, 
         error: error instanceof Error ? error.message : 'Webhook processing failed' 
@@ -366,7 +367,7 @@ export class StripeService {
       }
 
     } catch (error) {
-      console.error('Failed to handle subscription change:', error);
+      logger.error('Failed to handle subscription change:', error);
     }
   }
 
@@ -414,18 +415,18 @@ export class StripeService {
       }
 
     } catch (error) {
-      console.error('Failed to handle subscription deletion:', error);
+      logger.error('Failed to handle subscription deletion:', error);
     }
   }
 
   private static async handlePaymentSucceeded(invoice: Stripe.Invoice) {
     // 결제 성공 처리 (이메일 알림 등)
-    console.log('Payment succeeded for invoice:', invoice.id);
+    logger.info('Payment succeeded for invoice:', invoice.id);
   }
 
   private static async handlePaymentFailed(invoice: Stripe.Invoice) {
     // 결제 실패 처리 (이메일 알림 등)
-    console.log('Payment failed for invoice:', invoice.id);
+    logger.info('Payment failed for invoice:', invoice.id);
     
     if (invoice.customer && typeof invoice.customer === 'string') {
       try {
@@ -434,7 +435,7 @@ export class StripeService {
           await EmailService.sendPaymentFailedEmail(customer.email);
         }
       } catch (error) {
-        console.error('Failed to send payment failed email:', error);
+        logger.error('Failed to send payment failed email:', error);
       }
     }
   }
@@ -469,7 +470,7 @@ export class StripeService {
 
       return { success: true, url: session.url };
     } catch (error) {
-      console.error('Failed to create portal session:', error);
+      logger.error('Failed to create portal session:', error);
       return { 
         success: false, 
         error: error instanceof Error ? error.message : 'Portal session creation failed' 
@@ -533,7 +534,7 @@ export class StripeService {
           });
 
         if (dbError) {
-          console.error('Failed to save payment record:', dbError);
+          logger.error('Failed to save payment record:', dbError);
         }
       }
 
@@ -544,7 +545,7 @@ export class StripeService {
       };
 
     } catch (error) {
-      console.error('Failed to create payment intent:', error);
+      logger.error('Failed to create payment intent:', error);
       return { 
         success: false, 
         error: error instanceof Error ? error.message : 'Payment intent creation failed' 
@@ -572,7 +573,7 @@ export class StripeService {
           .eq('payment_intent_id', paymentIntentId);
 
         if (updateError) {
-          console.error('Failed to update payment status:', updateError);
+          logger.error('Failed to update payment status:', updateError);
         }
 
         return {
@@ -589,7 +590,7 @@ export class StripeService {
       };
 
     } catch (error) {
-      console.error('Failed to confirm payment:', error);
+      logger.error('Failed to confirm payment:', error);
       return { 
         success: false, 
         error: error instanceof Error ? error.message : 'Payment confirmation failed' 

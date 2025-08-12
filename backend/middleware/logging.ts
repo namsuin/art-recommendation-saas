@@ -1,6 +1,7 @@
 // 요청 로깅 및 모니터링 미들웨어
 
 import { MiddlewareFunction, RouteParams } from '../routes/advanced-router';
+import { logger } from '../../shared/logger';
 
 export enum LogLevel {
   DEBUG = 0,
@@ -43,16 +44,16 @@ export class Logger {
     
     switch (entry.level) {
       case LogLevel.DEBUG:
-        console.debug(message, entry.metadata);
+        logger.debug(message, entry.metadata);
         break;
       case LogLevel.INFO:
-        console.info(message, entry.duration ? `${entry.duration}ms` : '');
+        logger.info(message, entry.duration ? `${entry.duration}ms` : '');
         break;
       case LogLevel.WARN:
-        console.warn(message, entry.error || entry.metadata);
+        logger.warn(message, entry.error || entry.metadata);
         break;
       case LogLevel.ERROR:
-        console.error(message, entry.error || entry.metadata);
+        logger.error(message, entry.error || entry.metadata);
         break;
     }
     
@@ -365,7 +366,7 @@ export class AlertSystem {
     };
     
     this.alerts.push(alert);
-    console.warn(`[ALERT:${level.toUpperCase()}] ${message}`, metadata);
+    logger.warn(`[ALERT:${level.toUpperCase()}] ${message}`, metadata);
     
     // 실제 환경에서는 여기서 이메일, 슬랙 등으로 알림 발송
   }
@@ -384,5 +385,5 @@ export function startMonitoring(): void {
     AlertSystem.checkThresholds();
   }, 300000);
   
-  console.log('🔍 Monitoring system started');
+  logger.info('🔍 Monitoring system started');
 }

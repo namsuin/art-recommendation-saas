@@ -138,7 +138,7 @@ export class SocialFeaturesV2Service {
         created_at: data.created_at
       };
     } catch (error) {
-      console.error('Failed to get real user info:', error);
+      logger.error('Failed to get real user info:', error);
       return null;
     }
   }
@@ -353,7 +353,7 @@ export class SocialFeaturesV2Service {
       .single();
 
     if (error) {
-      console.error('Failed to get user profile:', error);
+      logger.error('Failed to get user profile:', error);
       return null;
     }
 
@@ -376,7 +376,7 @@ export class SocialFeaturesV2Service {
       .single();
 
     if (error) {
-      console.error('Failed to update user profile:', error);
+      logger.error('Failed to update user profile:', error);
       return null;
     }
 
@@ -397,7 +397,7 @@ export class SocialFeaturesV2Service {
       .limit(limit);
 
     if (error) {
-      console.error('Failed to search users:', error);
+      logger.error('Failed to search users:', error);
       return [];
     }
 
@@ -423,7 +423,7 @@ export class SocialFeaturesV2Service {
       }]);
 
     if (error) {
-      console.error('Failed to follow user:', error);
+      logger.error('Failed to follow user:', error);
       return false;
     }
 
@@ -450,7 +450,7 @@ export class SocialFeaturesV2Service {
       .eq('following_id', followingId);
 
     if (error) {
-      console.error('Failed to unfollow user:', error);
+      logger.error('Failed to unfollow user:', error);
       return false;
     }
 
@@ -488,7 +488,7 @@ export class SocialFeaturesV2Service {
       .limit(limit);
 
     if (error) {
-      console.error('Failed to get followers:', error);
+      logger.error('Failed to get followers:', error);
       return [];
     }
 
@@ -511,7 +511,7 @@ export class SocialFeaturesV2Service {
       .limit(limit);
 
     if (error) {
-      console.error('Failed to get following:', error);
+      logger.error('Failed to get following:', error);
       return [];
     }
 
@@ -545,7 +545,7 @@ export class SocialFeaturesV2Service {
       }]);
 
     if (error) {
-      console.error('Failed to like artwork:', error);
+      logger.error('Failed to like artwork:', error);
       return false;
     }
 
@@ -565,7 +565,7 @@ export class SocialFeaturesV2Service {
       .eq('source_platform', sourcePlatform);
 
     if (error) {
-      console.error('Failed to unlike artwork:', error);
+      logger.error('Failed to unlike artwork:', error);
       return false;
     }
 
@@ -601,7 +601,7 @@ export class SocialFeaturesV2Service {
       .limit(limit);
 
     if (error) {
-      console.error('Failed to get liked artworks:', error);
+      logger.error('Failed to get liked artworks:', error);
       return [];
     }
 
@@ -631,7 +631,7 @@ export class SocialFeaturesV2Service {
       .single();
 
     if (error) {
-      console.error('Failed to create bookmark collection:', error);
+      logger.error('Failed to create bookmark collection:', error);
       return null;
     }
 
@@ -653,7 +653,7 @@ export class SocialFeaturesV2Service {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Failed to get bookmark collections:', error);
+      logger.error('Failed to get bookmark collections:', error);
       return [];
     }
 
@@ -687,7 +687,7 @@ export class SocialFeaturesV2Service {
       }]);
 
     if (error) {
-      console.error('Failed to add bookmark item:', error);
+      logger.error('Failed to add bookmark item:', error);
       return false;
     }
 
@@ -706,7 +706,7 @@ export class SocialFeaturesV2Service {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Failed to get bookmark items:', error);
+      logger.error('Failed to get bookmark items:', error);
       return [];
     }
 
@@ -759,7 +759,7 @@ export class SocialFeaturesV2Service {
       .single();
 
     if (error) {
-      console.error('Failed to create post:', error);
+      logger.error('Failed to create post:', error);
       // 데이터베이스 오류 시 Mock 데이터에 추가
       const newPost: CommunityPost = {
         id: Date.now().toString(),
@@ -818,7 +818,7 @@ export class SocialFeaturesV2Service {
     const { data, error } = await query;
 
     if (error) {
-      console.error('Failed to get feed posts:', error);
+      logger.error('Failed to get feed posts:', error);
       // 데이터베이스 오류 시 Mock 데이터 반환 - 좋아요 상태 포함
       const posts = SocialFeaturesV2Service.mockPosts.slice(0, limit);
       if (userId) {
@@ -867,7 +867,7 @@ export class SocialFeaturesV2Service {
       }]);
 
     if (error) {
-      console.error('Failed to like post:', error);
+      logger.error('Failed to like post:', error);
       // 데이터베이스 오류 시 Mock 데이터에 추가
       if (!SocialFeaturesV2Service.mockPostLikes[postId]) {
         SocialFeaturesV2Service.mockPostLikes[postId] = [];
@@ -908,7 +908,7 @@ export class SocialFeaturesV2Service {
       .eq('post_id', postId);
 
     if (error) {
-      console.error('Failed to unlike post:', error);
+      logger.error('Failed to unlike post:', error);
       return false;
     }
 
@@ -951,7 +951,7 @@ export class SocialFeaturesV2Service {
       .single();
 
     if (error) {
-      console.error('Failed to get post:', error);
+      logger.error('Failed to get post:', error);
       return null;
     }
 
@@ -1014,7 +1014,7 @@ export class SocialFeaturesV2Service {
       .single();
 
     if (error) {
-      console.error('Failed to create comment:', error);
+      logger.error('Failed to create comment:', error);
       // 데이터베이스 오류 시 Mock 데이터에 추가
       const newComment: PostComment = {
         id: Date.now().toString(),
@@ -1081,7 +1081,7 @@ export class SocialFeaturesV2Service {
       .order('created_at', { ascending: true });
 
     if (error) {
-      console.error('Failed to get post comments:', error);
+      logger.error('Failed to get post comments:', error);
       // 데이터베이스 오류 시 Mock 데이터 반환
       return SocialFeaturesV2Service.mockComments
         .filter(comment => comment.post_id === postId && !comment.parent_comment_id)
@@ -1113,7 +1113,7 @@ export class SocialFeaturesV2Service {
       .order('created_at', { ascending: true });
 
     if (error) {
-      console.error('Failed to get comment replies:', error);
+      logger.error('Failed to get comment replies:', error);
       return [];
     }
 
@@ -1143,7 +1143,7 @@ export class SocialFeaturesV2Service {
       }]);
 
     if (error) {
-      console.error('Failed to create notification:', error);
+      logger.error('Failed to create notification:', error);
       return false;
     }
 
@@ -1163,7 +1163,7 @@ export class SocialFeaturesV2Service {
       .limit(limit);
 
     if (error) {
-      console.error('Failed to get notifications:', error);
+      logger.error('Failed to get notifications:', error);
       return [];
     }
 
@@ -1182,7 +1182,7 @@ export class SocialFeaturesV2Service {
       .eq('user_id', userId);
 
     if (error) {
-      console.error('Failed to mark notification as read:', error);
+      logger.error('Failed to mark notification as read:', error);
       return false;
     }
 
@@ -1201,7 +1201,7 @@ export class SocialFeaturesV2Service {
       .eq('is_read', false);
 
     if (error) {
-      console.error('Failed to mark all notifications as read:', error);
+      logger.error('Failed to mark all notifications as read:', error);
       return false;
     }
 
@@ -1220,7 +1220,7 @@ export class SocialFeaturesV2Service {
       .eq('is_read', false);
 
     if (error) {
-      console.error('Failed to get unread notifications count:', error);
+      logger.error('Failed to get unread notifications count:', error);
       return 0;
     }
 

@@ -27,7 +27,7 @@ export class TumblbugDataCleaner {
         .or('source.eq.텀블벅,source_url.like.%tumblbug.com%,title.like.%텀블벅%,artist.like.%텀블벅%');
 
       if (error) {
-        console.error('텀블벅 데이터 검색 오류:', error);
+        logger.error('텀블벅 데이터 검색 오류:', error);
         return {
           found: false,
           count: 0,
@@ -43,7 +43,7 @@ export class TumblbugDataCleaner {
       };
 
     } catch (error) {
-      console.error('텀블벅 데이터 검색 실패:', error);
+      logger.error('텀블벅 데이터 검색 실패:', error);
       return {
         found: false,
         count: 0,
@@ -76,7 +76,7 @@ export class TumblbugDataCleaner {
         .select('id');
 
       if (error) {
-        console.error('텀블벅 데이터 비활성화 오류:', error);
+        logger.error('텀블벅 데이터 비활성화 오류:', error);
         return {
           success: false,
           deactivatedCount: 0,
@@ -85,7 +85,7 @@ export class TumblbugDataCleaner {
       }
 
       const deactivatedCount = data?.length || 0;
-      console.log(`📝 ${deactivatedCount}개의 텀블벅 관련 데이터를 비활성화했습니다.`);
+      logger.info(`📝 ${deactivatedCount}개의 텀블벅 관련 데이터를 비활성화했습니다.`);
 
       return {
         success: true,
@@ -93,7 +93,7 @@ export class TumblbugDataCleaner {
       };
 
     } catch (error) {
-      console.error('텀블벅 데이터 비활성화 실패:', error);
+      logger.error('텀블벅 데이터 비활성화 실패:', error);
       return {
         success: false,
         deactivatedCount: 0,
@@ -121,7 +121,7 @@ export class TumblbugDataCleaner {
         .select('id, recommendations');
 
       if (fetchError) {
-        console.error('분석 결과 조회 오류:', fetchError);
+        logger.error('분석 결과 조회 오류:', fetchError);
         return {
           success: false,
           cleanedCount: 0,
@@ -180,7 +180,7 @@ export class TumblbugDataCleaner {
         }
       }
 
-      console.log(`🧹 ${cleanedCount}개의 분석 결과에서 텀블벅 데이터를 정리했습니다.`);
+      logger.info(`🧹 ${cleanedCount}개의 분석 결과에서 텀블벅 데이터를 정리했습니다.`);
 
       return {
         success: true,
@@ -188,7 +188,7 @@ export class TumblbugDataCleaner {
       };
 
     } catch (error) {
-      console.error('분석 결과 정리 실패:', error);
+      logger.error('분석 결과 정리 실패:', error);
       return {
         success: false,
         cleanedCount: 0,
@@ -209,7 +209,7 @@ export class TumblbugDataCleaner {
     error?: string;
   }> {
     try {
-      console.log('🧹 텀블벅 데이터 정리를 시작합니다...');
+      logger.info('🧹 텀블벅 데이터 정리를 시작합니다...');
 
       // 1. 아트워크 데이터 비활성화
       const artworkResult = await this.deactivateTumblbugData();
@@ -228,7 +228,7 @@ export class TumblbugDataCleaner {
         };
       }
 
-      console.log('✅ 텀블벅 데이터 정리가 완료되었습니다.');
+      logger.info('✅ 텀블벅 데이터 정리가 완료되었습니다.');
       
       return {
         success: true,
@@ -239,7 +239,7 @@ export class TumblbugDataCleaner {
       };
 
     } catch (error) {
-      console.error('텀블벅 데이터 정리 실패:', error);
+      logger.error('텀블벅 데이터 정리 실패:', error);
       return {
         success: false,
         summary: {

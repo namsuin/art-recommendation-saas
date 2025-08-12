@@ -13,6 +13,7 @@ import { PlayformService, type PlayformAnalysisResult } from './playform-integra
 import { RunwayClipGptPipeline, type RunwayClipGptResult } from './runway-clip-gpt-pipeline';
 import { EnhancedImageAnalysisService, type EnhancedImageAnalysis } from './enhanced-image-analysis';
 import type { ServiceConfig, ImageAnalysisResult } from '../types/common';
+import { logger } from '../../shared/logger';
 
 export interface MultiAIAnalysisResult {
   // 통합 분석 결과
@@ -168,7 +169,7 @@ export class MultiAIIntegrationService {
       ...config
     };
 
-    console.log('🚀 Multi-AI Integration Service initialized');
+    logger.info('🚀 Multi-AI Integration Service initialized');
   }
 
   /**
@@ -176,7 +177,7 @@ export class MultiAIIntegrationService {
    */
   async analyzeArtwork(imageBuffer: Buffer): Promise<MultiAIAnalysisResult> {
     const startTime = Date.now();
-    console.log('🎨 Starting comprehensive multi-AI artwork analysis...');
+    logger.info('🎨 Starting comprehensive multi-AI artwork analysis...');
 
     try {
       // 모든 AI 서비스를 병렬로 실행
@@ -189,7 +190,7 @@ export class MultiAIIntegrationService {
         this.runServiceWithMetrics('enhanced_analysis', () => this.enhancedAnalysis.analyzeImage(imageBuffer))
       ];
 
-      console.log('⏳ Running all AI services in parallel...');
+      logger.info('⏳ Running all AI services in parallel...');
       const results = await Promise.allSettled(analysisPromises);
 
       // 결과 추출 및 처리
@@ -212,7 +213,7 @@ export class MultiAIIntegrationService {
         enhanced_analysis: this.extractServiceResult(enhancedResult)
       };
 
-      console.log('🔄 Integrating and synthesizing results...');
+      logger.info('🔄 Integrating and synthesizing results...');
 
       // 결과 통합 및 분석
       const unifiedAnalysis = await this.synthesizeResults({
@@ -246,14 +247,14 @@ export class MultiAIIntegrationService {
         }
       };
 
-      console.log(`✅ Multi-AI analysis completed in ${totalProcessingTime}ms`);
-      console.log(`📊 Services used: ${result.metadata.services_used.length}/6`);
-      console.log(`🎯 Overall confidence: ${(accuracyMetrics.overall_confidence * 100).toFixed(1)}%`);
+      logger.info(`✅ Multi-AI analysis completed in ${totalProcessingTime}ms`);
+      logger.info(`📊 Services used: ${result.metadata.services_used.length}/6`);
+      logger.info(`🎯 Overall confidence: ${(accuracyMetrics.overall_confidence * 100).toFixed(1)}%`);
 
       return result;
 
     } catch (error) {
-      console.error('❌ Multi-AI analysis failed:', error);
+      logger.error('❌ Multi-AI analysis failed:', error);
       return this.generateFallbackResult(Date.now() - startTime);
     }
   }
@@ -268,11 +269,11 @@ export class MultiAIIntegrationService {
     const startTime = Date.now();
     
     try {
-      console.log(`🔍 Running ${serviceName} analysis...`);
+      logger.info(`🔍 Running ${serviceName} analysis...`);
       const result = await serviceCall();
       const processingTime = Date.now() - startTime;
       
-      console.log(`✅ ${serviceName} completed in ${processingTime}ms`);
+      logger.info(`✅ ${serviceName} completed in ${processingTime}ms`);
       
       return {
         result,
@@ -285,7 +286,7 @@ export class MultiAIIntegrationService {
       };
     } catch (error) {
       const processingTime = Date.now() - startTime;
-      console.error(`❌ ${serviceName} failed:`, error);
+      logger.error(`❌ ${serviceName} failed:`, error);
       
       return {
         result: null as T,

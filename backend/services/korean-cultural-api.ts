@@ -113,7 +113,7 @@ export class KoreanCulturalAPI {
       };
 
     } catch (error) {
-      console.error('Korean Cultural API search error:', error);
+      logger.error('Korean Cultural API search error:', error);
       return {
         success: false,
         artworks: [],
@@ -161,7 +161,7 @@ export class KoreanCulturalAPI {
       };
 
     } catch (error) {
-      console.error('Korean Cultural API region search error:', error);
+      logger.error('Korean Cultural API region search error:', error);
       return {
         success: false,
         artworks: [],

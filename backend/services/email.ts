@@ -18,10 +18,10 @@ export class EmailService {
     textContent?: string
   ): Promise<boolean> {
     if (!this.isConfigured()) {
-      console.log('📧 Email service not configured, logging email instead:');
-      console.log(`To: ${to}`);
-      console.log(`Subject: ${subject}`);
-      console.log(`Content: ${textContent || htmlContent}`);
+      logger.info('📧 Email service not configured, logging email instead:');
+      logger.info(`To: ${to}`);
+      logger.info(`Subject: ${subject}`);
+      logger.info(`Content: ${textContent || htmlContent}`);
       return true;
     }
 
@@ -30,10 +30,10 @@ export class EmailService {
       // 예: SendGrid, AWS SES, Nodemailer 등
       
       // 현재는 로깅만 수행
-      console.log(`📧 Sending email to ${to}: ${subject}`);
+      logger.info(`📧 Sending email to ${to}: ${subject}`);
       return true;
     } catch (error) {
-      console.error('Failed to send email:', error);
+      logger.error('Failed to send email:', error);
       return false;
     }
   }

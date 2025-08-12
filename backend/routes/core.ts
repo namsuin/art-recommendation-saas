@@ -3,6 +3,7 @@ import { AIAnalysisService } from "../services/ai-analysis";
 import { AuthAPI } from "../api/auth";
 import { AnalyticsService } from "../services/analytics";
 import { serveIndexHTML, serveStaticFile } from "./static";
+import { logger } from '../../shared/logger';
 
 export interface RouteHandler {
   (req: Request): Promise<Response>;
@@ -13,9 +14,9 @@ let aiService: AIAnalysisService | null = null;
 
 function getAIService(): AIAnalysisService {
   if (!aiService) {
-    console.log('🔧 Creating new AI Analysis Service...');
+    logger.info('🔧 Creating new AI Analysis Service...');
     aiService = new AIAnalysisService();
-    console.log('🎯 AI Analysis Service created successfully');
+    logger.info('🎯 AI Analysis Service created successfully');
   }
   return aiService;
 }
@@ -42,7 +43,7 @@ coreRoutes.set("GET:/api/health", async (req: Request) => {
     try {
       aiStatus = await getAIService().getServiceStatus();
     } catch (aiError) {
-      console.warn("AI service status check failed:", aiError);
+      logger.warn("AI service status check failed:", aiError);
       aiStatus = { error: "AI service initialization failed" };
     }
     
@@ -57,7 +58,7 @@ coreRoutes.set("GET:/api/health", async (req: Request) => {
       headers: { "Content-Type": "application/json" }
     });
   } catch (error) {
-    console.error("Health check failed:", error);
+    logger.error("Health check failed:", error);
     return new Response(JSON.stringify({
       status: "error",
       error: error instanceof Error ? error.message : "Unknown error",
@@ -140,7 +141,7 @@ coreRoutes.set("POST:/api/analyze", async (req: Request) => {
       }
     }
 
-    console.log(`🔍 Analyzing image: ${imageFile.name} (${imageFile.size} bytes)`);
+    logger.info(`🔍 Analyzing image: ${imageFile.name} (${imageFile.size} bytes)`);
 
     // AI 분석 수행
     const imageBuffer = Buffer.from(await imageFile.arrayBuffer());
@@ -166,7 +167,7 @@ coreRoutes.set("POST:/api/analyze", async (req: Request) => {
           .eq('user_id', userId);
 
         if (updateError) {
-          console.error('Failed to update upload record:', updateError);
+          logger.error('Failed to update upload record:', updateError);
         }
 
         // 추천 결과 저장
@@ -184,7 +185,7 @@ coreRoutes.set("POST:/api/analyze", async (req: Request) => {
             .insert(recommendations);
 
           if (recError) {
-            console.error('Failed to save recommendations:', recError);
+            logger.error('Failed to save recommendations:', recError);
           }
         }
 
@@ -213,7 +214,7 @@ coreRoutes.set("POST:/api/analyze", async (req: Request) => {
     });
 
   } catch (error) {
-    console.error("❌ Analysis error:", error);
+    logger.error("❌ Analysis error:", error);
     return new Response(JSON.stringify({ 
       error: "Analysis failed",
       message: error instanceof Error ? error.message : "Unknown error",
@@ -236,7 +237,7 @@ coreRoutes.set("GET:/api/artworks", async (req: Request) => {
       .limit(50);
 
     if (error) {
-      console.error('Database error:', error);
+      logger.error('Database error:', error);
       // 데이터베이스 오류 시 목 데이터 반환
       const mockArtworks = [
         {
@@ -257,7 +258,7 @@ coreRoutes.set("GET:/api/artworks", async (req: Request) => {
       headers: { "Content-Type": "application/json" }
     });
   } catch (error) {
-    console.error('Artworks API error:', error);
+    logger.error('Artworks API error:', error);
     return new Response(JSON.stringify({ 
       error: "Failed to fetch artworks",
       artworks: [] 

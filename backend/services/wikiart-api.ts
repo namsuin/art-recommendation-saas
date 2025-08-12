@@ -29,7 +29,7 @@ export class WikiArtAPI {
     private cacheTimeout = 30 * 60 * 1000; // 30분
 
     constructor() {
-        console.log('🎨 WikiArt API initialized (disabled due to API restrictions)');
+        logger.info('🎨 WikiArt API initialized (disabled due to API restrictions)');
     }
 
     /**
@@ -38,7 +38,7 @@ export class WikiArtAPI {
     async searchArtworks(keywords: string[], limit: number = 20): Promise<WikiArtArtwork[]> {
         // WikiArt API is currently returning 403 Forbidden errors
         // Disabling this service until API access is restored
-        console.log(`🔍 WikiArt: Service disabled due to API restrictions`);
+        logger.info(`🔍 WikiArt: Service disabled due to API restrictions`);
         return [];
     }
 
@@ -137,7 +137,7 @@ export class WikiArtAPI {
             const data = await response.json();
             return this.formatWikiArtResponse(data?.data || []);
         } catch (error) {
-            console.error(`❌ WikiArt style search error (${style}):`, error);
+            logger.error(`❌ WikiArt style search error (${style}):`, error);
             // Fallback to mock data if API fails
             return this.generateMockArtworks(style, limit);
         }
@@ -158,7 +158,7 @@ export class WikiArtAPI {
             const data = await response.json();
             return this.formatWikiArtResponse(data?.data || []);
         } catch (error) {
-            console.error(`❌ WikiArt genre search error (${genre}):`, error);
+            logger.error(`❌ WikiArt genre search error (${genre}):`, error);
             // Fallback to mock data if API fails
             return this.generateMockArtworks(genre, limit);
         }
@@ -179,7 +179,7 @@ export class WikiArtAPI {
             const data = await response.json();
             return this.formatWikiArtResponse(data?.data || []);
         } catch (error) {
-            console.error('❌ WikiArt popular artworks error:', error);
+            logger.error('❌ WikiArt popular artworks error:', error);
             // Fallback to mock data if API fails
             return this.generateMockArtworks('popular', limit);
         }
@@ -200,7 +200,7 @@ export class WikiArtAPI {
             const data = await response.json();
             return this.formatWikiArtResponse(data?.data || []);
         } catch (error) {
-            console.error('❌ WikiArt most viewed error:', error);
+            logger.error('❌ WikiArt most viewed error:', error);
             // Fallback to mock data if API fails
             return this.generateMockArtworks('viewed', limit);
         }

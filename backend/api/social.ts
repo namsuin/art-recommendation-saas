@@ -20,7 +20,7 @@ export class SocialAPI {
         profile
       };
     } catch (error) {
-      console.error('Get user profile error:', error);
+      logger.error('Get user profile error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to get user profile'
@@ -36,7 +36,7 @@ export class SocialAPI {
         profile
       };
     } catch (error) {
-      console.error('Update user profile error:', error);
+      logger.error('Update user profile error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to update user profile'
@@ -52,7 +52,7 @@ export class SocialAPI {
         users
       };
     } catch (error) {
-      console.error('Search users error:', error);
+      logger.error('Search users error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to search users'
@@ -70,7 +70,7 @@ export class SocialAPI {
         message: success ? 'User followed successfully' : 'Failed to follow user'
       };
     } catch (error) {
-      console.error('Follow user error:', error);
+      logger.error('Follow user error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to follow user'
@@ -86,7 +86,7 @@ export class SocialAPI {
         message: success ? 'User unfollowed successfully' : 'Failed to unfollow user'
       };
     } catch (error) {
-      console.error('Unfollow user error:', error);
+      logger.error('Unfollow user error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to unfollow user'
@@ -102,7 +102,7 @@ export class SocialAPI {
         isFollowing
       };
     } catch (error) {
-      console.error('Get follow status error:', error);
+      logger.error('Get follow status error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to get follow status'
@@ -118,7 +118,7 @@ export class SocialAPI {
         followers
       };
     } catch (error) {
-      console.error('Get followers error:', error);
+      logger.error('Get followers error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to get followers'
@@ -134,7 +134,7 @@ export class SocialAPI {
         following
       };
     } catch (error) {
-      console.error('Get following error:', error);
+      logger.error('Get following error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to get following'
@@ -152,7 +152,7 @@ export class SocialAPI {
         message: success ? 'Artwork liked successfully' : 'Failed to like artwork'
       };
     } catch (error) {
-      console.error('Like artwork error:', error);
+      logger.error('Like artwork error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to like artwork'
@@ -168,7 +168,7 @@ export class SocialAPI {
         message: success ? 'Artwork unliked successfully' : 'Failed to unlike artwork'
       };
     } catch (error) {
-      console.error('Unlike artwork error:', error);
+      logger.error('Unlike artwork error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to unlike artwork'
@@ -184,7 +184,7 @@ export class SocialAPI {
         isLiked
       };
     } catch (error) {
-      console.error('Get artwork like status error:', error);
+      logger.error('Get artwork like status error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to get artwork like status'
@@ -200,7 +200,7 @@ export class SocialAPI {
         likedArtworks
       };
     } catch (error) {
-      console.error('Get user liked artworks error:', error);
+      logger.error('Get user liked artworks error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to get user liked artworks'
@@ -218,7 +218,7 @@ export class SocialAPI {
         collection: newCollection
       };
     } catch (error) {
-      console.error('Create bookmark collection error:', error);
+      logger.error('Create bookmark collection error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to create bookmark collection'
@@ -234,7 +234,7 @@ export class SocialAPI {
         collections
       };
     } catch (error) {
-      console.error('Get user bookmark collections error:', error);
+      logger.error('Get user bookmark collections error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to get bookmark collections'
@@ -250,7 +250,7 @@ export class SocialAPI {
         message: success ? 'Artwork added to collection successfully' : 'Failed to add artwork to collection'
       };
     } catch (error) {
-      console.error('Add to bookmark collection error:', error);
+      logger.error('Add to bookmark collection error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to add to bookmark collection'
@@ -266,7 +266,7 @@ export class SocialAPI {
         items
       };
     } catch (error) {
-      console.error('Get bookmark collection items error:', error);
+      logger.error('Get bookmark collection items error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to get bookmark collection items'
@@ -284,7 +284,7 @@ export class SocialAPI {
         post: newPost
       };
     } catch (error) {
-      console.error('Create post error:', error);
+      logger.error('Create post error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to create post'
@@ -300,7 +300,7 @@ export class SocialAPI {
         posts
       };
     } catch (error) {
-      console.error('Get feed posts error:', error);
+      logger.error('Get feed posts error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to get feed posts'
@@ -316,7 +316,7 @@ export class SocialAPI {
         message: success ? 'Post liked successfully' : 'Failed to like post'
       };
     } catch (error) {
-      console.error('Like post error:', error);
+      logger.error('Like post error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to like post'
@@ -332,7 +332,7 @@ export class SocialAPI {
         message: success ? 'Post unliked successfully' : 'Failed to unlike post'
       };
     } catch (error) {
-      console.error('Unlike post error:', error);
+      logger.error('Unlike post error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to unlike post'
@@ -348,7 +348,7 @@ export class SocialAPI {
         isLiked
       };
     } catch (error) {
-      console.error('Get post like status error:', error);
+      logger.error('Get post like status error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to get post like status'
@@ -366,7 +366,7 @@ export class SocialAPI {
         comment: newComment
       };
     } catch (error) {
-      console.error('Create comment error:', error);
+      logger.error('Create comment error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to create comment'
@@ -382,7 +382,7 @@ export class SocialAPI {
         comments
       };
     } catch (error) {
-      console.error('Get post comments error:', error);
+      logger.error('Get post comments error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to get post comments'
@@ -403,7 +403,7 @@ export class SocialAPI {
         unreadCount
       };
     } catch (error) {
-      console.error('Get user notifications error:', error);
+      logger.error('Get user notifications error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to get notifications'
@@ -419,7 +419,7 @@ export class SocialAPI {
         message: success ? 'Notification marked as read' : 'Failed to mark notification as read'
       };
     } catch (error) {
-      console.error('Mark notification as read error:', error);
+      logger.error('Mark notification as read error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to mark notification as read'
@@ -435,7 +435,7 @@ export class SocialAPI {
         message: success ? 'All notifications marked as read' : 'Failed to mark all notifications as read'
       };
     } catch (error) {
-      console.error('Mark all notifications as read error:', error);
+      logger.error('Mark all notifications as read error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to mark all notifications as read'
@@ -451,7 +451,7 @@ export class SocialAPI {
         count
       };
     } catch (error) {
-      console.error('Get unread notifications count error:', error);
+      logger.error('Get unread notifications count error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to get unread notifications count'

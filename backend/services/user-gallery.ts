@@ -347,7 +347,7 @@ export class UserGalleryService {
     try {
       await supabase.rpc('increment_artwork_views', { artwork_id: artworkId });
     } catch (error) {
-      console.error('Failed to increment artwork views:', error);
+      logger.error('Failed to increment artwork views:', error);
     }
   }
 
@@ -421,7 +421,7 @@ export class UserGalleryService {
         .eq('user_id', userId);
 
     } catch (error) {
-      console.error('Failed to update gallery stats:', error);
+      logger.error('Failed to update gallery stats:', error);
     }
   }
 

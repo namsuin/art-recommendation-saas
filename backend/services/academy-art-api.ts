@@ -38,7 +38,7 @@ export class AcademyArtAPI {
     error?: string;
   }> {
     try {
-      console.log(`🎨 Academy of Art University 검색: ${keywords.join(', ')}`);
+      logger.info(`🎨 Academy of Art University 검색: ${keywords.join(', ')}`);
       
       // 실제 API 연동이 불가능하므로 교육적 목적의 Mock 데이터 생성
       const mockArtworks = this.generateAcademyArtMockData(keywords, limit);
@@ -50,7 +50,7 @@ export class AcademyArtAPI {
       };
 
     } catch (error) {
-      console.error('Academy of Art University search error:', error);
+      logger.error('Academy of Art University search error:', error);
       return {
         success: false,
         artworks: [],
@@ -89,7 +89,7 @@ export class AcademyArtAPI {
       };
 
     } catch (error) {
-      console.error('Academy of Art University school search error:', error);
+      logger.error('Academy of Art University school search error:', error);
       return {
         success: false,
         artworks: [],
@@ -125,7 +125,7 @@ export class AcademyArtAPI {
       };
 
     } catch (error) {
-      console.error('Academy of Art University level search error:', error);
+      logger.error('Academy of Art University level search error:', error);
       return {
         success: false,
         artworks: [],
@@ -157,7 +157,7 @@ export class AcademyArtAPI {
       };
 
     } catch (error) {
-      console.error('Academy of Art University Spring Show search error:', error);
+      logger.error('Academy of Art University Spring Show search error:', error);
       return {
         success: false,
         artworks: [],

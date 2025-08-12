@@ -4,9 +4,9 @@
 import indexHTML from '../frontend/index.html';
 
 // 환경 확인
-console.log('\n🔧 Bun Bundling Server Starting...');
-console.log('📁 Working Directory:', process.cwd());
-console.log('🎨 Frontend: http://localhost:3000');
+logger.info('\n🔧 Bun Bundling Server Starting...');
+logger.info('📁 Working Directory:', process.cwd());
+logger.info('🎨 Frontend: http://localhost:3000');
 
 const server = Bun.serve({
   port: 3000,
@@ -33,6 +33,6 @@ const server = Bun.serve({
   },
 });
 
-console.log(`✅ Server running at http://localhost:${server.port}`);
-console.log('📦 Bun will automatically bundle imported modules');
-console.log('🔄 Hot Module Replacement enabled\n');
+logger.info(`✅ Server running at http://localhost:${server.port}`);
+logger.info('📦 Bun will automatically bundle imported modules');
+logger.info('🔄 Hot Module Replacement enabled\n');

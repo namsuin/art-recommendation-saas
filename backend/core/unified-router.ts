@@ -4,6 +4,7 @@ import { RouteHandler, RouteParams, MiddlewareFunction, RouteDefinition, Request
 import { generateRequestId, createErrorHandler } from '../utils/api-error';
 import { authRoutes } from '../routes/auth';
 import { coreRoutes, handleStaticFiles } from '../routes/core';
+import { logger } from '../../shared/logger';
 
 export class UnifiedRouter {
   private routes = new Map<string, RouteDefinition[]>();
@@ -19,7 +20,7 @@ export class UnifiedRouter {
     this.migrateFromLegacyRouters();
     this.optimizeRouteLookup();
     
-    console.log(`⚡ Unified Router initialized with ${this.getTotalRoutes()} optimized routes`);
+    logger.info(`⚡ Unified Router initialized with ${this.getTotalRoutes()} optimized routes`);
   }
   
   private migrateFromLegacyRouters() {
@@ -381,12 +382,12 @@ export class UnifiedRouter {
   
   // 라우터 상태 진단
   diagnose() {
-    console.log('\n🔍 Unified Router Diagnostics:');
-    console.log(`   📊 Total routes: ${this.getTotalRoutes()}`);
-    console.log(`   ⚡ Cached routes: ${this.routeCache.size}`);
-    console.log(`   🎯 Cache hit ratio: ${((this.routeCache.size / this.getTotalRoutes()) * 100).toFixed(1)}%`);
-    console.log(`   🚀 Methods supported: ${Array.from(this.routes.keys()).join(', ')}`);
-    console.log(`   💾 Memory efficient: ${this.routeCache.size < 100 ? '✅' : '⚠️'}`);
+    logger.info('\n🔍 Unified Router Diagnostics:');
+    logger.info(`   📊 Total routes: ${this.getTotalRoutes()}`);
+    logger.info(`   ⚡ Cached routes: ${this.routeCache.size}`);
+    logger.info(`   🎯 Cache hit ratio: ${((this.routeCache.size / this.getTotalRoutes()) * 100).toFixed(1)}%`);
+    logger.info(`   🚀 Methods supported: ${Array.from(this.routes.keys()).join(', ')}`);
+    logger.info(`   💾 Memory efficient: ${this.routeCache.size < 100 ? '✅' : '⚠️'}`);
   }
 }
 

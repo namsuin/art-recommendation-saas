@@ -38,9 +38,9 @@ export class EuropeanaAPI {
         // Try to use API key from environment, but don't require it
         this.apiKey = process.env.EUROPEANA_API_KEY || null;
         if (this.apiKey) {
-            console.log('🏛️ Europeana API initialized with API key');
+            logger.info('🏛️ Europeana API initialized with API key');
         } else {
-            console.log('🏛️ Europeana API initialized (no API key - using demo mode)');
+            logger.info('🏛️ Europeana API initialized (no API key - using demo mode)');
         }
     }
 
@@ -49,14 +49,14 @@ export class EuropeanaAPI {
      */
     async searchArtworks(keywords: string[], limit: number = 12): Promise<EuropeanaItem[]> {
         try {
-            console.log(`🔍 Europeana: Searching for ${keywords.slice(0, 5).join(', ')}...`);
+            logger.info(`🔍 Europeana: Searching for ${keywords.slice(0, 5).join(', ')}...`);
             
             const cacheKey = `search:${keywords.join(',')}:${limit}`;
             
             // 캐시 확인
             const cached = this.getFromCache(cacheKey);
             if (cached) {
-                console.log(`💾 Europeana: Using cached results (${cached.length} items)`);
+                logger.info(`💾 Europeana: Using cached results (${cached.length} items)`);
                 return cached;
             }
 
@@ -77,7 +77,7 @@ export class EuropeanaAPI {
                 .filter(item => item.edmPreview && item.edmPreview.length > 0) // 이미지가 있는 것만
                 .slice(0, limit);
 
-            console.log(`✅ Europeana: Found ${allResults.length} cultural items`);
+            logger.info(`✅ Europeana: Found ${allResults.length} cultural items`);
             
             // 캐시 저장
             this.setCache(cacheKey, allResults);
@@ -85,7 +85,7 @@ export class EuropeanaAPI {
             return allResults;
             
         } catch (error) {
-            console.error('❌ Europeana API error:', error);
+            logger.error('❌ Europeana API error:', error);
             // Return empty array instead of mock data - let other sources handle recommendations
             return [];
         }
@@ -112,7 +112,7 @@ export class EuropeanaAPI {
             const data: EuropeanaResponse = await response.json();
             return this.formatEuropeanaResponse(data.items || []);
         } catch (error) {
-            console.error(`❌ Europeana type search error (${type}):`, error);
+            logger.error(`❌ Europeana type search error (${type}):`, error);
             return [];
         }
     }
@@ -142,7 +142,7 @@ export class EuropeanaAPI {
             const data: EuropeanaResponse = await response.json();
             return this.formatEuropeanaResponse(data.items || []);
         } catch (error) {
-            console.error('❌ Europeana provider search error:', error);
+            logger.error('❌ Europeana provider search error:', error);
             return [];
         }
     }
@@ -172,7 +172,7 @@ export class EuropeanaAPI {
             const data: EuropeanaResponse = await response.json();
             return this.formatEuropeanaResponse(data.items || []);
         } catch (error) {
-            console.error('❌ Europeana country search error:', error);
+            logger.error('❌ Europeana country search error:', error);
             return [];
         }
     }
@@ -319,7 +319,7 @@ export class EuropeanaAPI {
             return mockItem;
             
         } catch (error) {
-            console.error('❌ Europeana item details error:', error);
+            logger.error('❌ Europeana item details error:', error);
             return null;
         }
     }

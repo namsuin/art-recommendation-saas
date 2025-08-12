@@ -43,7 +43,7 @@ export const supabaseAdmin = hasValidConfig ?
 // Test connection function
 export async function testSupabaseConnection(): Promise<boolean> {
   if (!hasValidConfig || !supabase) {
-    console.warn('⚠️ Supabase not configured');
+    logger.warn('⚠️ Supabase not configured');
     return false;
   }
 
@@ -53,14 +53,14 @@ export async function testSupabaseConnection(): Promise<boolean> {
       .select('count', { count: 'exact', head: true });
     
     if (error && error.code !== 'PGRST116') { // PGRST116 is "table not found" which is expected initially
-      console.error('Supabase connection failed:', error);
+      logger.error('Supabase connection failed:', error);
       return false;
     }
     
-    console.log('✅ Supabase connection successful');
+    logger.info('✅ Supabase connection successful');
     return true;
   } catch (error) {
-    console.error('❌ Supabase connection failed:', error);
+    logger.error('❌ Supabase connection failed:', error);
     return false;
   }
 }

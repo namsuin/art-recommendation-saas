@@ -29,7 +29,7 @@ export class SocialMediaIntegration {
     // Instagram Basic Display API는 검색 기능이 제한적
     // 실제 구현시에는 Instagram Graph API 또는 크롤링 서비스 사용 필요
     
-    console.warn('Instagram API integration requires approved Instagram Business account');
+    logger.warn('Instagram API integration requires approved Instagram Business account');
     
     // Mock response for development
     if (process.env.NODE_ENV === 'development') {
@@ -46,7 +46,7 @@ export class SocialMediaIntegration {
     const apiKey = process.env.BEHANCE_API_KEY;
     
     if (!apiKey) {
-      console.warn('Behance API key not configured');
+      logger.warn('Behance API key not configured');
       return [];
     }
 
@@ -88,7 +88,7 @@ export class SocialMediaIntegration {
       }));
 
     } catch (error) {
-      console.error('Behance search failed:', error);
+      logger.error('Behance search failed:', error);
       return [];
     }
   }
@@ -100,7 +100,7 @@ export class SocialMediaIntegration {
     // Pinterest API는 승인된 앱만 사용 가능
     // 실제 구현시 Pinterest API v5 사용
     
-    console.warn('Pinterest API requires approved application');
+    logger.warn('Pinterest API requires approved application');
     return [];
   }
 
@@ -138,7 +138,7 @@ export class SocialMediaIntegration {
         results.push(...platformResults);
         sources[platform] = platformResults.length;
       } catch (error) {
-        console.error(`Failed to search ${platform}:`, error);
+        logger.error(`Failed to search ${platform}:`, error);
         sources[platform] = 0;
       }
     });

@@ -313,7 +313,7 @@ export class ResponseCompression {
       });
     } catch (error) {
       // 압축 실패 시 원본 반환
-      console.warn('Response compression failed:', error);
+      logger.warn('Response compression failed:', error);
       return response;
     }
   }

@@ -112,7 +112,7 @@ export class GoogleArtsCultureService {
     };
 
     if (!this.apiKey) {
-      console.warn('⚠️ Google Arts & Culture API key not configured - using mock responses');
+      logger.warn('⚠️ Google Arts & Culture API key not configured - using mock responses');
     }
   }
 
@@ -121,12 +121,12 @@ export class GoogleArtsCultureService {
    */
   async analyzeArtwork(imageBuffer: Buffer): Promise<GoogleArtsCultureResult> {
     if (!this.apiKey) {
-      console.log('🏛️ Using mock Google Arts & Culture analysis');
+      logger.info('🏛️ Using mock Google Arts & Culture analysis');
       return this.getMockAnalysis();
     }
 
     try {
-      console.log('🎨 Analyzing artwork with Google Arts & Culture...');
+      logger.info('🎨 Analyzing artwork with Google Arts & Culture...');
 
       // 병렬로 다양한 분석 수행
       const [
@@ -152,7 +152,7 @@ export class GoogleArtsCultureService {
       });
 
     } catch (error) {
-      console.error('❌ Google Arts & Culture analysis failed:', error);
+      logger.error('❌ Google Arts & Culture analysis failed:', error);
       return this.getMockAnalysis();
     }
   }

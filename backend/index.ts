@@ -11,7 +11,7 @@ interface WebSocketData {
   timestamp: number;
 }
 
-console.log('🚀 Starting AI Art Recommendation Server - Improved Version\n');
+logger.info('🚀 Starting AI Art Recommendation Server - Improved Version\n');
 
 // 환경 설정
 if (process.env.NODE_ENV === 'development') {
@@ -25,8 +25,8 @@ printEnvironmentStatus();
 const envValidation = validateEnvironment();
 
 if (!envValidation.isValid) {
-  console.error('\n❌ Critical environment configuration errors detected!');
-  console.error('Please check your .env file and fix the errors above.');
+  logger.error('\n❌ Critical environment configuration errors detected!');
+  logger.error('Please check your .env file and fix the errors above.');
   process.exit(1);
 }
 
@@ -245,38 +245,38 @@ advancedRouter.get('/api/admin/alerts', async (req, params, requestId) => {
 }, [AuthMiddleware.requireAdmin()]);
 
 // 서버 시작 로그
-console.log('\n🎉 Improved Server Started Successfully!');
-console.log(`🚀 AI Art Recommendation Server running at http://localhost:${server.port}`);
-console.log(`📱 WebSocket endpoint: ws://localhost:${server.port}`);
-console.log(`🎨 Frontend: http://localhost:${server.port}`);
-console.log(`❤️  Health check: http://localhost:${server.port}/api/health`);
-console.log(`🔐 Authentication: Advanced auth system enabled`);
-console.log(`📊 Monitoring: Performance tracking active`);
-console.log(`🛡️  Security: Comprehensive middleware protection`);
+logger.info('\n🎉 Improved Server Started Successfully!');
+logger.info(`🚀 AI Art Recommendation Server running at http://localhost:${server.port}`);
+logger.info(`📱 WebSocket endpoint: ws://localhost:${server.port}`);
+logger.info(`🎨 Frontend: http://localhost:${server.port}`);
+logger.info(`❤️  Health check: http://localhost:${server.port}/api/health`);
+logger.info(`🔐 Authentication: Advanced auth system enabled`);
+logger.info(`📊 Monitoring: Performance tracking active`);
+logger.info(`🛡️  Security: Comprehensive middleware protection`);
 
-console.log('\n📋 Advanced Features:');
-console.log('   ✅ Standardized error handling');
-console.log('   ✅ Advanced dynamic routing (/api/users/:id)');
-console.log('   ✅ Authentication & authorization middleware');  
-console.log('   ✅ Centralized validation system');
-console.log('   ✅ Unified response format');
-console.log('   ✅ Request logging & monitoring');
-console.log('   ✅ Performance metrics & alerts');
-console.log('   ✅ Response caching system');
+logger.info('\n📋 Advanced Features:');
+logger.info('   ✅ Standardized error handling');
+logger.info('   ✅ Advanced dynamic routing (/api/users/:id)');
+logger.info('   ✅ Authentication & authorization middleware');  
+logger.info('   ✅ Centralized validation system');
+logger.info('   ✅ Unified response format');
+logger.info('   ✅ Request logging & monitoring');
+logger.info('   ✅ Performance metrics & alerts');
+logger.info('   ✅ Response caching system');
 
-console.log('\n📈 Available Admin Endpoints:');
-console.log('   📊 GET /api/admin/performance - Performance metrics');
-console.log('   📝 GET /api/admin/logs - System logs');
-console.log('   🚨 GET /api/admin/alerts - System alerts');
-console.log('   📋 GET /api/admin/stats - General statistics');
+logger.info('\n📈 Available Admin Endpoints:');
+logger.info('   📊 GET /api/admin/performance - Performance metrics');
+logger.info('   📝 GET /api/admin/logs - System logs');
+logger.info('   🚨 GET /api/admin/alerts - System alerts');
+logger.info('   📋 GET /api/admin/stats - General statistics');
 
 const routes = advancedRouter.getRouteList();
-console.log(`\n📋 Total Routes: ${routes.length}`);
+logger.info(`\n📋 Total Routes: ${routes.length}`);
 if (routes.length <= 15) {
-  routes.forEach(route => console.log(`   - ${route}`));
+  routes.forEach(route => logger.info(`   - ${route}`));
 } else {
-  routes.slice(0, 10).forEach(route => console.log(`   - ${route}`));
-  console.log(`   ... and ${routes.length - 10} more routes`);
+  routes.slice(0, 10).forEach(route => logger.info(`   - ${route}`));
+  logger.info(`   ... and ${routes.length - 10} more routes`);
 }
 
-console.log('\n✅ All technical debt resolved! Server ready for production.');
+logger.info('\n✅ All technical debt resolved! Server ready for production.');

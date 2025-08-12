@@ -50,7 +50,7 @@ class MockArtistApplications {
     
     this.applications.set(id, application);
     
-    console.log('📝 Mock: Artist application created:', {
+    logger.info('📝 Mock: Artist application created:', {
       id,
       artist_name: application.artist_name,
       email: application.email
@@ -84,7 +84,7 @@ class MockArtistApplications {
     app.reviewed_at = new Date().toISOString();
     app.review_notes = reviewNotes;
     
-    console.log(`✅ Mock: Application ${status}:`, applicationId);
+    logger.info(`✅ Mock: Application ${status}:`, applicationId);
     
     return { data: app, error: null };
   }

@@ -79,7 +79,7 @@ export class EnhancedImageAnalysisService {
    * 종합적인 이미지 분석 수행
    */
   async analyzeImage(imageBuffer: Buffer): Promise<EnhancedImageAnalysis> {
-    console.log('🎨 Starting enhanced image analysis...');
+    logger.info('🎨 Starting enhanced image analysis...');
     
     const [
       colorAnalysis,
@@ -131,7 +131,7 @@ export class EnhancedImageAnalysisService {
         brightness
       };
     } catch (error) {
-      console.error('❌ Color analysis failed:', error);
+      logger.error('❌ Color analysis failed:', error);
       return this.getDefaultColorAnalysis();
     }
   }
@@ -152,7 +152,7 @@ export class EnhancedImageAnalysisService {
         patterns: this.detectPatterns(imageBuffer)
       };
     } catch (error) {
-      console.error('❌ Composition analysis failed:', error);
+      logger.error('❌ Composition analysis failed:', error);
       return this.getDefaultCompositionAnalysis();
     }
   }
@@ -175,7 +175,7 @@ export class EnhancedImageAnalysisService {
         technique
       };
     } catch (error) {
-      console.error('❌ Texture analysis failed:', error);
+      logger.error('❌ Texture analysis failed:', error);
       return this.getDefaultTextureAnalysis();
     }
   }
@@ -203,7 +203,7 @@ export class EnhancedImageAnalysisService {
         atmosphere: this.determineAtmosphere(emotionScores)
       };
     } catch (error) {
-      console.error('❌ Emotion analysis failed:', error);
+      logger.error('❌ Emotion analysis failed:', error);
       return this.getDefaultEmotionAnalysis();
     }
   }
@@ -225,7 +225,7 @@ export class EnhancedImageAnalysisService {
         culturalContext: this.identifyCulturalContext(imageBuffer)
       };
     } catch (error) {
-      console.error('❌ Art history analysis failed:', error);
+      logger.error('❌ Art history analysis failed:', error);
       return this.getDefaultArtHistoryAnalysis();
     }
   }
@@ -246,7 +246,7 @@ export class EnhancedImageAnalysisService {
         complexity
       };
     } catch (error) {
-      console.error('❌ Subject analysis failed:', error);
+      logger.error('❌ Subject analysis failed:', error);
       return this.getDefaultSubjectAnalysis();
     }
   }

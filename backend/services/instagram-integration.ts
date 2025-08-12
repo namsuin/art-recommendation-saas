@@ -1,4 +1,5 @@
 import { Response } from '../utils/response';
+import { logger } from '../../shared/logger';
 
 interface InstagramPost {
   id: string;
@@ -69,7 +70,7 @@ export class InstagramIntegrationService {
             };
           }
         } catch (e) {
-          console.error('Failed to parse Instagram JSON-LD data:', e);
+          logger.error('Failed to parse Instagram JSON-LD data:', e);
         }
       }
 
@@ -83,7 +84,7 @@ export class InstagramIntegrationService {
 
       return { profile: profileData, posts };
     } catch (error) {
-      console.error('Instagram fetch error:', error);
+      logger.error('Instagram fetch error:', error);
       throw error;
     }
   }

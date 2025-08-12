@@ -100,7 +100,7 @@ export class AdminDashboardService {
       return { success: true, data: dashboardStats };
 
     } catch (error) {
-      console.error('Dashboard stats error:', error);
+      logger.error('Dashboard stats error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : '대시보드 통계 조회 실패'
@@ -393,7 +393,7 @@ export class AdminDashboardService {
       return { success: true, data: userActivities };
 
     } catch (error) {
-      console.error('Active users error:', error);
+      logger.error('Active users error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : '활성 사용자 조회 실패'
@@ -467,7 +467,7 @@ export class AdminDashboardService {
       return { success: true, data: metrics };
 
     } catch (error) {
-      console.error('Revenue metrics error:', error);
+      logger.error('Revenue metrics error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : '수익 메트릭 조회 실패'

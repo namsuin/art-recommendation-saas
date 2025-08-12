@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { logger } from '../../shared/logger';
 
 interface MetArtwork {
   objectID: number;
@@ -114,7 +115,7 @@ export class MetMuseumAPI {
    */
   async searchByKeywords(keywords: string[], limit: number = 20): Promise<FormattedArtwork[]> {
     try {
-      console.log(`🏛️ Searching Met Museum for: ${keywords.join(', ')}`);
+      logger.info(`🏛️ Searching Met Museum for: ${keywords.join(', ')}`);
       
       // 여러 키워드 조합으로 검색
       const searchQueries = this.generateSearchQueries(keywords);
@@ -145,25 +146,25 @@ export class MetMuseumAPI {
 
       // 중복 제거 및 제한
       const uniqueObjectIDs = [...new Set(allResults)].slice(0, limit * 2);
-      console.log(`🔍 Found ${uniqueObjectIDs.length} potential artworks`);
+      logger.info(`🔍 Found ${uniqueObjectIDs.length} potential artworks`);
 
       // 각 작품의 상세 정보 조회
       const artworks = await this.getArtworkDetails(uniqueObjectIDs.slice(0, limit));
-      console.log(`🎨 Got ${artworks.length} artworks from getArtworkDetails`);
+      logger.info(`🎨 Got ${artworks.length} artworks from getArtworkDetails`);
       
       // 키워드 관련성으로 정렬
       const rankedArtworks = this.rankArtworksByRelevance(artworks, keywords);
-      console.log(`📊 Ranked artworks: ${rankedArtworks.length}`);
+      logger.info(`📊 Ranked artworks: ${rankedArtworks.length}`);
       
       if (rankedArtworks.length > 0) {
-        console.log(`🎯 First artwork: ${rankedArtworks[0].title} by ${rankedArtworks[0].artist}`);
+        logger.info(`🎯 First artwork: ${rankedArtworks[0].title} by ${rankedArtworks[0].artist}`);
       }
       
-      console.log(`✅ Retrieved ${rankedArtworks.length} Met Museum artworks`);
+      logger.info(`✅ Retrieved ${rankedArtworks.length} Met Museum artworks`);
       return rankedArtworks.slice(0, limit);
 
     } catch (error) {
-      console.error('Met Museum search failed:', error);
+      logger.error('Met Museum search failed:', error);
       return [];
     }
   }
@@ -195,7 +196,7 @@ export class MetMuseumAPI {
       return await this.getArtworkDetails(objectIDs);
 
     } catch (error) {
-      console.error('Met Museum department search failed:', error);
+      logger.error('Met Museum department search failed:', error);
       return [];
     }
   }
@@ -216,7 +217,7 @@ export class MetMuseumAPI {
         const batchResults = await Promise.all(batchPromises);
         artworks.push(...batchResults.filter(artwork => artwork !== null) as FormattedArtwork[]);
       } catch (error) {
-        console.warn('Some artworks failed to load in batch:', error);
+        logger.warn('Some artworks failed to load in batch:', error);
       }
     }
 
@@ -249,11 +250,11 @@ export class MetMuseumAPI {
     } catch (error) {
       // 기술 부채 해결: 404 에러를 덜 verbose하게 처리
       if (error?.response?.status === 404) {
-        console.debug(`🔍 Artwork ${objectID} not found (404) - skipping`);
+        logger.debug(`🔍 Artwork ${objectID} not found (404) - skipping`);
       } else if (error?.code === 'ERR_BAD_REQUEST' && error?.response?.status === 404) {
-        console.debug(`🔍 Artwork ${objectID} unavailable - skipping`);
+        logger.debug(`🔍 Artwork ${objectID} unavailable - skipping`);
       } else {
-        console.warn(`Failed to get artwork ${objectID}:`, error?.message || error);
+        logger.warn(`Failed to get artwork ${objectID}:`, error?.message || error);
       }
       return null;
     }

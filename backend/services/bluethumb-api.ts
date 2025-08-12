@@ -49,7 +49,7 @@ export class BluethumbAPI {
     error?: string;
   }> {
     try {
-      console.log(`🇦🇺 Bluethumb 검색: ${keywords.join(', ')}`);
+      logger.info(`🇦🇺 Bluethumb 검색: ${keywords.join(', ')}`);
       
       // 실제 API 연동이 불가능하므로 교육적 목적의 Mock 데이터 생성
       const mockArtworks = this.generateBluethumbMockData(keywords, limit);
@@ -61,7 +61,7 @@ export class BluethumbAPI {
       };
 
     } catch (error) {
-      console.error('Bluethumb search error:', error);
+      logger.error('Bluethumb search error:', error);
       return {
         success: false,
         artworks: [],
@@ -100,7 +100,7 @@ export class BluethumbAPI {
       };
 
     } catch (error) {
-      console.error('Bluethumb category search error:', error);
+      logger.error('Bluethumb category search error:', error);
       return {
         success: false,
         artworks: [],
@@ -141,7 +141,7 @@ export class BluethumbAPI {
       };
 
     } catch (error) {
-      console.error('Bluethumb price search error:', error);
+      logger.error('Bluethumb price search error:', error);
       return {
         success: false,
         artworks: [],
@@ -175,7 +175,7 @@ export class BluethumbAPI {
       };
 
     } catch (error) {
-      console.error('Bluethumb Aboriginal art search error:', error);
+      logger.error('Bluethumb Aboriginal art search error:', error);
       return {
         success: false,
         artworks: [],
