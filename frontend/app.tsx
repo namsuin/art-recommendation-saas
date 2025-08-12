@@ -56,16 +56,16 @@ const AppContent: React.FC = () => {
   // 로딩 상태 표시
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{background: 'var(--gradient-sunrise)'}}>
+      <div className="min-h-screen flex items-center justify-center" style={{background: 'var(--gradient-hero)'}}>
         <div className="text-center relative">
-          <div className="relative w-20 h-20 mx-auto mb-4">
-            <div className="absolute inset-0 rounded-full loading-soft" style={{background: 'var(--gradient-peach)'}}></div>
-            <div className="absolute inset-2 rounded-full bg-white"></div>
-            <div className="absolute inset-4 rounded-full" style={{background: 'var(--gradient-lavender)', animation: 'spin 2s linear infinite'}}></div>
+          <div className="relative w-20 h-20 mx-auto mb-6">
+            <div className="absolute inset-0 rounded-full loading-soft" style={{background: 'var(--gradient-accent)'}}></div>
+            <div className="absolute inset-2 rounded-full" style={{background: 'var(--off-white)'}}></div>
+            <div className="absolute inset-4 rounded-full" style={{background: 'var(--gradient-cool)', animation: 'spin 2s linear infinite'}}></div>
           </div>
           <div className="decoration-blob blob-pink w-16 h-16 absolute -top-8 -left-8"></div>
           <div className="decoration-blob blob-lavender w-12 h-12 absolute -bottom-6 -right-6"></div>
-          <p className="heading-elegant font-medium">로딩 중...</p>
+          <p className="heading-elegant font-medium text-white">로딩 중...</p>
         </div>
       </div>
     );
@@ -74,12 +74,12 @@ const AppContent: React.FC = () => {
   // 세션 만료 알림
   if (sessionExpired) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4" style={{background: 'var(--gradient-peach)'}}>
+      <div className="min-h-screen flex items-center justify-center p-4" style={{background: 'var(--gradient-warm)'}}>
         <div className="card-modern max-w-md w-full text-center relative">
           <div className="decoration-blob blob-peach w-20 h-20 absolute -top-10 -right-10"></div>
           <div className="decoration-blob blob-lavender w-16 h-16 absolute -bottom-8 -left-8"></div>
           <div className="mb-6">
-            <div className="mx-auto w-16 h-16 rounded-full flex items-center justify-center" style={{background: 'var(--gradient-lavender)', boxShadow: '0 8px 25px rgba(212, 165, 165, 0.3)'}}>
+            <div className="mx-auto w-16 h-16 rounded-full flex items-center justify-center" style={{background: 'var(--gradient-cool)', boxShadow: '0 8px 25px rgba(255, 107, 122, 0.2)'}}>
               <span className="text-2xl">⏰</span>
             </div>
           </div>
@@ -192,7 +192,7 @@ const AppContent: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen" style={{background: 'var(--gradient-sunrise)'}}>
+    <div className="min-h-screen" style={{background: 'var(--gradient-hero)'}}>
       <div className="decoration-blob blob-pink w-32 h-32 fixed top-10 right-10"></div>
       <div className="decoration-blob blob-lavender w-24 h-24 fixed bottom-20 left-10"></div>
       <div className="decoration-blob blob-peach w-20 h-20 fixed top-1/2 left-1/4"></div>
@@ -203,7 +203,7 @@ const AppContent: React.FC = () => {
           <div className="flex items-center justify-between">
             <div className="flex-1"></div>
             <h1 className="text-xl md:text-3xl font-bold heading-elegant heading-gradient text-center flex-1">
-              My Art Taste
+              ✨ My Art Taste
             </h1>
             <div className="flex-1 flex justify-end">
               <button

@@ -12,6 +12,7 @@ import type {
   ReplicateResult,
   LocalClipResult
 } from '../../shared/types';
+import { aiLogger } from '../../shared/logger';
 
 export class AIEnsembleService {
   private googleVision: GoogleVisionService;
@@ -89,7 +90,7 @@ export class AIEnsembleService {
       ...config
     };
 
-    console.log('🎯 AI Ensemble Service initialized');
+    aiLogger.info('🎯 AI Ensemble Service initialized');
   }
 
   async analyzeImage(imageBuffer: Buffer): Promise<ImageAnalysis> {
@@ -158,7 +159,7 @@ export class AIEnsembleService {
     });
 
     const processingTime = Date.now() - startTime;
-    console.log(`🔍 Image analysis completed in ${processingTime}ms`);
+    aiLogger.info(`🔍 Image analysis completed in ${processingTime}ms`);
 
     return combinedAnalysis;
   }
@@ -268,29 +269,29 @@ export class AIEnsembleService {
 
     // Enhanced color extraction from keywords
     if (process.env.DEBUG_MODE === 'true') {
-      console.log(`🔍 DEBUG: Starting color extraction with ${keywordArray.length} keywords:`, keywordArray.slice(0, 10));
+      aiLogger.info(`🔍 DEBUG: Starting color extraction with ${keywordArray.length} keywords:`, keywordArray.slice(0, 10));
     }
     
     // TEMPORARY: Add test keywords to demonstrate color extraction works
     if (keywordArray.length > 0 && keywordArray.every(k => ['artwork', 'visual-art', 'creative'].includes(k))) {
       if (process.env.DEBUG_MODE === 'true') {
-        console.log('🧪 DEBUG: Adding test color keywords to demonstrate functionality');
+        aiLogger.info('🧪 DEBUG: Adding test color keywords to demonstrate functionality');
       }
       keywordArray.push('blue sky', 'green forest', 'red sunset', 'golden hour', 'violet flowers');
     }
     
     this.extractColorsFromKeywords(keywordArray, colors);
-    console.log(`🎨 Extracted ${colors.size} colors from keywords: ${Array.from(colors).join(', ')}`);
+    aiLogger.info(`🎨 Extracted ${colors.size} colors from keywords: ${Array.from(colors).join(', ')}`);
     
     // If still no colors found, add common art colors based on detected objects/themes
     if (colors.size === 0) {
       this.inferColorsFromContext(keywordArray, colors);
-      console.log(`🎨 Inferred ${colors.size} colors from context: ${Array.from(colors).join(', ')}`);
+      aiLogger.info(`🎨 Inferred ${colors.size} colors from context: ${Array.from(colors).join(', ')}`);
     }
 
     // Color correction based on common sense rules
     this.applyColorCorrection(keywordArray, colors);
-    console.log(`🔧 After color correction: ${Array.from(colors).join(', ')}`);
+    aiLogger.info(`🔧 After color correction: ${Array.from(colors).join(', ')}`);
 
     // Calculate final confidence
     const confidence = validResults > 0 ? totalConfidence / validResults : 0;
@@ -423,7 +424,7 @@ export class AIEnsembleService {
    */
   private extractColorsFromKeywords(keywords: string[], colors: Set<string>) {
     if (process.env.DEBUG_MODE === 'true') {
-      console.log(`🔍 DEBUG: extractColorsFromKeywords called with ${keywords.length} keywords`);
+      aiLogger.info(`🔍 DEBUG: extractColorsFromKeywords called with ${keywords.length} keywords`);
     }
     const colorMappings = {
       // Basic colors
@@ -454,14 +455,14 @@ export class AIEnsembleService {
     keywords.forEach(keyword => {
       const lowerKeyword = keyword.toLowerCase();
       if (process.env.DEBUG_MODE === 'true') {
-        console.log(`🔍 DEBUG: Processing keyword "${keyword}" → "${lowerKeyword}"`);
+        aiLogger.info(`🔍 DEBUG: Processing keyword "${keyword}" → "${lowerKeyword}"`);
       }
       
       // Direct color matches
       Object.entries(colorMappings).forEach(([baseColor, variations]) => {
         variations.forEach(variation => {
           if (lowerKeyword.includes(variation)) {
-            console.log(`✅ Color match found: "${variation}" in "${lowerKeyword}" → adding "${baseColor}"`);
+            aiLogger.info(`✅ Color match found: "${variation}" in "${lowerKeyword}" → adding "${baseColor}"`);
             colors.add(baseColor);
           }
         });
@@ -472,7 +473,7 @@ export class AIEnsembleService {
     });
     
     if (process.env.DEBUG_MODE === 'true') {
-      console.log(`🎨 DEBUG: Color extraction complete. Found ${colors.size} colors: ${Array.from(colors).join(', ')}`);
+      aiLogger.info(`🎨 DEBUG: Color extraction complete. Found ${colors.size} colors: ${Array.from(colors).join(', ')}`);
     }
   }
 
@@ -618,18 +619,18 @@ export class AIEnsembleService {
     );
     
     if (isLandscape) {
-      console.log('🌿 Landscape detected - ensuring green color');
+      aiLogger.info('🌿 Landscape detected - ensuring green color');
       colors.add('green');
       
       if (hasSky) {
-        console.log('☁️ Sky detected - ensuring blue color');
+        aiLogger.info('☁️ Sky detected - ensuring blue color');
         colors.add('blue');
       }
     }
 
     // Rule 2: Remove illogical color combinations
     if (isLandscape && colors.has('white') && colors.has('yellow') && !colors.has('green') && !colors.has('blue')) {
-      console.log('🔧 Correcting landscape misidentification: white+yellow -> green+blue');
+      aiLogger.info('🔧 Correcting landscape misidentification: white+yellow -> green+blue');
       colors.delete('white');  // Keep white for clouds
       colors.add('green');
       colors.add('blue');
@@ -638,7 +639,7 @@ export class AIEnsembleService {
     // Rule 3: Seasonal adjustments
     const isSummer = lowerKeywords.some(k => k.includes('summer'));
     if (isSummer && isLandscape) {
-      console.log('☀️ Summer landscape - enhancing vibrant colors');
+      aiLogger.info('☀️ Summer landscape - enhancing vibrant colors');
       colors.add('green');
       colors.add('blue');
     }

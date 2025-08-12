@@ -571,21 +571,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onClose })
   );
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen" style={{background: 'var(--gradient-hero)'}}>
+      {/* 배경 장식 요소 */}
+      <div className="decoration-blob blob-pink w-32 h-32 fixed top-10 right-10"></div>
+      <div className="decoration-blob blob-lavender w-24 h-24 fixed bottom-20 left-10"></div>
+      <div className="decoration-blob blob-peach w-20 h-20 fixed top-1/2 left-1/4"></div>
+      
       {/* Navigation Header */}
-      <nav className="bg-white shadow-lg border-b">
+      <nav className="nav-elegant shadow-lg border-b">
         <div className="container mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center space-x-4">
-              <h1 className="text-2xl font-bold text-gray-800">🎨 관리자 대시보드</h1>
+              <h1 className="text-2xl font-bold heading-elegant heading-gradient">✨ 관리자 대시보드</h1>
             </div>
             <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-600">관리자</span>
+              <span className="text-sm" style={{color: 'var(--text-secondary)'}}>관리자</span>
               <button
                 onClick={onClose}
-                className="px-4 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+                className="btn-soft btn-secondary-soft hover-lift"
               >
-                메인으로
+                🏠 메인으로
               </button>
             </div>
           </div>
