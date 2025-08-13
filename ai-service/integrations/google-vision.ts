@@ -7,23 +7,40 @@ export class GoogleVisionService {
 
   constructor() {
     try {
-      // Initialize client with service account key or default credentials
       const keyFilename = process.env.GOOGLE_CLOUD_KEY_FILE;
       const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID;
+      const clientId = process.env.GOOGLE_CLIENT_ID;
+      const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
 
       if (keyFilename && projectId) {
-        console.log(`🔑 Initializing Google Vision with key file: ${keyFilename}`);
-        console.log(`📂 Project ID: ${projectId}`);
-        
+        console.log(`🔑 Initializing Google Vision with service account key`);
         this.client = new ImageAnnotatorClient({
           keyFilename,
           projectId,
         });
         this.isEnabled = true;
         console.log('✅ Google Vision AI initialized with service account');
+      } else if (projectId && clientId && clientSecret) {
+        console.log('🔑 Initializing Google Vision with OAuth credentials');
+        this.client = new ImageAnnotatorClient({
+          projectId,
+          credentials: {
+            client_id: clientId,
+            client_secret: clientSecret,
+            type: 'authorized_user'
+          }
+        });
+        this.isEnabled = true;
+        console.log('✅ Google Vision AI initialized with OAuth credentials');
+      } else if (projectId) {
+        console.log('🔑 Missing detailed credentials, trying with project ID only...');
+        this.client = new ImageAnnotatorClient({
+          projectId
+        });
+        this.isEnabled = true;
+        console.log('✅ Google Vision AI initialized with project ID');
       } else {
-        console.log('🔑 Missing Google Vision credentials, trying default...');
-        // Try with default credentials (useful for Google Cloud deployment)
+        console.log('🔑 Trying Google Vision with default credentials...');
         this.client = new ImageAnnotatorClient();
         this.isEnabled = true;
         console.log('✅ Google Vision AI initialized with default credentials');
