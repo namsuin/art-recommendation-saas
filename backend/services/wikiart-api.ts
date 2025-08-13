@@ -3,6 +3,8 @@
  * 무료로 사용 가능한 대규모 예술 작품 데이터베이스
  */
 
+import { logger } from '../../shared/logger';
+
 interface WikiArtArtwork {
     id: string;
     title: string;

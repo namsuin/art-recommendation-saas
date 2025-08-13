@@ -1,3 +1,4 @@
+import { logger } from '../../shared/logger';
 // 이메일 서비스 - 실제 운영에서는 SendGrid, AWS SES, 또는 Nodemailer 등을 사용
 export class EmailService {
   

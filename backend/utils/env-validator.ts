@@ -1,4 +1,5 @@
 // Environment variable validation utility
+import { logger } from '../../shared/logger';
 
 interface EnvConfig {
   // Required

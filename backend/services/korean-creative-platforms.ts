@@ -1,3 +1,4 @@
+import { logger } from '../../shared/logger';
 import axios from 'axios';
 
 // 한국 창작 플랫폼들을 위한 통합 API 서비스

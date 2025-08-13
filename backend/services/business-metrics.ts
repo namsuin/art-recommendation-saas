@@ -3,6 +3,7 @@
  * KPI 추적, 수익 분석, 사용자 행동 지표 측정
  */
 
+import { logger } from '../../shared/logger';
 import { supabase } from './supabase';
 import { mockDB } from './mock-database';
 

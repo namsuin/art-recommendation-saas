@@ -1,3 +1,4 @@
+import { logger } from '../../shared/logger';
 // Mock Artist Applications Storage
 interface ArtistApplication {
   id: string;

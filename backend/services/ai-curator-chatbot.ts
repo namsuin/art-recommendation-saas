@@ -3,6 +3,7 @@
  * 미술 전문 지식 기반 대화형 AI 어시스턴트
  */
 
+import { logger } from '../../shared/logger';
 import { supabase } from './supabase';
 import { mockDB } from './mock-database';
 

@@ -1,3 +1,4 @@
+import { logger } from '../../shared/logger';
 import { AIAnalysisService } from './ai-analysis';
 import { supabase } from './supabase';
 import { ExpandedArtSearchService } from './expanded-art-search';

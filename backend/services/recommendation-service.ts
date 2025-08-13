@@ -2,6 +2,7 @@
  * 추천 서비스 - 다양한 소스에서 추천 작품을 수집하고 관리
  */
 
+import { logger } from '../../shared/logger';
 import type { RecommendationItem, SearchOptions } from '../types/common';
 import { mockDB } from './mock-database';
 import { ExpandedArtSearchService } from './expanded-art-search';

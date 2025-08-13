@@ -3,6 +3,7 @@
  * 비즈니스 인텔리전스 및 실시간 모니터링 기능 제공
  */
 
+import { logger } from '../../shared/logger';
 import { supabase } from './supabase';
 import { mockDB } from './mock-database';
 

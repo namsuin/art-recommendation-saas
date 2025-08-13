@@ -1,3 +1,4 @@
+import { logger } from '../../shared/logger';
 import { ChicagoArtAPI } from './chicago-art-api';
 import { RijksmuseumAPI } from './rijksmuseum-api';
 import { KoreaMuseumAPI } from './korea-museum-api';

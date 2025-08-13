@@ -1,3 +1,4 @@
+import { logger } from '../../shared/logger';
 import axios from 'axios';
 
 // SVA (School of Visual Arts) BFA Fine Arts 학생 작품 API 서비스

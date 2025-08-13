@@ -3,6 +3,7 @@
  * 실험 설계, 사용자 할당, 결과 분석 기능 제공
  */
 
+import { logger } from '../../shared/logger';
 import { supabase } from './supabase';
 import { mockDB } from './mock-database';
 

@@ -1,3 +1,4 @@
+import { logger } from '../../shared/logger';
 import { SupabaseService } from './supabase';
 
 interface UserPreference {

@@ -1,3 +1,4 @@
+import { logger } from '../../shared/logger';
 import axios from 'axios';
 
 // DegreeArt 영국 온라인 아트 플랫폼 API 서비스

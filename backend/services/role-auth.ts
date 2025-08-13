@@ -1,3 +1,4 @@
+import { logger } from '../../shared/logger';
 import { supabase } from './supabase';
 
 export type UserRole = 'user' | 'artist' | 'admin';

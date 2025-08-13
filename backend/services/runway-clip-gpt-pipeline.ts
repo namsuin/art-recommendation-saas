@@ -6,6 +6,7 @@
  * - 통합 파이프라인으로 종합적인 예술 분석 제공
  */
 
+import { logger } from '../../shared/logger';
 import type { ServiceConfig } from '../types/common';
 
 export interface RunwayClipGptResult {

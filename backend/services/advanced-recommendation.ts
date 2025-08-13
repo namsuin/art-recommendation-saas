@@ -3,6 +3,7 @@
  * 머신러닝 기반 사용자 취향 학습 및 예측
  */
 
+import { logger } from '../../shared/logger';
 import { supabase } from './supabase';
 import { mockDB } from './mock-database';
 

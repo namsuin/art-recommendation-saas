@@ -1,3 +1,4 @@
+import { logger } from '../../shared/logger';
 import axios from 'axios';
 
 interface RijksmuseumArtwork {

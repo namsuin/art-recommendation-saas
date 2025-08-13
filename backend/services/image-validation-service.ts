@@ -2,6 +2,7 @@
  * 이미지 검증 서비스 - URL 유효성 검사 및 품질 관리
  */
 
+import { logger } from '../../shared/logger';
 import type { RecommendationItem, ServiceConfig } from '../types/common';
 
 interface ValidationCache {

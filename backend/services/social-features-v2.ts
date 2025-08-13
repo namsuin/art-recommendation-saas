@@ -1,6 +1,7 @@
 // Week 6: 소셜 기능 서비스 V2
 // 사용자 프로필, 팔로우, 좋아요, 북마크, 커뮤니티 기능
 
+import { logger } from '../../shared/logger';
 import { supabase } from './supabase';
 
 export interface UserProfile {

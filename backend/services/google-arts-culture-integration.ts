@@ -5,6 +5,7 @@
  * - 유사 작품 검색
  */
 
+import { logger } from '../../shared/logger';
 import type { ServiceConfig } from '../types/common';
 
 export interface GoogleArtsCultureResult {

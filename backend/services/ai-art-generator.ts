@@ -3,6 +3,7 @@
  * 텍스트-투-이미지, 스타일 전이, 이미지 변환 기능 제공
  */
 
+import { logger } from '../../shared/logger';
 import { supabase } from './supabase';
 import { mockDB } from './mock-database';
 

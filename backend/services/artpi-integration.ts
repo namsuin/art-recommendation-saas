@@ -5,6 +5,7 @@
  * - 작가 식별 
  */
 
+import { logger } from '../../shared/logger';
 import type { ServiceConfig } from '../types/common';
 
 export interface ArtPIAnalysisResult {

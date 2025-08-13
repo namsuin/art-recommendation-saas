@@ -5,6 +5,7 @@
  * - 장르 분류
  */
 
+import { logger } from '../../shared/logger';
 import type { ServiceConfig } from '../types/common';
 
 export interface ClarifaiArtAnalysisResult {

@@ -1,3 +1,4 @@
+import { logger } from '../../shared/logger';
 import axios from 'axios';
 
 // Academy of Art University의 학생 작품 검색을 위한 API 서비스

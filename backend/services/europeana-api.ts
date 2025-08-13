@@ -1,3 +1,4 @@
+import { logger } from '../../shared/logger';
 /**
  * Europeana API Integration
  * 유럽 최대 규모의 문화 유산 디지털 플랫폼

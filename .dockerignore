@@ -1,0 +1,10 @@
+node_modules
+.env
+.env.local
+dist
+.git
+.gitignore
+README.md
+.DS_Store
+*.log
+fix-logger-imports.sh

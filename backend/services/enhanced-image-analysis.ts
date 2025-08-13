@@ -7,6 +7,7 @@
  * - 미술사적 스타일 분류
  */
 
+import { logger } from '../../shared/logger';
 import type { ImageAnalysisResult } from '../types/common';
 
 export interface EnhancedImageAnalysis extends ImageAnalysisResult {

@@ -1,3 +1,4 @@
+import { logger } from '../../shared/logger';
 /**
  * Harvard Art Museums API Integration
  * 하버드 대학교 미술관의 방대한 컬렉션 접근

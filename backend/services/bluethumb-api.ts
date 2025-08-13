@@ -1,3 +1,4 @@
+import { logger } from '../../shared/logger';
 import axios from 'axios';
 
 // Bluethumb 호주 온라인 아트 마켓플레이스 API 서비스

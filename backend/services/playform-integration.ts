@@ -5,6 +5,7 @@
  * - 창의적 변형 분석
  */
 
+import { logger } from '../../shared/logger';
 import type { ServiceConfig } from '../types/common';
 
 export interface PlayformAnalysisResult {

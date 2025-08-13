@@ -3,6 +3,7 @@
  * 사용자 여정, 패턴 분석, 세그먼테이션 제공
  */
 
+import { logger } from '../../shared/logger';
 import { supabase } from './supabase';
 import { mockDB } from './mock-database';
 

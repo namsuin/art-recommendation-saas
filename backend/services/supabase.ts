@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '../db/types';
+import { logger } from '../../shared/logger';
 
 // Environment variables with fallbacks for development
 const supabaseUrl = process.env.SUPABASE_URL || 'http://localhost:54321';

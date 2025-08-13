@@ -3,6 +3,7 @@
  * 시스템 성능 추적, 병목 지점 식별, 최적화 제안 제공
  */
 
+import { logger } from '../../shared/logger';
 import { supabase } from './supabase';
 import { mockDB } from './mock-database';
 

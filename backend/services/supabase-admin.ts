@@ -1,5 +1,6 @@
 // Supabase 관리자 클라이언트 (RLS 우회용)
 
+import { logger } from '../../shared/logger';
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.SUPABASE_URL;
