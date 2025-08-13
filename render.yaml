@@ -4,17 +4,29 @@ services:
     runtime: docker
     plan: free
     dockerfilePath: ./Dockerfile
+    # Health check endpoint
+    healthCheckPath: /api/health
+    # Build settings
+    buildCommand: |
+      echo "Building with Bun on Render"
+      echo "Node version: $(node --version)"
+      echo "Bun version: $(bun --version)"
+    # Environment variables
     envVars:
       - key: PORT
         value: 3000
       - key: NODE_ENV
         value: production
+      - key: BUN_ENV
+        value: production
+      # Database
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_ANON_KEY
         sync: false
       - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
+      # AI Services (Optional)
       - key: GOOGLE_CLOUD_PROJECT_ID
         sync: false
       - key: GOOGLE_CLOUD_KEY_FILE
@@ -23,5 +35,25 @@ services:
         sync: false
       - key: REPLICATE_API_TOKEN
         sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: MISTRAL_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      # Payment
       - key: STRIPE_SECRET_KEY
         sync: false
+      - key: STRIPE_PUBLISHABLE_KEY
+        sync: false
+      # Admin
+      - key: ADMIN_AUTH_CODE
+        value: ADMIN2025SECRET
+    # Scaling and performance
+    autoDeploy: true
+    region: oregon
+    # Resource limits for free tier
+    disk:
+      name: data
+      mountPath: /data
+      sizeGB: 1

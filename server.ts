@@ -42,6 +42,12 @@ const server = Bun.serve({
   port: parseInt(process.env.PORT || '3000'),
   hostname: "0.0.0.0",
   
+  // Handle server startup errors
+  error(error) {
+    console.error("Server error:", error);
+    return new Response("Internal Server Error", { status: 500 });
+  },
+  
   async fetch(req) {
     const url = new URL(req.url);
     const method = req.method;
@@ -2099,11 +2105,31 @@ async function getUserRoleFromToken(token: string): Promise<string | null> {
   }
 }
 
+// Enhanced startup logging
 console.log(`
 🎉 Art Recommendation SaaS Server Started!
-🌐 URL: http://localhost:${server.port}
-❤️  Health: http://localhost:${server.port}/api/health
-🔧 Status: Simplified version without AI generators
+🌐 Local URL: http://localhost:${server.port}
+🌍 Production URL: https://art-recommendation-saas.onrender.com
+❤️  Health Check: ${process.env.NODE_ENV === 'production' ? 'https://art-recommendation-saas.onrender.com' : 'http://localhost:' + server.port}/api/health
+🔧 Environment: ${process.env.NODE_ENV || 'development'}
+🚀 Runtime: Bun ${Bun.version}
 📋 Features: AI Analysis, Authentication, Static Serving
 ⚡ Performance: Optimized and lightweight
+🏠 Hostname: ${server.hostname}
+🔌 Port: ${server.port}
 `);
+
+// Startup health check
+setTimeout(async () => {
+  try {
+    const healthUrl = `http://localhost:${server.port}/api/health`;
+    const response = await fetch(healthUrl);
+    if (response.ok) {
+      console.log('✅ Server health check passed');
+    } else {
+      console.error('❌ Server health check failed:', response.status);
+    }
+  } catch (error) {
+    console.error('❌ Server health check error:', error);
+  }
+}, 2000);

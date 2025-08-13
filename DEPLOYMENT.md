@@ -1,135 +1,101 @@
-# 🚀 Art Recommendation SaaS - 배포 가이드
+# Deployment Guide for Art Recommendation SaaS
 
-## 📋 배포 전 체크리스트
+## Render Deployment Setup
 
-- [x] 서버 정상 작동 확인
-- [x] 환경변수 설정 파일 준비 (.env.example)
-- [x] Docker 설정 완료
-- [ ] Supabase 프로젝트 생성
-- [ ] AI API 키 준비
-- [ ] 도메인 준비 (선택사항)
+### 1. Environment Variables Configuration
 
-## 🔧 로컬 테스트
+Configure these environment variables in your Render dashboard:
 
-```bash
-# 1. 의존성 설치
-bun install
+**Required:**
+- `PORT` = `3000`
+- `NODE_ENV` = `production`
 
-# 2. 환경변수 설정
-cp .env.example .env
-# .env 파일 편집하여 실제 값 입력
+**Database (Required for full functionality):**
+- `SUPABASE_URL` = Your Supabase URL
+- `SUPABASE_ANON_KEY` = Your Supabase Anon Key
+- `SUPABASE_SERVICE_ROLE_KEY` = Your Supabase Service Role Key
 
-# 3. 서버 실행
-bun run start
+**AI Services (Optional - at least one recommended):**
+- `GOOGLE_CLOUD_PROJECT_ID` = Your Google Cloud Project ID
+- `CLARIFAI_API_KEY` = Your Clarifai API Key
+- `REPLICATE_API_TOKEN` = Your Replicate API Token
+- `GEMINI_API_KEY` = Your Google Gemini API Key
+- `MISTRAL_API_KEY` = Your Mistral API Key
+- `OPENAI_API_KEY` = Your OpenAI API Key
 
-# 4. 브라우저에서 확인
-open http://localhost:3000
-```
+**Payment (Optional):**
+- `STRIPE_SECRET_KEY` = Your Stripe Secret Key
+- `STRIPE_PUBLISHABLE_KEY` = Your Stripe Publishable Key
 
-## 🌐 배포 옵션
+**Admin:**
+- `ADMIN_AUTH_CODE` = `ADMIN2025SECRET`
 
-### 1. Render (추천 - 무료)
+### 2. Deployment Configuration
 
-1. [Render](https://render.com) 가입
-2. GitHub 저장소 연결
-3. "New Web Service" 생성
-4. 환경변수 설정:
-   - Dashboard → Environment → Add Environment Variable
-5. 자동 배포 완료!
+Your `render.yaml` is configured with:
+- Docker runtime using Bun
+- Health check endpoint: `/api/health`
+- Automatic deployments enabled
+- Free tier resource limits
 
-### 2. Railway
+### 3. Common 502 Bad Gateway Fixes
 
-1. [Railway](https://railway.app) 가입
-2. GitHub 저장소 연결
-3. 환경변수 설정
-4. 배포 시작
+If you encounter 502 errors, check:
 
-```bash
-# Railway CLI 사용
-railway login
-railway link
-railway up
-```
+1. **Port Binding**: Ensure your app binds to `0.0.0.0:3000`
+2. **Environment Variables**: Verify all required env vars are set
+3. **Build Process**: Check build logs for errors
+4. **Dependencies**: Ensure all dependencies install correctly
+5. **Startup Time**: App must respond within 60 seconds
 
-### 3. Fly.io
+### 4. Deployment Steps
 
-```bash
-# Fly CLI 설치
-curl -L https://fly.io/install.sh | sh
+1. Push your code to GitHub
+2. Connect your GitHub repo to Render
+3. Configure environment variables in Render dashboard
+4. Deploy using the `render.yaml` configuration
+5. Monitor deployment logs
+6. Test health endpoint: `https://your-app.onrender.com/api/health`
 
-# 앱 생성
-fly launch
+### 5. Troubleshooting
 
-# 환경변수 설정
-fly secrets set SUPABASE_URL="your_url"
-fly secrets set SUPABASE_ANON_KEY="your_key"
+**502 Bad Gateway:**
+- Check Render logs for startup errors
+- Verify port configuration (`PORT=3000`)
+- Ensure Dockerfile builds successfully
+- Test locally with `bun start`
 
-# 배포
-fly deploy
-```
+**Build Failures:**
+- Check all dependencies are listed in package.json
+- Verify Bun compatibility of packages
+- Check TypeScript compilation errors
 
-### 4. Docker (자체 서버)
+**Runtime Errors:**
+- Monitor application logs in Render dashboard
+- Check database connections (Supabase)
+- Verify API keys are correctly set
 
-```bash
-# Docker 이미지 빌드
-docker build -t art-recommendation-saas .
+### 6. Health Monitoring
 
-# 컨테이너 실행
-docker run -p 3000:3000 \
-  -e SUPABASE_URL="your_url" \
-  -e SUPABASE_ANON_KEY="your_key" \
-  art-recommendation-saas
-```
+The app includes:
+- Health check endpoint: `/api/health`
+- Startup validation script
+- Error handling for critical services
+- Graceful degradation for optional services
 
-## 🔑 필수 환경변수
+### 7. Performance Optimization
 
-### Supabase (데이터베이스)
-1. [Supabase](https://supabase.com) 프로젝트 생성
-2. Settings → API에서 키 복사:
-   - `SUPABASE_URL`: Project URL
-   - `SUPABASE_ANON_KEY`: anon public key
-   - `SUPABASE_SERVICE_ROLE_KEY`: service_role key
+For better performance:
+- Use appropriate Render plan (upgrade from free)
+- Enable Redis caching (optional)
+- Optimize Docker image size
+- Configure proper logging levels
 
-### AI Services (최소 1개 필요)
+### 8. Security
 
-#### Google Vision
-1. [Google Cloud Console](https://console.cloud.google.com)
-2. Vision API 활성화
-3. 서비스 계정 키 생성
-4. `GOOGLE_CLOUD_PROJECT_ID` 설정
-
-#### Clarifai
-1. [Clarifai](https://clarifai.com) 가입
-2. Personal Access Token 생성
-3. `CLARIFAI_API_KEY` 설정
-
-## 📊 배포 후 확인
-
-1. **헬스체크**: `https://your-domain.com/api/health`
-2. **메인 페이지**: `https://your-domain.com`
-3. **관리자 대시보드**: `https://your-domain.com/admin-dashboard`
-
-## 🐛 트러블슈팅
-
-### 서버가 시작되지 않음
-- 환경변수 확인
-- 포트 충돌 확인
-- 로그 확인: `docker logs [container-id]`
-
-### AI 기능이 작동하지 않음
-- API 키 유효성 확인
-- API 사용량 한도 확인
-- 네트워크 연결 확인
-
-### 데이터베이스 연결 실패
-- Supabase URL/키 확인
-- Supabase 프로젝트 상태 확인
-- RLS 정책 확인
-
-## 📞 지원
-
-문제가 있으시면 이슈를 생성해주세요!
-
----
-
-**현재 상태**: ✅ 배포 준비 완료!
+Security features:
+- Non-root user in Docker container
+- Environment variable validation
+- Admin authentication
+- CORS configuration
+- Error message sanitization
