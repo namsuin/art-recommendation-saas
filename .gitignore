@@ -38,3 +38,11 @@ cedar-gift-*.json
 
 # Finder (MacOS) folder config
 .DS_Store
+
+# AI Model cache files (too large for GitHub)
+ai-service/models/cache/
+*.onnx
+*.bin
+
+# Deployment scripts
+fix-logger-imports.sh
