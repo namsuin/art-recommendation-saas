@@ -1334,34 +1334,72 @@ const server = Bun.serve({
       // ======================
       // AI ANALYSIS ENDPOINTS
       // ======================
-      if (url.pathname === "/api/analyze" && method === "POST") {
-        const formData = await req.formData();
-        const imageFile = formData.get("image") as File | null;
-        const userId = formData.get("userId") as string | null;
-        
-        if (!imageFile) {
-          return new Response(JSON.stringify({
-            success: false,
-            error: "이미지 파일이 필요합니다."
-          }), {
-            status: 400,
-            headers: { "Content-Type": "application/json", ...corsHeaders }
-          });
-        }
-        
-        const imageBuffer = Buffer.from(await imageFile.arrayBuffer());
-        const result = await getAIService().analyzeImageAndRecommend(
-          imageBuffer,
-          userId || undefined,
-          imageFile.name
-        );
-        
+      
+      // Debug endpoint for analyze (GET)
+      if (url.pathname === "/api/analyze" && method === "GET") {
         return new Response(JSON.stringify({
-          success: true,
-          ...result
+          message: "AI Analysis endpoint is active",
+          method: "POST required",
+          expected_body: "FormData with 'image' file",
+          timestamp: new Date().toISOString()
         }), {
           headers: { "Content-Type": "application/json", ...corsHeaders }
         });
+      }
+      
+      if (url.pathname === "/api/analyze" && method === "POST") {
+        try {
+          console.log('🔍 AI Analysis request received');
+          
+          const formData = await req.formData();
+          const imageFile = formData.get("image") as File | null;
+          const userId = formData.get("userId") as string | null;
+          
+          console.log('📋 Request details:', {
+            hasImageFile: !!imageFile,
+            imageFileSize: imageFile?.size,
+            userId: userId || 'anonymous'
+          });
+          
+          if (!imageFile) {
+            console.log('❌ No image file provided');
+            return new Response(JSON.stringify({
+              success: false,
+              error: "이미지 파일이 필요합니다."
+            }), {
+              status: 400,
+              headers: { "Content-Type": "application/json", ...corsHeaders }
+            });
+          }
+          
+          console.log('🖼️ Processing image:', imageFile.name, `(${imageFile.size} bytes)`);
+          
+          const imageBuffer = Buffer.from(await imageFile.arrayBuffer());
+          const result = await getAIService().analyzeImageAndRecommend(
+            imageBuffer,
+            userId || undefined,
+            imageFile.name
+          );
+          
+          console.log('✅ Analysis completed successfully');
+          
+          return new Response(JSON.stringify({
+            success: true,
+            ...result
+          }), {
+            headers: { "Content-Type": "application/json", ...corsHeaders }
+          });
+        } catch (error) {
+          console.error('❌ AI Analysis error:', error);
+          return new Response(JSON.stringify({
+            success: false,
+            error: "이미지 분석 중 오류가 발생했습니다.",
+            details: process.env.NODE_ENV === 'development' ? error.message : undefined
+          }), {
+            status: 500,
+            headers: { "Content-Type": "application/json", ...corsHeaders }
+          });
+        }
       }
       
       // ======================
