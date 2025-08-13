@@ -23,13 +23,7 @@ RUN bun run build || echo "No build script found, skipping..."
 # Remove dev dependencies to reduce image size
 RUN bun install --frozen-lockfile --production
 
-# Create a non-root user for security
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S bun -u 1001
-
-# Change ownership of the app directory
-RUN chown -R bun:nodejs /app
-USER bun
+# Keep as root for development (simpler deployment)
 
 # Expose port
 EXPOSE 3000
