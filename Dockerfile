@@ -1,11 +1,11 @@
-# Use the latest Bun image
-FROM oven/bun:1-alpine
+# Use Ubuntu-based Bun image for better compatibility
+FROM oven/bun:1
 
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies if needed
-RUN apk add --no-cache curl
+# Install system dependencies
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
 # Copy package files first for better caching
 COPY package.json ./
