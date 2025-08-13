@@ -9,7 +9,7 @@ RUN apk add --no-cache curl
 
 # Copy package files first for better caching
 COPY package.json ./
-COPY bun.lockb ./
+COPY bun.lock ./
 
 # Install all dependencies (including dev dependencies for build)
 RUN bun install --frozen-lockfile
