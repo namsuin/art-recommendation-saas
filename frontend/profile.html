@@ -603,6 +603,66 @@
                             </div>
                         </div>
 
+                        {/* 예술가 메뉴 */}
+                        {user?.role === 'artist' && (
+                            <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
+                                <h2 className="text-xl font-bold text-gray-800 mb-4">🎨 예술가 메뉴</h2>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <a
+                                        href="/artist-dashboard"
+                                        className="flex items-center space-x-3 p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+                                    >
+                                        <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
+                                            🖼️
+                                        </div>
+                                        <div>
+                                            <h3 className="font-semibold text-gray-800">작품 관리</h3>
+                                            <p className="text-sm text-gray-600">등록한 작품 수정 및 삭제</p>
+                                        </div>
+                                    </a>
+                                    <a
+                                        href="/artist-register"
+                                        className="flex items-center space-x-3 p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors"
+                                    >
+                                        <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center">
+                                            ➕
+                                        </div>
+                                        <div>
+                                            <h3 className="font-semibold text-gray-800">새 작품 등록</h3>
+                                            <p className="text-sm text-gray-600">새로운 작품을 등록하기</p>
+                                        </div>
+                                    </a>
+                                    <div className="flex items-center space-x-3 p-4 bg-purple-50 rounded-lg">
+                                        <div className="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center">
+                                            📊
+                                        </div>
+                                        <div>
+                                            <h3 className="font-semibold text-gray-800">판매 현황</h3>
+                                            <p className="text-sm text-gray-600">작품 판매 및 수익 통계</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* 예술가 신청 메뉴 (예술가가 아닌 경우) */}
+                        {user?.role !== 'artist' && (
+                            <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg shadow-lg p-6 mb-8">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <h2 className="text-xl font-bold text-gray-800 mb-2">🎨 예술가로 활동해보세요!</h2>
+                                        <p className="text-gray-600">작품을 등록하고 판매하며 수익을 창출할 수 있습니다.</p>
+                                    </div>
+                                    <a
+                                        href="/artist-signup"
+                                        className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
+                                    >
+                                        예술가 신청하기
+                                    </a>
+                                </div>
+                            </div>
+                        )}
+
                         {/* 통계 카드들 */}
                         {stats && (
                             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">

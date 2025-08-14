@@ -1,5 +1,5 @@
 // API Response Types
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   status: 'success' | 'error';
   data?: T;
   error?: string;
@@ -126,13 +126,13 @@ export interface RecommendationResponse {
 export interface WebSocketMessage {
   type: 'connection' | 'analysis_update' | 'recommendation_ready' | 'error' | 'echo';
   message: string;
-  data?: any;
+  data?: Record<string, unknown>;
   timestamp: number;
 }
 
 // AI Service Types  
 export interface AIServiceInterface {
-  analyzeImage(imageBuffer: Buffer): Promise<any>;
+  analyzeImage(imageBuffer: Buffer): Promise<AIAnalysisResult | null>;
   isServiceEnabled(): boolean;
 }
 

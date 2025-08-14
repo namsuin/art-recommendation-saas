@@ -64,8 +64,8 @@ export const ArtworkForm: React.FC<ArtworkFormProps> = ({
       };
 
       const url = editingArtwork 
-        ? `/api/admin/artworks/${editingArtwork.id}`
-        : '/api/admin/artworks';
+        ? `/api/artwork/${editingArtwork.id}`
+        : '/api/artwork/register';
       
       const method = editingArtwork ? 'PUT' : 'POST';
 

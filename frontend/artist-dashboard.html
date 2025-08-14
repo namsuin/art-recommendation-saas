@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>예술가 대시보드 - AI Art Recommendation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body class="bg-gray-50">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        const { createRoot } = ReactDOM;
+
+        // 작품 카드 컴포넌트
+        const ArtworkCard = ({ artwork, onEdit, onDelete }) => {
+            const [showMenu, setShowMenu] = useState(false);
+
+            return (
+                <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+                    <div className="relative">
+                        <img
+                            src={artwork.image_url || 'https://via.placeholder.com/300x300?text=No+Image'}
+                            alt={artwork.title}
+                            className="w-full h-48 object-cover"
+                        />
+                        <div className="absolute top-2 right-2">
+                            <button
+                                onClick={() => setShowMenu(!showMenu)}
+                                className="bg-white p-2 rounded-full shadow-md hover:bg-gray-100"
+                            >
+                                ⋮
+                            </button>
+                            {showMenu && (
+                                <div className="absolute right-0 mt-1 bg-white rounded-lg shadow-lg z-10">
+                                    <button
+                                        onClick={() => {
+                                            onEdit(artwork);
+                                            setShowMenu(false);
+                                        }}
+                                        className="block w-full text-left px-4 py-2 hover:bg-gray-100"
+                                    >
+                                        ✏️ 수정
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            if (confirm('정말 삭제하시겠습니까?')) {
+                                                onDelete(artwork.id);
+                                            }
+                                            setShowMenu(false);
+                                        }}
+                                        className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600"
+                                    >
+                                        🗑️ 삭제
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                    <div className="p-4">
+                        <h3 className="font-bold text-lg mb-1">{artwork.title}</h3>
+                        <p className="text-gray-600 text-sm mb-2">{artwork.category || '카테고리 없음'}</p>
+                        {artwork.price_krw && (
+                            <p className="text-lg font-semibold text-blue-600">
+                                ₩{artwork.price_krw.toLocaleString()}
+                            </p>
+                        )}
+                        <div className="mt-2 flex items-center justify-between">
+                            <span className={`px-2 py-1 rounded text-xs ${
+                                artwork.for_sale ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
+                            }`}>
+                                {artwork.for_sale ? '판매중' : '비매품'}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                                {new Date(artwork.created_at).toLocaleDateString()}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // 작품 수정 모달 컴포넌트
+        const ArtworkEditModal = ({ artwork, userId, onClose, onSuccess }) => {
+            const [formData, setFormData] = useState({
+                title: artwork?.title || '',
+                description: artwork?.description || '',
+                category: artwork?.category || '',
+                medium: artwork?.medium || '',
+                style: artwork?.style || '',
+                yearCreated: artwork?.year_created || '',
+                widthCm: artwork?.width_cm || '',
+                heightCm: artwork?.height_cm || '',
+                depthCm: artwork?.depth_cm || '',
+                priceKrw: artwork?.price_krw || '',
+                priceUsd: artwork?.price_usd || '',
+                forSale: artwork?.for_sale || false,
+                edition: artwork?.edition || '',
+                location: artwork?.location || '',
+                tags: artwork?.tags || '',
+                imageUrl: artwork?.image_url || ''
+            });
+
+            const [imageFile, setImageFile] = useState(null);
+            const [imagePreview, setImagePreview] = useState(artwork?.image_url || '');
+            const [isLoading, setIsLoading] = useState(false);
+            const [error, setError] = useState(null);
+
+            const handleInputChange = (e) => {
+                const { name, value, type, checked } = e.target;
+                setFormData(prev => ({
+                    ...prev,
+                    [name]: type === 'checkbox' ? checked : value
+                }));
+            };
+
+            const handleImageChange = (e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                    setImageFile(file);
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                        setImagePreview(reader.result);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                setIsLoading(true);
+                setError(null);
+
+                try {
+                    const formDataToSend = new FormData();
+                    formDataToSend.append('userId', userId);
+                    
+                    // 각 필드 추가
+                    Object.keys(formData).forEach(key => {
+                        if (formData[key] !== '' && formData[key] !== null) {
+                            formDataToSend.append(key, formData[key]);
+                        }
+                    });
+                    
+                    // 이미지 파일 추가
+                    if (imageFile) {
+                        formDataToSend.append('image', imageFile);
+                    }
+
+                    const response = await fetch(`/api/artwork/${artwork.id}`, {
+                        method: 'PUT',
+                        body: formDataToSend
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        onSuccess();
+                        onClose();
+                    } else {
+                        setError(result.error || '작품 수정에 실패했습니다.');
+                    }
+                } catch (error) {
+                    console.error('Update error:', error);
+                    setError('네트워크 오류가 발생했습니다.');
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+
+            return (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+                        <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
+                            <h2 className="text-2xl font-bold">작품 수정</h2>
+                            <button onClick={onClose} className="text-gray-500 hover:text-gray-700 text-2xl">
+                                ✕
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleSubmit} className="p-6">
+                            {error && (
+                                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                                    <p className="text-red-600">⚠️ {error}</p>
+                                </div>
+                            )}
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            작품 제목 *
+                                        </label>
+                                        <input
+                                            type="text"
+                                            name="title"
+                                            value={formData.title}
+                                            onChange={handleInputChange}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                            required
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            설명
+                                        </label>
+                                        <textarea
+                                            name="description"
+                                            value={formData.description}
+                                            onChange={handleInputChange}
+                                            rows={4}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            카테고리
+                                        </label>
+                                        <select
+                                            name="category"
+                                            value={formData.category}
+                                            onChange={handleInputChange}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                        >
+                                            <option value="">선택</option>
+                                            <option value="painting">회화</option>
+                                            <option value="sculpture">조각</option>
+                                            <option value="photography">사진</option>
+                                            <option value="digital">디지털 아트</option>
+                                            <option value="mixed">혼합 매체</option>
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            가격 (KRW)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            name="priceKrw"
+                                            value={formData.priceKrw}
+                                            onChange={handleInputChange}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="flex items-center space-x-2">
+                                            <input
+                                                type="checkbox"
+                                                name="forSale"
+                                                checked={formData.forSale}
+                                                onChange={handleInputChange}
+                                            />
+                                            <span className="text-sm font-medium text-gray-700">판매 가능</span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            작품 이미지
+                                        </label>
+                                        {imagePreview && (
+                                            <img
+                                                src={imagePreview}
+                                                alt="미리보기"
+                                                className="w-full h-48 object-cover rounded-lg mb-2"
+                                            />
+                                        )}
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={handleImageChange}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            스타일
+                                        </label>
+                                        <input
+                                            type="text"
+                                            name="style"
+                                            value={formData.style}
+                                            onChange={handleInputChange}
+                                            placeholder="예: 추상화, 사실주의"
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            위치
+                                        </label>
+                                        <input
+                                            type="text"
+                                            name="location"
+                                            value={formData.location}
+                                            onChange={handleInputChange}
+                                            placeholder="예: 서울"
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            태그
+                                        </label>
+                                        <input
+                                            type="text"
+                                            name="tags"
+                                            value={formData.tags}
+                                            onChange={handleInputChange}
+                                            placeholder="태그를 쉼표로 구분"
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="mt-6 flex justify-end space-x-3">
+                                <button
+                                    type="button"
+                                    onClick={onClose}
+                                    className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                                    disabled={isLoading}
+                                >
+                                    취소
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400"
+                                    disabled={isLoading}
+                                >
+                                    {isLoading ? '저장 중...' : '수정 완료'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            );
+        };
+
+        // 메인 대시보드 컴포넌트
+        const ArtistDashboard = () => {
+            const [artworks, setArtworks] = useState([]);
+            const [isLoading, setIsLoading] = useState(true);
+            const [editingArtwork, setEditingArtwork] = useState(null);
+            const [user, setUser] = useState(null);
+
+            useEffect(() => {
+                loadUserAndArtworks();
+            }, []);
+
+            const loadUserAndArtworks = async () => {
+                try {
+                    // 사용자 정보 가져오기
+                    const userStr = localStorage.getItem('user');
+                    if (!userStr) {
+                        window.location.href = '/signin';
+                        return;
+                    }
+
+                    const userData = JSON.parse(userStr);
+                    setUser(userData);
+
+                    // 예술가 작품 목록 가져오기
+                    const response = await fetch(`/api/artwork/artist?userId=${userData.id}`);
+                    const result = await response.json();
+
+                    if (result.success) {
+                        setArtworks(result.artworks || []);
+                    }
+                } catch (error) {
+                    console.error('Failed to load artworks:', error);
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+
+            const handleEdit = (artwork) => {
+                setEditingArtwork(artwork);
+            };
+
+            const handleDelete = async (artworkId) => {
+                try {
+                    const response = await fetch(`/api/artwork/${artworkId}?userId=${user.id}`, {
+                        method: 'DELETE'
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        setArtworks(prev => prev.filter(a => a.id !== artworkId));
+                        alert('작품이 삭제되었습니다.');
+                    } else {
+                        alert(result.error || '작품 삭제에 실패했습니다.');
+                    }
+                } catch (error) {
+                    console.error('Delete error:', error);
+                    alert('네트워크 오류가 발생했습니다.');
+                }
+            };
+
+            const handleUpdateSuccess = () => {
+                loadUserAndArtworks();
+                setEditingArtwork(null);
+            };
+
+            if (isLoading) {
+                return (
+                    <div className="min-h-screen flex items-center justify-center">
+                        <div className="text-center">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                            <p className="text-gray-600">로딩 중...</p>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="min-h-screen bg-gray-50">
+                    {/* 헤더 */}
+                    <div className="bg-white shadow-sm">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                            <div className="flex justify-between items-center py-4">
+                                <h1 className="text-2xl font-bold text-gray-900">내 작품 관리</h1>
+                                <div className="flex items-center space-x-4">
+                                    <a
+                                        href="/profile"
+                                        className="text-gray-600 hover:text-gray-900"
+                                    >
+                                        프로필
+                                    </a>
+                                    <a
+                                        href="/artist-register"
+                                        className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+                                    >
+                                        새 작품 등록
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 통계 */}
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+                            <div className="bg-white p-6 rounded-lg shadow">
+                                <h3 className="text-sm font-medium text-gray-500">전체 작품</h3>
+                                <p className="text-3xl font-bold text-gray-900">{artworks.length}</p>
+                            </div>
+                            <div className="bg-white p-6 rounded-lg shadow">
+                                <h3 className="text-sm font-medium text-gray-500">판매중</h3>
+                                <p className="text-3xl font-bold text-green-600">
+                                    {artworks.filter(a => a.for_sale).length}
+                                </p>
+                            </div>
+                            <div className="bg-white p-6 rounded-lg shadow">
+                                <h3 className="text-sm font-medium text-gray-500">비매품</h3>
+                                <p className="text-3xl font-bold text-gray-600">
+                                    {artworks.filter(a => !a.for_sale).length}
+                                </p>
+                            </div>
+                            <div className="bg-white p-6 rounded-lg shadow">
+                                <h3 className="text-sm font-medium text-gray-500">총 가치</h3>
+                                <p className="text-2xl font-bold text-blue-600">
+                                    ₩{artworks.reduce((sum, a) => sum + (a.price_krw || 0), 0).toLocaleString()}
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* 작품 목록 */}
+                        {artworks.length === 0 ? (
+                            <div className="bg-white rounded-lg shadow-md p-12 text-center">
+                                <p className="text-gray-500 mb-4">등록된 작품이 없습니다.</p>
+                                <a
+                                    href="/artist-register"
+                                    className="inline-block bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700"
+                                >
+                                    첫 작품 등록하기
+                                </a>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                                {artworks.map(artwork => (
+                                    <ArtworkCard
+                                        key={artwork.id}
+                                        artwork={artwork}
+                                        onEdit={handleEdit}
+                                        onDelete={handleDelete}
+                                    />
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* 수정 모달 */}
+                    {editingArtwork && (
+                        <ArtworkEditModal
+                            artwork={editingArtwork}
+                            userId={user?.id}
+                            onClose={() => setEditingArtwork(null)}
+                            onSuccess={handleUpdateSuccess}
+                        />
+                    )}
+                </div>
+            );
+        };
+
+        // 앱 렌더링
+        const root = createRoot(document.getElementById('root'));
+        root.render(<ArtistDashboard />);
+    </script>
+</body>
+</html>

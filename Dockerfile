@@ -25,12 +25,12 @@ RUN bun install --frozen-lockfile --production
 
 # Keep as root for development (simpler deployment)
 
-# Expose port
-EXPOSE 3000
+# Expose port (Render uses PORT env variable, default to 10000)
+EXPOSE ${PORT:-10000}
 
-# Health check
+# Health check (use PORT env variable)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:3000/api/health || exit 1
+  CMD curl -f http://localhost:${PORT:-10000}/api/health || exit 1
 
 # Start server
 CMD ["bun", "run", "start"]

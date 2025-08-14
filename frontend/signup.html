@@ -73,8 +73,12 @@
                     }
 
                     // 관리자 코드 확인
-                    if (formData.role === 'admin' && formData.adminCode !== 'ADMIN2025SECRET') {
-                        throw new Error('유효하지 않은 관리자 코드입니다.');
+                    if (formData.role === 'admin') {
+                        const configResponse = await fetch('/api/config');
+                        const config = await configResponse.json();
+                        if (formData.adminCode !== config.adminAuthCode) {
+                            throw new Error('유효하지 않은 관리자 코드입니다.');
+                        }
                     }
 
                     // API 호출로 회원가입

@@ -2,7 +2,7 @@
  * Standardized API response formats and error handling
  */
 
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;
@@ -14,7 +14,7 @@ export interface ApiResponse<T = any> {
 export interface ApiError {
   message: string;
   code?: string;
-  details?: any;
+  details?: Record<string, unknown>;
 }
 
 export class ApiResponseBuilder {
@@ -26,7 +26,7 @@ export class ApiResponseBuilder {
     };
   }
 
-  static error(message: string, code?: string, details?: any): ApiResponse {
+  static error(message: string, code?: string, details?: Record<string, unknown>): ApiResponse {
     return {
       success: false,
       error: message,
@@ -97,7 +97,7 @@ export class ApiResponseBuilder {
     });
   }
 
-  static badRequest(message: string = 'Bad request', details?: any): Response {
+  static badRequest(message: string = 'Bad request', details?: Record<string, unknown>): Response {
     return new Response(JSON.stringify({
       success: false,
       error: message,

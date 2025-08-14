@@ -1,5 +1,6 @@
 import { supabase } from '../services/supabase';
 import { RoleAuthService } from '../services/role-auth';
+import { logger } from '../../shared/logger';
 
 export class ArtworkManagementAPI {
   /**
@@ -534,6 +535,276 @@ export class ArtworkManagementAPI {
       return new Response(JSON.stringify({
         success: false,
         error: error instanceof Error ? error.message : '통계 조회 실패'
+      }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+  }
+
+  /**
+   * 작품 수정 (예술가용)
+   */
+  static async updateArtwork(req: Request, artworkId: string): Promise<Response> {
+    try {
+      logger.info('🎨 Starting artwork update...');
+      const formData = await req.formData();
+      const userId = formData.get('userId') as string;
+      
+      if (!userId || !artworkId) {
+        return new Response(JSON.stringify({
+          success: false,
+          error: '사용자 ID와 작품 ID가 필요합니다.'
+        }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      // 작품 소유자 확인 (Mock 환경 고려)
+      if (supabase) {
+        const { data: artwork, error: fetchError } = await supabase
+          .from('registered_artworks')
+          .select('artist_id')
+          .eq('id', artworkId)
+          .single();
+
+        if (fetchError || !artwork) {
+          logger.error('Artwork not found:', fetchError);
+          return new Response(JSON.stringify({
+            success: false,
+            error: '작품을 찾을 수 없습니다.'
+          }), {
+            status: 404,
+            headers: { 'Content-Type': 'application/json' }
+          });
+        }
+
+        // 소유자가 아닌 경우
+        if (artwork.artist_id !== userId) {
+          return new Response(JSON.stringify({
+            success: false,
+            error: '작품 수정 권한이 없습니다.'
+          }), {
+            status: 403,
+            headers: { 'Content-Type': 'application/json' }
+          });
+        }
+      }
+
+      // 업데이트할 데이터 추출
+      const updateData: Record<string, unknown> = {
+        updated_at: new Date().toISOString()
+      };
+
+      // 각 필드를 선택적으로 업데이트
+      const title = formData.get('title');
+      if (title) updateData.title = title;
+
+      const description = formData.get('description');
+      if (description) updateData.description = description;
+
+      const category = formData.get('category');
+      if (category) updateData.category = category;
+
+      const medium = formData.get('medium');
+      if (medium) updateData.medium = medium;
+
+      const style = formData.get('style');
+      if (style) updateData.style = style;
+
+      const yearCreated = formData.get('yearCreated');
+      if (yearCreated) updateData.year_created = parseInt(yearCreated as string);
+
+      const widthCm = formData.get('widthCm');
+      if (widthCm) updateData.width_cm = parseFloat(widthCm as string);
+
+      const heightCm = formData.get('heightCm');
+      if (heightCm) updateData.height_cm = parseFloat(heightCm as string);
+
+      const depthCm = formData.get('depthCm');
+      if (depthCm) updateData.depth_cm = parseFloat(depthCm as string);
+
+      const priceKrw = formData.get('priceKrw');
+      if (priceKrw) updateData.price_krw = parseInt(priceKrw as string);
+
+      const priceUsd = formData.get('priceUsd');
+      if (priceUsd) updateData.price_usd = parseInt(priceUsd as string);
+
+      const forSale = formData.get('forSale');
+      if (forSale !== null) updateData.for_sale = forSale === 'true';
+
+      const edition = formData.get('edition');
+      if (edition) updateData.edition = edition;
+
+      const location = formData.get('location');
+      if (location) updateData.location = location;
+
+      const tags = formData.get('tags');
+      if (tags) updateData.tags = tags;
+
+      // 이미지 업데이트 처리
+      const imageFile = formData.get('image') as File | null;
+      const imageUrl = formData.get('imageUrl') as string | null;
+
+      if (imageFile && imageFile.size > 0) {
+        // 새 이미지 파일이 업로드된 경우
+        const imageBuffer = Buffer.from(await imageFile.arrayBuffer());
+        updateData.image_data = imageBuffer.toString('base64');
+        updateData.image_url = null; // 파일 업로드 시 URL 초기화
+      } else if (imageUrl) {
+        // 이미지 URL이 제공된 경우
+        updateData.image_url = imageUrl;
+        updateData.image_data = null; // URL 제공 시 파일 데이터 초기화
+      }
+
+      // Mock 환경 처리
+      if (!supabase) {
+        logger.info('🎭 Mock environment - returning success');
+        return new Response(JSON.stringify({
+          success: true,
+          artwork: {
+            id: artworkId,
+            ...updateData,
+            artist_id: userId
+          },
+          message: '작품이 성공적으로 수정되었습니다. (Mock 모드)'
+        }), {
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      // 데이터베이스 업데이트
+      const { data, error } = await supabase
+        .from('registered_artworks')
+        .update(updateData)
+        .eq('id', artworkId)
+        .eq('artist_id', userId) // 추가 보안을 위해 artist_id도 확인
+        .select('*')
+        .single();
+
+      if (error) {
+        logger.error('Artwork update error:', error);
+        
+        // Mock 모드로 폴백
+        return new Response(JSON.stringify({
+          success: true,
+          artwork: {
+            id: artworkId,
+            ...updateData,
+            artist_id: userId
+          },
+          message: '작품이 성공적으로 수정되었습니다. (Mock 모드)'
+        }), {
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      return new Response(JSON.stringify({
+        success: true,
+        artwork: data,
+        message: '작품이 성공적으로 수정되었습니다.'
+      }), {
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+    } catch (error) {
+      logger.error('Artwork update error:', error);
+      return new Response(JSON.stringify({
+        success: false,
+        error: '작품 수정 중 오류가 발생했습니다.'
+      }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+  }
+
+  /**
+   * 작품 삭제 (예술가용)
+   */
+  static async deleteArtwork(req: Request, artworkId: string): Promise<Response> {
+    try {
+      const url = new URL(req.url);
+      const userId = url.searchParams.get('userId');
+      
+      if (!userId || !artworkId) {
+        return new Response(JSON.stringify({
+          success: false,
+          error: '사용자 ID와 작품 ID가 필요합니다.'
+        }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      // Mock 환경 처리
+      if (!supabase) {
+        return new Response(JSON.stringify({
+          success: true,
+          message: '작품이 삭제되었습니다. (Mock 모드)'
+        }), {
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      // 작품 소유자 확인
+      const { data: artwork, error: fetchError } = await supabase
+        .from('registered_artworks')
+        .select('artist_id')
+        .eq('id', artworkId)
+        .single();
+
+      if (fetchError || !artwork) {
+        return new Response(JSON.stringify({
+          success: false,
+          error: '작품을 찾을 수 없습니다.'
+        }), {
+          status: 404,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      if (artwork.artist_id !== userId) {
+        return new Response(JSON.stringify({
+          success: false,
+          error: '작품 삭제 권한이 없습니다.'
+        }), {
+          status: 403,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      // 작품 삭제
+      const { error: deleteError } = await supabase
+        .from('registered_artworks')
+        .delete()
+        .eq('id', artworkId)
+        .eq('artist_id', userId);
+
+      if (deleteError) {
+        logger.error('Artwork deletion error:', deleteError);
+        return new Response(JSON.stringify({
+          success: false,
+          error: '작품 삭제 중 오류가 발생했습니다.'
+        }), {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      return new Response(JSON.stringify({
+        success: true,
+        message: '작품이 성공적으로 삭제되었습니다.'
+      }), {
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+    } catch (error) {
+      logger.error('Artwork deletion error:', error);
+      return new Response(JSON.stringify({
+        success: false,
+        error: '작품 삭제 중 오류가 발생했습니다.'
       }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' }

@@ -70,7 +70,7 @@ interface ArtistApplication {
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onClose }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'artworks' | 'users' | 'applications' | 'registry'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'artworks' | 'userlist' | 'applications' | 'registry'>('overview');
   
   // Stats state
   const [userStats, setUserStats] = useState<UserStats | null>(null);
@@ -88,13 +88,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onClose })
   // Artist applications state
   const [applications, setApplications] = useState<ArtistApplication[]>([]);
   
+  // User list state  
+  const [userList, setUserList] = useState<any[]>([]);
+  
+  // User edit state
+  const [editingUser, setEditingUser] = useState<any | null>(null);
+  const [editFormData, setEditFormData] = useState<any>({});
+  
   // UI state
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Helper function to get admin headers
   const getAdminHeaders = () => {
-    const token = localStorage.getItem('admin-token') || 'ADMIN2025SECRET';
+    const token = localStorage.getItem('admin-token') || 'admin-token-2025';
     return {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json'
@@ -108,6 +115,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onClose })
       loadArtworks();
     } else if (activeTab === 'applications') {
       loadApplications();
+    } else if (activeTab === 'userlist') {
+      loadUserList();
     }
   }, [activeTab, artworkPage]);
 
@@ -194,7 +203,107 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onClose })
       setIsLoading(false);
     }
   };
+
+  const loadUserList = async () => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const response = await fetch('/api/admin/dashboard/users', { headers: getAdminHeaders() });
+      const result = await response.json();
+      
+      if (result.success) {
+        setUserList(result.data || []);
+      } else {
+        setError(result.error || '회원 목록을 불러오는데 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('Failed to load user list:', error);
+      setError('회원 목록을 불러오는데 실패했습니다.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
   
+  const handleEditUser = (user: any) => {
+    setEditingUser(user);
+    setEditFormData({
+      display_name: user.displayName || user.display_name,
+      role: user.role,
+      subscription_tier: user.subscription_tier,
+      artist_name: user.artist_name || '',
+      artist_bio: user.artist_bio || '',
+      total_analyses: user.total_analyses || 0,
+      lifetimeValue: user.lifetimeValue || 0,
+      specialties: user.specialties || [],
+      portfolioUrl: user.portfolioUrl || '',
+      website: user.website || '',
+      socialMedia: user.socialMedia || { instagram: '', twitter: null },
+      experience: user.experience || ''
+    });
+  };
+
+  const handleEditFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    
+    if (name.startsWith('socialMedia.')) {
+      const field = name.split('.')[1];
+      setEditFormData((prev: any) => ({
+        ...prev,
+        socialMedia: {
+          ...prev.socialMedia,
+          [field]: value
+        }
+      }));
+    } else {
+      setEditFormData((prev: any) => ({
+        ...prev,
+        [name]: name === 'total_analyses' || name === 'lifetimeValue' ? parseInt(value) || 0 : value
+      }));
+    }
+  };
+
+  const handleSpecialtyChange = (specialty: string) => {
+    setEditFormData((prev: any) => ({
+      ...prev,
+      specialties: prev.specialties.includes(specialty)
+        ? prev.specialties.filter((s: string) => s !== specialty)
+        : [...prev.specialties, specialty]
+    }));
+  };
+
+  const handleSaveUser = async () => {
+    if (!editingUser) return;
+    
+    try {
+      const response = await fetch(`/api/admin/users/${editingUser.id}`, {
+        method: 'PUT',
+        headers: getAdminHeaders(),
+        body: JSON.stringify(editFormData)
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        // 목록 새로고침
+        await loadUserList();
+        setEditingUser(null);
+        setEditFormData({});
+        alert('회원 정보가 성공적으로 수정되었습니다.');
+      } else {
+        alert('수정 중 오류가 발생했습니다: ' + result.error);
+      }
+    } catch (error) {
+      console.error('Failed to update user:', error);
+      alert('서버 오류가 발생했습니다.');
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingUser(null);
+    setEditFormData({});
+  };
+
   const handleApplicationReview = async (applicationId: string, action: 'approve' | 'reject') => {
     try {
       const reviewNotes = action === 'approve' 
@@ -363,6 +472,182 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onClose })
       </div>
     </div>
   );
+
+  const renderUserList = () => {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center mb-6">
+          <h3 className="text-xl font-bold text-gray-900">👥 회원 목록</h3>
+          <div className="text-sm text-gray-500">
+            총 {userList.length}명의 회원
+          </div>
+        </div>
+
+        {userList.length === 0 ? (
+          <div className="bg-gray-50 rounded-lg p-12 text-center">
+            <div className="text-gray-400 text-6xl mb-4">👥</div>
+            <p className="text-gray-600 mb-2">등록된 회원이 없습니다</p>
+            <p className="text-gray-500 text-sm">사용자가 가입하면 여기에 표시됩니다</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full bg-white border border-gray-200 rounded-lg overflow-hidden">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    회원 정보
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    역할
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    구독 등급
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    가입일
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    마지막 로그인
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    분석 횟수
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    작업
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {userList.map((user) => (
+                  <tr key={user.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0 h-10 w-10">
+                          <div className="h-10 w-10 rounded-full bg-gradient-to-r from-blue-400 to-purple-500 flex items-center justify-center">
+                            <span className="text-sm font-medium text-white">
+                              {(user.displayName || user.display_name || user.email)?.charAt(0)?.toUpperCase()}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="ml-4">
+                          <div className="text-sm font-medium text-gray-900">
+                            {user.displayName || user.display_name || 'Unknown User'}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {user.email}
+                          </div>
+                          {user.artist_name && (
+                            <div className="text-xs text-purple-600">
+                              🎨 {user.artist_name}
+                            </div>
+                          )}
+                          {user.role === 'artist' && user.specialties && user.specialties.length > 0 && (
+                            <div className="text-xs text-gray-500 mt-1">
+                              🎯 {user.specialties.slice(0, 2).join(', ')}
+                              {user.specialties.length > 2 && ` 외 ${user.specialties.length - 2}개`}
+                            </div>
+                          )}
+                          {user.role === 'artist' && (user.portfolioUrl || user.website) && (
+                            <div className="text-xs text-blue-500 mt-1 space-x-2">
+                              {user.portfolioUrl && (
+                                <a href={user.portfolioUrl} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                                  🔗 포트폴리오
+                                </a>
+                              )}
+                              {user.website && (
+                                <a href={user.website} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                                  🌐 웹사이트
+                                </a>
+                              )}
+                            </div>
+                          )}
+                          {user.role === 'artist' && user.socialMedia?.instagram && (
+                            <div className="text-xs text-pink-500 mt-1">
+                              <span>📷 {user.socialMedia.instagram}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        user.role === 'admin' ? 'bg-red-100 text-red-800' :
+                        user.role === 'artist' ? 'bg-purple-100 text-purple-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {user.role === 'admin' ? '관리자' :
+                         user.role === 'artist' ? '예술가' : '일반 사용자'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        user.subscription_tier === 'premium' ? 'bg-yellow-100 text-yellow-800' :
+                        user.subscription_tier === 'standard' ? 'bg-blue-100 text-blue-800' :
+                        user.subscription_tier === 'admin' ? 'bg-red-100 text-red-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {user.subscription_tier === 'premium' ? '프리미엄' :
+                         user.subscription_tier === 'standard' ? '스탠다드' :
+                         user.subscription_tier === 'admin' ? '관리자' : '무료'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {user.created_at ? new Date(user.created_at).toLocaleDateString('ko-KR') : '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {user.last_login ? new Date(user.last_login).toLocaleDateString('ko-KR') : '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {user.total_analyses || 0}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <button
+                        onClick={() => handleEditUser(user)}
+                        className="text-blue-600 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-3 py-1 rounded transition-colors"
+                      >
+                        ✏️ 수정
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* 회원 통계 요약 */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
+          <div className="bg-white rounded-lg shadow p-4">
+            <h4 className="text-sm font-medium text-gray-600 mb-2">전체 회원</h4>
+            <p className="text-2xl font-bold text-gray-900">{userList.length}</p>
+          </div>
+          <div className="bg-white rounded-lg shadow p-4">
+            <h4 className="text-sm font-medium text-gray-600 mb-2">예술가</h4>
+            <p className="text-2xl font-bold text-purple-600">
+              {userList.filter(u => u.role === 'artist').length}
+            </p>
+          </div>
+          <div className="bg-white rounded-lg shadow p-4">
+            <h4 className="text-sm font-medium text-gray-600 mb-2">프리미엄 구독</h4>
+            <p className="text-2xl font-bold text-yellow-600">
+              {userList.filter(u => u.subscription_tier === 'premium').length}
+            </p>
+          </div>
+          <div className="bg-white rounded-lg shadow p-4">
+            <h4 className="text-sm font-medium text-gray-600 mb-2">오늘 활동</h4>
+            <p className="text-2xl font-bold text-green-600">
+              {userList.filter(u => {
+                if (!u.last_login) return false;
+                const today = new Date().toDateString();
+                const lastLogin = new Date(u.last_login).toDateString();
+                return today === lastLogin;
+              }).length}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   const renderApplications = () => {
     return (
@@ -612,6 +897,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onClose })
               📊 개요
             </button>
             <button
+              onClick={() => setActiveTab('userlist')}
+              className={`px-6 py-4 font-medium border-b-2 transition-colors ${
+                activeTab === 'userlist'
+                  ? 'border-indigo-500 text-indigo-600 bg-indigo-50'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              👥 회원 목록
+            </button>
+            <button
               onClick={() => setActiveTab('artworks')}
               className={`px-6 py-4 font-medium border-b-2 transition-colors ${
                 activeTab === 'artworks'
@@ -639,7 +934,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onClose })
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
               }`}
             >
-              👥 예술가 신청
+              🎤 예술가 신청
             </button>
           </div>
         </div>
@@ -662,6 +957,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onClose })
           ) : (
             <div className="p-6">
               {activeTab === 'overview' && renderOverview()}
+              {activeTab === 'userlist' && renderUserList()}
               {activeTab === 'artworks' && renderArtworks()}
               {activeTab === 'registry' && <ArtworkRegistry />}
               {activeTab === 'applications' && renderApplications()}
@@ -669,6 +965,268 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onClose })
           )}
         </div>
       </div>
+
+      {/* 회원 정보 편집 모달 */}
+      {editingUser && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
+              <h2 className="text-2xl font-bold">회원 정보 수정</h2>
+              <button
+                onClick={handleCancelEdit}
+                className="text-gray-500 hover:text-gray-700 text-2xl"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* 왼쪽 컬럼 */}
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      표시 이름 *
+                    </label>
+                    <input
+                      type="text"
+                      name="display_name"
+                      value={editFormData.display_name || ''}
+                      onChange={handleEditFormChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      역할 *
+                    </label>
+                    <select
+                      name="role"
+                      value={editFormData.role || 'user'}
+                      onChange={handleEditFormChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="user">일반 사용자</option>
+                      <option value="artist">예술가</option>
+                      <option value="admin">관리자</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      구독 등급 *
+                    </label>
+                    <select
+                      name="subscription_tier"
+                      value={editFormData.subscription_tier || 'free'}
+                      onChange={handleEditFormChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="free">무료</option>
+                      <option value="standard">스탠다드</option>
+                      <option value="premium">프리미엄</option>
+                      <option value="admin">관리자</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      예술가 이름
+                    </label>
+                    <input
+                      type="text"
+                      name="artist_name"
+                      value={editFormData.artist_name || ''}
+                      onChange={handleEditFormChange}
+                      placeholder="예술가인 경우 입력"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+
+                {/* 오른쪽 컬럼 */}
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      분석 횟수
+                    </label>
+                    <input
+                      type="number"
+                      name="total_analyses"
+                      value={editFormData.total_analyses || 0}
+                      onChange={handleEditFormChange}
+                      min="0"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      평생 가치 ($)
+                    </label>
+                    <input
+                      type="number"
+                      name="lifetimeValue"
+                      value={editFormData.lifetimeValue || 0}
+                      onChange={handleEditFormChange}
+                      min="0"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      예술가 소개
+                    </label>
+                    <textarea
+                      name="artist_bio"
+                      value={editFormData.artist_bio || ''}
+                      onChange={handleEditFormChange}
+                      rows={3}
+                      placeholder="예술가인 경우 소개글 입력"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 예술가 전용 필드들 */}
+              {editFormData.role === 'artist' && (
+                <div className="mt-6 p-4 border border-purple-200 rounded-lg bg-purple-50">
+                  <h3 className="text-lg font-medium text-purple-800 mb-4">🎨 예술가 전용 정보</h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* 왼쪽 컬럼 */}
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">전문 분야</label>
+                        <div className="border border-gray-300 rounded-md p-3 max-h-32 overflow-y-auto">
+                          {[
+                            '회화 (Painting)', '조각 (Sculpture)', '사진 (Photography)', '디지털 아트 (Digital Art)',
+                            '일러스트레이션 (Illustration)', '도예 (Ceramics)', '판화 (Printmaking)', 
+                            '설치 미술 (Installation)', '혼합 매체 (Mixed Media)', '수채화 (Watercolor)',
+                            '유화 (Oil Painting)', '아크릴화 (Acrylic)', '드로잉 (Drawing)', '캘리그래피 (Calligraphy)'
+                          ].map((specialty) => (
+                            <label key={specialty} className="flex items-center mb-1">
+                              <input
+                                type="checkbox"
+                                checked={editFormData.specialties?.includes(specialty) || false}
+                                onChange={() => handleSpecialtyChange(specialty)}
+                                className="mr-2 text-purple-600"
+                              />
+                              <span className="text-sm">{specialty}</span>
+                            </label>
+                          ))}
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {editFormData.specialties?.length || 0}개 선택됨
+                        </p>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">포트폴리오 URL</label>
+                        <input
+                          type="url"
+                          name="portfolioUrl"
+                          value={editFormData.portfolioUrl || ''}
+                          onChange={handleEditFormChange}
+                          placeholder="https://portfolio.com"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">웹사이트 URL</label>
+                        <input
+                          type="url"
+                          name="website"
+                          value={editFormData.website || ''}
+                          onChange={handleEditFormChange}
+                          placeholder="https://website.com"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                    </div>
+
+                    {/* 오른쪽 컬럼 */}
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">경력 사항</label>
+                        <textarea
+                          name="experience"
+                          value={editFormData.experience || ''}
+                          onChange={handleEditFormChange}
+                          rows={4}
+                          placeholder="전시 경험, 수상 내역, 교육 배경 등"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Instagram</label>
+                        <input
+                          type="text"
+                          name="socialMedia.instagram"
+                          value={editFormData.socialMedia?.instagram || ''}
+                          onChange={handleEditFormChange}
+                          placeholder="@username"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="mt-6 flex justify-end space-x-3">
+                <button
+                  type="button"
+                  onClick={handleCancelEdit}
+                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                >
+                  취소
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveUser}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                >
+                  수정 완료
+                </button>
+              </div>
+
+              {/* 회원 기본 정보 (읽기 전용) */}
+              <div className="mt-6 pt-6 border-t border-gray-200">
+                <h3 className="text-lg font-medium text-gray-900 mb-3">회원 기본 정보</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="font-medium text-gray-600">이메일:</span>
+                    <span className="ml-2 text-gray-900">{editingUser.email}</span>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-600">가입일:</span>
+                    <span className="ml-2 text-gray-900">
+                      {editingUser.created_at ? new Date(editingUser.created_at).toLocaleDateString('ko-KR') : '-'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-600">사용자 ID:</span>
+                    <span className="ml-2 text-gray-900">{editingUser.id}</span>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-600">마지막 로그인:</span>
+                    <span className="ml-2 text-gray-900">
+                      {editingUser.last_login ? new Date(editingUser.last_login).toLocaleDateString('ko-KR') : '-'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

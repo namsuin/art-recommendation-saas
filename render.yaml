@@ -9,49 +9,52 @@ services:
     # Build settings
     buildCommand: |
       echo "Building with Bun on Render"
-      echo "Node version: $(node --version)"
-      echo "Bun version: $(bun --version)"
-    # Environment variables
+      echo "Node version: $(node --version)" || echo "Node not available"
+      echo "Bun version: $(bun --version)" || echo "Bun not available in build"
+    # Environment variables for production
     envVars:
       - key: PORT
-        value: 3000
+        value: 10000
       - key: NODE_ENV
         value: production
       - key: BUN_ENV
         value: production
-      # Database
+      # Mock Database (no external dependencies)
       - key: SUPABASE_URL
-        sync: false
+        value: https://mock.supabase.co
       - key: SUPABASE_ANON_KEY
-        sync: false
+        value: mock-anon-key
       - key: SUPABASE_SERVICE_ROLE_KEY
-        sync: false
-      # AI Services (Optional)
+        value: mock-service-key
+      # AI Services (Optional - using mock for free tier)
       - key: GOOGLE_CLOUD_PROJECT_ID
-        sync: false
+        value: mock-project
       - key: GOOGLE_CLOUD_KEY_FILE
-        sync: false
+        value: mock-key-file
       - key: CLARIFAI_API_KEY
-        sync: false
+        value: mock-clarifai-key
       - key: REPLICATE_API_TOKEN
-        sync: false
+        value: mock-replicate-token
       - key: GEMINI_API_KEY
-        sync: false
+        value: mock-gemini-key
       - key: MISTRAL_API_KEY
-        sync: false
+        value: mock-mistral-key
       - key: OPENAI_API_KEY
-        sync: false
-      # Payment
+        value: mock-openai-key
+      # Payment (Mock for demo)
       - key: STRIPE_SECRET_KEY
-        sync: false
+        value: sk_test_mock
       - key: STRIPE_PUBLISHABLE_KEY
-        sync: false
+        value: pk_test_mock
       # Admin
       - key: ADMIN_AUTH_CODE
         value: ADMIN2025SECRET
     # Scaling and performance
     autoDeploy: true
     region: oregon
+    # Custom domain
+    domains:
+      - art-recommendation-saas.onrender.com
     # Resource limits for free tier
     disk:
       name: data

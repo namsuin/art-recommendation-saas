@@ -21,10 +21,29 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedRole, setSelectedRole] = useState<'user' | 'artist'>('user');
+  const [artistName, setArtistName] = useState('');
   const [artistBio, setArtistBio] = useState('');
+  const [specialties, setSpecialties] = useState<string[]>([]);
   const [portfolioUrl, setPortfolioUrl] = useState('');
-  const [instagramUrl, setInstagramUrl] = useState('');
   const [websiteUrl, setWebsiteUrl] = useState('');
+  const [instagramHandle, setInstagramHandle] = useState('');
+  const [experience, setExperience] = useState('');
+
+  // 전문 분야 옵션
+  const specialtyOptions = [
+    '회화 (Painting)', '조각 (Sculpture)', '사진 (Photography)', '디지털 아트 (Digital Art)',
+    '일러스트레이션 (Illustration)', '도예 (Ceramics)', '판화 (Printmaking)', 
+    '설치 미술 (Installation)', '혼합 매체 (Mixed Media)', '수채화 (Watercolor)',
+    '유화 (Oil Painting)', '아크릴화 (Acrylic)', '드로잉 (Drawing)', '캘리그래피 (Calligraphy)'
+  ];
+
+  const handleSpecialtyChange = (specialty: string) => {
+    setSpecialties(prev => 
+      prev.includes(specialty)
+        ? prev.filter(s => s !== specialty)
+        : [...prev, specialty]
+    );
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,10 +52,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
     try {
       const artistInfo = selectedRole === 'artist' && mode === 'signup' ? {
-        artistBio,
+        artist_name: artistName,
+        artist_bio: artistBio,
+        specialties,
         portfolioUrl,
-        instagramUrl,
-        websiteUrl
+        website: websiteUrl,
+        socialMedia: {
+          instagram: instagramHandle,
+          twitter: null
+        },
+        experience
       } : undefined;
 
       const result = await onAuthSuccess(
@@ -55,10 +80,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       setEmail('');
       setPassword('');
       setDisplayName('');
+      setArtistName('');
       setArtistBio('');
+      setSpecialties([]);
       setPortfolioUrl('');
-      setInstagramUrl('');
       setWebsiteUrl('');
+      setInstagramHandle('');
+      setExperience('');
       setSelectedRole('user');
 
     } catch (error) {
@@ -179,44 +207,106 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               {/* 예술가 추가 정보 */}
               {selectedRole === 'artist' && (
                 <div className="space-y-4 p-4 bg-purple-50 rounded-lg">
-                  <h4 className="font-semibold text-purple-800 text-sm">예술가 정보</h4>
+                  <h4 className="font-semibold text-purple-800 text-sm">🎨 예술가 정보</h4>
                   
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      작가 소개 (선택)
+                      예술가 이름
+                    </label>
+                    <input
+                      type="text"
+                      value={artistName}
+                      onChange={(e) => setArtistName(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      placeholder="예술가명 또는 작업실명"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      전문 분야 (복수 선택 가능)
+                    </label>
+                    <div className="border border-gray-300 rounded-md p-3 max-h-32 overflow-y-auto bg-white">
+                      <div className="grid grid-cols-2 gap-1">
+                        {specialtyOptions.map((specialty) => (
+                          <label key={specialty} className="flex items-center text-xs">
+                            <input
+                              type="checkbox"
+                              checked={specialties.includes(specialty)}
+                              onChange={() => handleSpecialtyChange(specialty)}
+                              className="mr-1 text-purple-600"
+                            />
+                            <span className="truncate">{specialty}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">{specialties.length}개 선택됨</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      작가 소개
                     </label>
                     <textarea
                       value={artistBio}
                       onChange={(e) => setArtistBio(e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      placeholder="간단한 자기소개를 작성해주세요"
+                      placeholder="작품 스타일, 철학, 경력 등을 간단히 소개해주세요"
                       rows={2}
                     />
                   </div>
 
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        포트폴리오 URL
+                      </label>
+                      <input
+                        type="url"
+                        value={portfolioUrl}
+                        onChange={(e) => setPortfolioUrl(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        placeholder="https://portfolio.com"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        웹사이트 URL
+                      </label>
+                      <input
+                        type="url"
+                        value={websiteUrl}
+                        onChange={(e) => setWebsiteUrl(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        placeholder="https://website.com"
+                      />
+                    </div>
+                  </div>
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      포트폴리오 URL (선택)
+                      Instagram
                     </label>
                     <input
-                      type="url"
-                      value={portfolioUrl}
-                      onChange={(e) => setPortfolioUrl(e.target.value)}
+                      type="text"
+                      value={instagramHandle}
+                      onChange={(e) => setInstagramHandle(e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      placeholder="https://your-portfolio.com"
+                      placeholder="@username"
                     />
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Instagram (선택)
+                      경력 사항 (선택)
                     </label>
-                    <input
-                      type="text"
-                      value={instagramUrl}
-                      onChange={(e) => setInstagramUrl(e.target.value)}
+                    <textarea
+                      value={experience}
+                      onChange={(e) => setExperience(e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      placeholder="@username"
+                      placeholder="전시 경험, 수상 내역, 교육 배경 등"
+                      rows={2}
                     />
                   </div>
 

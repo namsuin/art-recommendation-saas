@@ -1,4 +1,5 @@
 import type { ClarifaiResult } from '../../shared/types';
+import { logger } from '../../shared/logger';
 
 export class ClarifaiService {
   private isEnabled: boolean;
@@ -10,9 +11,9 @@ export class ClarifaiService {
     if (apiKey) {
       this.apiKey = apiKey;
       this.isEnabled = true;
-      console.log('✅ Clarifai API initialized');
+      logger.info('✅ Clarifai API initialized');
     } else {
-      console.warn('⚠️ Clarifai API key not found');
+      logger.warn('⚠️ Clarifai API key not found');
       this.isEnabled = false;
       this.apiKey = '';
     }

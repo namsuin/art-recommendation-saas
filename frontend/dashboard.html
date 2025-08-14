@@ -300,20 +300,66 @@
             const [applications, setApplications] = useState([]);
             const [loading, setLoading] = useState(true);
             const [error, setError] = useState(null);
+            const [isAuthenticated, setIsAuthenticated] = useState(false);
+            const [editingApplication, setEditingApplication] = useState(null);
+            const [editFormData, setEditFormData] = useState(null);
 
             // Mock 관리자 ID (실제로는 인증 시스템에서 가져와야 함)
             const adminUserId = 'admin_user_1';
 
             useEffect(() => {
-                loadDashboardData();
+                checkAdminAuth();
             }, []);
+
+            const checkAdminAuth = async () => {
+                try {
+                    // 관리자 토큰 확인
+                    const adminToken = localStorage.getItem('admin-token');
+                    if (!adminToken) {
+                        window.location.href = '/admin.html';
+                        return;
+                    }
+
+                    // 서버에서 관리자 토큰 검증
+                    const authResponse = await fetch('/api/admin/verify', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${adminToken}`
+                        }
+                    });
+
+                    if (authResponse.ok) {
+                        const authResult = await authResponse.json();
+                        if (authResult.valid) {
+                            setIsAuthenticated(true);
+                            loadDashboardData();
+                        } else {
+                            localStorage.removeItem('admin-token');
+                            window.location.href = '/admin.html';
+                        }
+                    } else {
+                        localStorage.removeItem('admin-token');
+                        window.location.href = '/admin.html';
+                    }
+                } catch (error) {
+                    console.error('Dashboard auth check error:', error);
+                    localStorage.removeItem('admin-token');
+                    window.location.href = '/admin.html';
+                }
+            };
 
             const loadDashboardData = async () => {
                 try {
                     setLoading(true);
                     
+                    const adminToken = localStorage.getItem('admin-token');
+                    const headers = {
+                        'Authorization': `Bearer ${adminToken}`
+                    };
+                    
                     // 대시보드 통계 로드
-                    const statsResponse = await fetch(`/api/admin/dashboard/stats?userId=${adminUserId}`);
+                    const statsResponse = await fetch(`/api/admin/dashboard/stats?userId=${adminUserId}`, { headers });
                     const statsResult = await statsResponse.json();
                     
                     if (statsResult.success) {
@@ -321,15 +367,22 @@
                     }
 
                     // 사용자 데이터 로드
-                    const usersResponse = await fetch(`/api/admin/dashboard/users?userId=${adminUserId}&limit=20`);
+                    console.log('Fetching users from:', `/api/admin/dashboard/users?userId=${adminUserId}&limit=20`);
+                    const usersResponse = await fetch(`/api/admin/dashboard/users?userId=${adminUserId}&limit=20`, { headers });
+                    console.log('Users response status:', usersResponse.status);
                     const usersResult = await usersResponse.json();
+                    console.log('Users response data:', usersResult);
                     
                     if (usersResult.success) {
                         setUsers(usersResult.data);
+                        console.log('Users state set to:', usersResult.data);
+                    } else {
+                        console.error('Failed to load users:', usersResult.error);
+                        setError(`회원 목록 로드 실패: ${usersResult.error || '알 수 없는 오류'}`);
                     }
 
                     // 수익 데이터 로드
-                    const revenueResponse = await fetch(`/api/admin/dashboard/revenue?userId=${adminUserId}&days=30`);
+                    const revenueResponse = await fetch(`/api/admin/dashboard/revenue?userId=${adminUserId}&days=30`, { headers });
                     const revenueResult = await revenueResponse.json();
                     
                     if (revenueResult.success) {
@@ -337,7 +390,7 @@
                     }
 
                     // 예술가 신청 데이터 로드
-                    const applicationsResponse = await fetch(`/api/admin/artist-applications`);
+                    const applicationsResponse = await fetch(`/api/admin/artist-applications`, { headers });
                     const applicationsResult = await applicationsResponse.json();
                     
                     if (applicationsResult.success) {
@@ -380,10 +433,96 @@
                 }
             };
 
-            if (loading) {
+            // 예술가 신청 수정 핸들러
+            const handleEditApplication = (application) => {
+                setEditingApplication(application);
+                setEditFormData({
+                    artist_name: application.artist_name,
+                    bio: application.bio,
+                    statement: application.statement,
+                    portfolio_url: application.portfolio_url || '',
+                    instagram_url: application.instagram_url || '',
+                    experience: application.experience,
+                    specialties: application.specialties.join(', ')
+                });
+            };
+
+            const handleEditFormChange = (e) => {
+                const { name, value } = e.target;
+                setEditFormData(prev => ({
+                    ...prev,
+                    [name]: value
+                }));
+            };
+
+            const handleEditFormSubmit = async (e) => {
+                e.preventDefault();
+                
+                try {
+                    const updatedData = {
+                        ...editFormData,
+                        specialties: editFormData.specialties.split(',').map(s => s.trim()).filter(s => s)
+                    };
+
+                    const response = await fetch(`/api/admin/artist-applications/${editingApplication.id}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(updatedData)
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        alert('예술가 신청이 수정되었습니다.');
+                        setEditingApplication(null);
+                        setEditFormData(null);
+                        loadDashboardData(); // 데이터 새로고침
+                    } else {
+                        alert('수정 중 오류가 발생했습니다: ' + result.error);
+                    }
+                } catch (error) {
+                    console.error('Application edit error:', error);
+                    alert('서버 오류가 발생했습니다.');
+                }
+            };
+
+            const cancelEdit = () => {
+                setEditingApplication(null);
+                setEditFormData(null);
+            };
+
+            // 예술가 신청 삭제 핸들러
+            const handleDeleteApplication = async (applicationId) => {
+                try {
+                    const response = await fetch(`/api/admin/artist-applications/${applicationId}`, {
+                        method: 'DELETE'
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        alert('예술가 신청이 삭제되었습니다.');
+                        loadDashboardData(); // 데이터 새로고침
+                    } else {
+                        alert('삭제 중 오류가 발생했습니다: ' + result.error);
+                    }
+                } catch (error) {
+                    console.error('Application delete error:', error);
+                    alert('서버 오류가 발생했습니다.');
+                }
+            };
+
+            if (loading || !isAuthenticated) {
                 return (
                     <div className="min-h-screen flex items-center justify-center">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+                        <div className="text-center">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                            <p className="text-gray-600">
+                                {!isAuthenticated ? '관리자 인증 확인 중...' : '대시보드 로딩 중...'}
+                            </p>
+                        </div>
                     </div>
                 );
             }
@@ -445,6 +584,19 @@
                                     }`}
                                 >
                                     📊 개요
+                                </button>
+                                <button
+                                    onClick={() => setActiveTab('users')}
+                                    className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                                        activeTab === 'users'
+                                            ? 'border-blue-500 text-blue-600'
+                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                    }`}
+                                >
+                                    👥 회원 목록
+                                    <span className="ml-1 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                        {users.length}
+                                    </span>
                                 </button>
                                 <button
                                     onClick={() => setActiveTab('applications')}
@@ -533,8 +685,159 @@
                                 </div>
 
                                 {/* 사용자 테이블 */}
-                                {users.length > 0 && <UserTable users={users} />}
+                                <div className="mb-4">
+                                    <p className="text-sm text-gray-600">사용자 수: {users.length}</p>
+                                </div>
+                                {users.length > 0 ? (
+                                    <UserTable users={users} />
+                                ) : (
+                                    <div className="bg-white rounded-lg shadow p-6">
+                                        <p className="text-gray-500 text-center">등록된 사용자가 없습니다.</p>
+                                    </div>
+                                )}
                             </>
+                        )}
+
+                        {activeTab === 'users' && (
+                            <div className="space-y-6">
+                                <div className="bg-white rounded-lg shadow">
+                                    <div className="px-6 py-4 border-b border-gray-200">
+                                        <h3 className="text-lg font-medium text-gray-900">
+                                            회원 목록
+                                            <span className="ml-2 text-sm text-gray-500">
+                                                (총 {users.length}명)
+                                            </span>
+                                        </h3>
+                                    </div>
+                                    
+                                    {users.length === 0 ? (
+                                        <div className="px-6 py-12 text-center">
+                                            <div className="text-gray-400 text-6xl mb-4">👥</div>
+                                            <h3 className="text-lg font-medium text-gray-900 mb-2">회원이 없습니다</h3>
+                                            <p className="text-gray-500">아직 가입한 회원이 없습니다.</p>
+                                        </div>
+                                    ) : (
+                                        <div className="overflow-x-auto">
+                                            <table className="min-w-full divide-y divide-gray-200">
+                                                <thead className="bg-gray-50">
+                                                    <tr>
+                                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                            회원 정보
+                                                        </th>
+                                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                            역할
+                                                        </th>
+                                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                            구독 등급
+                                                        </th>
+                                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                            가입일
+                                                        </th>
+                                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                            마지막 로그인
+                                                        </th>
+                                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                            분석 횟수
+                                                        </th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="bg-white divide-y divide-gray-200">
+                                                    {users.map((user) => (
+                                                        <tr key={user.id}>
+                                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                                <div className="flex items-center">
+                                                                    <div className="flex-shrink-0 h-10 w-10">
+                                                                        <div className="h-10 w-10 rounded-full bg-gradient-to-r from-blue-400 to-purple-500 flex items-center justify-center">
+                                                                            <span className="text-sm font-medium text-white">
+                                                                                {(user.displayName || user.display_name || user.email)?.charAt(0)?.toUpperCase()}
+                                                                            </span>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="ml-4">
+                                                                        <div className="text-sm font-medium text-gray-900">
+                                                                            {user.displayName || user.display_name || 'Unknown User'}
+                                                                        </div>
+                                                                        <div className="text-sm text-gray-500">
+                                                                            {user.email}
+                                                                        </div>
+                                                                        {user.artist_name && (
+                                                                            <div className="text-xs text-purple-600">
+                                                                                🎨 {user.artist_name}
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            </td>
+                                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                                                    user.role === 'admin' ? 'bg-red-100 text-red-800' :
+                                                                    user.role === 'artist' ? 'bg-purple-100 text-purple-800' :
+                                                                    'bg-gray-100 text-gray-800'
+                                                                }`}>
+                                                                    {user.role === 'admin' ? '관리자' :
+                                                                     user.role === 'artist' ? '예술가' : '일반 사용자'}
+                                                                </span>
+                                                            </td>
+                                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                                                    user.subscription_tier === 'premium' ? 'bg-yellow-100 text-yellow-800' :
+                                                                    user.subscription_tier === 'standard' ? 'bg-blue-100 text-blue-800' :
+                                                                    user.subscription_tier === 'admin' ? 'bg-red-100 text-red-800' :
+                                                                    'bg-gray-100 text-gray-800'
+                                                                }`}>
+                                                                    {user.subscription_tier === 'premium' ? '프리미엄' :
+                                                                     user.subscription_tier === 'standard' ? '스탠다드' :
+                                                                     user.subscription_tier === 'admin' ? '관리자' : '무료'}
+                                                                </span>
+                                                            </td>
+                                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                                {user.created_at ? new Date(user.created_at).toLocaleDateString('ko-KR') : '-'}
+                                                            </td>
+                                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                                {user.last_login ? new Date(user.last_login).toLocaleDateString('ko-KR') : '-'}
+                                                            </td>
+                                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                                {user.total_analyses || 0}
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    )}
+                                </div>
+                                
+                                {/* 회원 통계 요약 */}
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                    <div className="bg-white rounded-lg shadow p-4">
+                                        <h4 className="text-sm font-medium text-gray-600 mb-2">전체 회원</h4>
+                                        <p className="text-2xl font-bold text-gray-900">{users.length}</p>
+                                    </div>
+                                    <div className="bg-white rounded-lg shadow p-4">
+                                        <h4 className="text-sm font-medium text-gray-600 mb-2">예술가</h4>
+                                        <p className="text-2xl font-bold text-purple-600">
+                                            {users.filter(u => u.role === 'artist').length}
+                                        </p>
+                                    </div>
+                                    <div className="bg-white rounded-lg shadow p-4">
+                                        <h4 className="text-sm font-medium text-gray-600 mb-2">프리미엄 구독</h4>
+                                        <p className="text-2xl font-bold text-yellow-600">
+                                            {users.filter(u => u.subscription_tier === 'premium').length}
+                                        </p>
+                                    </div>
+                                    <div className="bg-white rounded-lg shadow p-4">
+                                        <h4 className="text-sm font-medium text-gray-600 mb-2">오늘 활동</h4>
+                                        <p className="text-2xl font-bold text-green-600">
+                                            {users.filter(u => {
+                                                if (!u.last_login) return false;
+                                                const today = new Date().toDateString();
+                                                const lastLogin = new Date(u.last_login).toDateString();
+                                                return today === lastLogin;
+                                            }).length}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
                         )}
 
                         {activeTab === 'applications' && (
@@ -557,23 +860,24 @@
                                         </div>
                                     ) : (
                                         <div className="divide-y divide-gray-200">
-                                            {applications.map((application) => (
-                                                <div key={application.id} className="px-6 py-6">
-                                                    <div className="flex items-start justify-between">
-                                                        <div className="flex-1">
-                                                            <div className="flex items-center mb-2">
-                                                                <h4 className="text-lg font-semibold text-gray-900">
-                                                                    {application.artist_name}
-                                                                </h4>
-                                                                <span className={`ml-3 inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                                                    application.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                                                                    application.status === 'approved' ? 'bg-green-100 text-green-800' :
-                                                                    'bg-red-100 text-red-800'
-                                                                }`}>
-                                                                    {application.status === 'pending' ? '대기 중' :
-                                                                     application.status === 'approved' ? '승인됨' : '거부됨'}
-                                                                </span>
-                                                            </div>
+                                            {applications.map((application) => {
+                                                return (
+                                                    <div key={application.id} className="px-6 py-6">
+                                                        <div className="flex items-start justify-between">
+                                                            <div className="flex-1">
+                                                                <div className="flex items-center mb-2">
+                                                                    <h4 className="text-lg font-semibold text-gray-900">
+                                                                        {application.artist_name}
+                                                                    </h4>
+                                                                    <span className={`ml-3 inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                                                        application.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                                                        application.status === 'approved' ? 'bg-green-100 text-green-800' :
+                                                                        'bg-red-100 text-red-800'
+                                                                    }`}>
+                                                                        {application.status === 'pending' ? '대기 중' :
+                                                                         application.status === 'approved' ? '승인됨' : '거부됨'}
+                                                                    </span>
+                                                                </div>
                                                             <p className="text-sm text-gray-600 mb-1">
                                                                 <strong>이메일:</strong> {application.email}
                                                             </p>
@@ -635,27 +939,125 @@
                                                                 </div>
                                                             )}
 
-                                                            {application.status === 'pending' && (
-                                                                <div className="flex gap-3 pt-4">
-                                                                    <button
-                                                                        onClick={() => handleApplicationReview(application.id, 'approve')}
-                                                                        className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium"
-                                                                    >
-                                                                        ✅ 승인
-                                                                    </button>
+                                                            <div className="flex gap-2 pt-4 flex-wrap">
+                                                                {/* 대기 중 상태: 승인/거부 버튼 */}
+                                                                {application.status === 'pending' && (
+                                                                    <>
+                                                                        <button
+                                                                            onClick={() => handleApplicationReview(application.id, 'approve')}
+                                                                            className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium"
+                                                                        >
+                                                                            ✅ 승인
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={() => {
+                                                                                const notes = prompt('거부 사유를 입력해주세요 (선택사항):');
+                                                                                if (notes !== null) {
+                                                                                    handleApplicationReview(application.id, 'reject', notes);
+                                                                                }
+                                                                            }}
+                                                                            className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium"
+                                                                        >
+                                                                            ❌ 거부
+                                                                        </button>
+                                                                    </>
+                                                                )}
+
+                                                                {/* 거부된 상태: 재승인 버튼 */}
+                                                                {application.status === 'rejected' && (
                                                                     <button
                                                                         onClick={() => {
-                                                                            const notes = prompt('거부 사유를 입력해주세요 (선택사항):');
-                                                                            if (notes !== null) {
-                                                                                handleApplicationReview(application.id, 'reject', notes);
+                                                                            if (confirm(`${application.artist_name}의 신청을 재승인하시겠습니까?`)) {
+                                                                                handleApplicationReview(application.id, 'approve', '재승인 처리');
                                                                             }
                                                                         }}
-                                                                        className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium"
+                                                                        className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium"
                                                                     >
-                                                                        ❌ 거부
+                                                                        🔄 재승인
                                                                     </button>
+                                                                )}
+
+                                                                {/* 승인된 상태: 다시 거부 버튼 */}
+                                                                {application.status === 'approved' && (
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            const notes = prompt('거부 사유를 입력해주세요:');
+                                                                            if (notes !== null && notes.trim()) {
+                                                                                handleApplicationReview(application.id, 'reject', notes);
+                                                                            } else if (notes !== null) {
+                                                                                alert('거부 사유는 필수입니다.');
+                                                                            }
+                                                                        }}
+                                                                        className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium"
+                                                                    >
+                                                                        ⚠️ 승인 취소
+                                                                    </button>
+                                                                )}
+                                                                
+                                                                
+                                                                {/* 관리 작업 섹션 - 모든 신청에 대해 표시 */}
+                                                                <div style={{
+                                                                    marginTop: '20px',
+                                                                    paddingTop: '20px',
+                                                                    borderTop: '2px solid #e5e7eb',
+                                                                    backgroundColor: '#f8fafc',
+                                                                    padding: '16px',
+                                                                    borderRadius: '8px'
+                                                                }}>
+                                                                    <h5 style={{
+                                                                        fontSize: '14px',
+                                                                        fontWeight: 'bold',
+                                                                        color: '#374151',
+                                                                        marginBottom: '12px'
+                                                                    }}>
+                                                                        📋 관리 작업
+                                                                    </h5>
+                                                                    <div style={{ display: 'flex', gap: '12px' }}>
+                                                                        <button
+                                                                            onClick={() => {
+                                                                                handleEditApplication(application);
+                                                                            }}
+                                                                            style={{
+                                                                                backgroundColor: '#2563eb',
+                                                                                color: 'white',
+                                                                                padding: '12px 16px',
+                                                                                borderRadius: '8px',
+                                                                                border: 'none',
+                                                                                fontSize: '14px',
+                                                                                fontWeight: '500',
+                                                                                cursor: 'pointer',
+                                                                                minWidth: '120px'
+                                                                            }}
+                                                                            onMouseOver={(e) => e.target.style.backgroundColor = '#1d4ed8'}
+                                                                            onMouseOut={(e) => e.target.style.backgroundColor = '#2563eb'}
+                                                                        >
+                                                                            ✏️ 내용 수정
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={() => {
+                                                                                if (confirm(`${application.artist_name}의 신청을 삭제하시겠습니까?`)) {
+                                                                                    handleDeleteApplication(application.id);
+                                                                                }
+                                                                            }}
+                                                                            style={{
+                                                                                backgroundColor: '#dc2626',
+                                                                                color: 'white',
+                                                                                padding: '12px 16px',
+                                                                                borderRadius: '8px',
+                                                                                border: 'none',
+                                                                                fontSize: '14px',
+                                                                                fontWeight: '500',
+                                                                                cursor: 'pointer',
+                                                                                minWidth: '120px'
+                                                                            }}
+                                                                            onMouseOver={(e) => e.target.style.backgroundColor = '#b91c1c'}
+                                                                            onMouseOut={(e) => e.target.style.backgroundColor = '#dc2626'}
+                                                                        >
+                                                                            🗑️ 삭제
+                                                                        </button>
+                                                                    </div>
                                                                 </div>
-                                                            )}
+                                                            </div>
 
                                                             {application.review_notes && (
                                                                 <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
@@ -668,16 +1070,159 @@
                                                                     )}
                                                                 </div>
                                                             )}
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            ))}
+                                                );
+                                            })}
                                         </div>
                                     )}
                                 </div>
                             </div>
                         )}
                     </div>
+
+                    {/* 예술가 신청 수정 모달 */}
+                    {editingApplication && editFormData && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                            <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+                                <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
+                                    <h2 className="text-2xl font-bold">예술가 신청 수정</h2>
+                                    <button
+                                        onClick={cancelEdit}
+                                        className="text-gray-500 hover:text-gray-700 text-2xl"
+                                    >
+                                        ✕
+                                    </button>
+                                </div>
+
+                                <form onSubmit={handleEditFormSubmit} className="p-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        {/* 왼쪽 컬럼 */}
+                                        <div className="space-y-4">
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                    예술가 이름 *
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    name="artist_name"
+                                                    value={editFormData.artist_name}
+                                                    onChange={handleEditFormChange}
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                    required
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                    작품 소개
+                                                </label>
+                                                <textarea
+                                                    name="bio"
+                                                    value={editFormData.bio}
+                                                    onChange={handleEditFormChange}
+                                                    rows={4}
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                    작가 소명
+                                                </label>
+                                                <textarea
+                                                    name="statement"
+                                                    value={editFormData.statement}
+                                                    onChange={handleEditFormChange}
+                                                    rows={4}
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* 오른쪽 컬럼 */}
+                                        <div className="space-y-4">
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                    포트폴리오 URL
+                                                </label>
+                                                <input
+                                                    type="url"
+                                                    name="portfolio_url"
+                                                    value={editFormData.portfolio_url}
+                                                    onChange={handleEditFormChange}
+                                                    placeholder="https://portfolio.example.com"
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                    인스타그램
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    name="instagram_url"
+                                                    value={editFormData.instagram_url}
+                                                    onChange={handleEditFormChange}
+                                                    placeholder="@username"
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                    경력 수준
+                                                </label>
+                                                <select
+                                                    name="experience"
+                                                    value={editFormData.experience}
+                                                    onChange={handleEditFormChange}
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                >
+                                                    <option value="beginner">초급 (1년 미만)</option>
+                                                    <option value="intermediate">중급 (1-3년)</option>
+                                                    <option value="advanced">고급 (3-10년)</option>
+                                                    <option value="professional">전문가 (10년 이상)</option>
+                                                </select>
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                    전문 분야 (쉼표로 구분)
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    name="specialties"
+                                                    value={editFormData.specialties}
+                                                    onChange={handleEditFormChange}
+                                                    placeholder="회화, 조각, 디지털아트"
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-6 flex justify-end space-x-3">
+                                        <button
+                                            type="button"
+                                            onClick={cancelEdit}
+                                            className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                                        >
+                                            취소
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                                        >
+                                            수정 완료
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
                 </div>
             );
         };

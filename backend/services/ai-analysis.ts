@@ -2,6 +2,25 @@ import { AIEnsembleService } from '../../ai-service/utils/ensemble';
 import { PerformanceOptimizer } from '../core/performance-optimizer';
 import type { ImageAnalysis, Recommendation } from '../../shared/types';
 import { supabase } from './supabase';
+
+// Vector similarity data interface
+interface VectorSimilarityItem {
+  id: string;
+  similarity: number;
+}
+
+// Met Museum artwork interface
+interface MetMuseumArtwork {
+  objectID: number;
+  title: string;
+  artistDisplayName?: string;
+  primaryImage?: string;
+  classification?: string;
+  medium?: string;
+  dimensions?: string;
+  creditLine?: string;
+  objectDate?: string;
+}
 import { MetMuseumAPI } from './met-museum-api';
 import { WikiArtAPI } from './wikiart-api';
 import { HarvardMuseumsAPI } from './harvard-museums-api';
@@ -147,7 +166,7 @@ export class AIAnalysisService {
       }
 
       // Get artwork details for the similar items
-      const artworkIds = data.map((item: any) => item.id);
+      const artworkIds = data.map((item: VectorSimilarityItem) => item.id);
       const { data: artworks, error: artworkError } = await supabase
         .from('artworks')
         .select('*')
@@ -161,7 +180,7 @@ export class AIAnalysisService {
 
       // Create recommendations with similarity scores
       const recommendations: Recommendation[] = artworks.map(artwork => {
-        const similarityData = data.find((item: any) => item.id === artwork.id);
+        const similarityData = data.find((item: VectorSimilarityItem) => item.id === artwork.id);
         const similarity = similarityData?.similarity || 0;
         
         const reasons = this.generateReasons(analysis, artwork);
@@ -509,7 +528,7 @@ export class AIAnalysisService {
     }
   }
 
-  private convertMetMuseumToRecommendations(metResults: any[], keywords: string[]): Recommendation[] {
+  private convertMetMuseumToRecommendations(metResults: MetMuseumArtwork[], keywords: string[]): Recommendation[] {
     return metResults.map((artwork, index) => {
       const similarity = this.calculateKeywordSimilarity(keywords, artwork.keywords);
       
@@ -534,7 +553,7 @@ export class AIAnalysisService {
     });
   }
 
-  private generateReasons(analysis: ImageAnalysis, artwork: any): string[] {
+  private generateReasons(analysis: ImageAnalysis, artwork: MetMuseumArtwork | Record<string, unknown>): string[] {
     const reasons = [];
     
     if (analysis.style && analysis.style !== 'unknown') {
@@ -634,7 +653,7 @@ export class AIAnalysisService {
     return this.performanceOptimizer.getPerformanceMetrics();
   }
 
-  updateOptimizationConfig(config: any) {
+  updateOptimizationConfig(config: Record<string, unknown>) {
     this.performanceOptimizer.updateConfiguration(config);
   }
 

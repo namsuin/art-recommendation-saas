@@ -1,5 +1,6 @@
 import { ImageAnnotatorClient } from '@google-cloud/vision';
 import type { GoogleVisionResult } from '../../shared/types';
+import { logger } from '../../shared/logger';
 
 export class GoogleVisionService {
   private client!: ImageAnnotatorClient;
@@ -13,15 +14,15 @@ export class GoogleVisionService {
       const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
 
       if (keyFilename && projectId) {
-        console.log(`🔑 Initializing Google Vision with service account key`);
+        logger.info('🔑 Initializing Google Vision with service account key');
         this.client = new ImageAnnotatorClient({
           keyFilename,
           projectId,
         });
         this.isEnabled = true;
-        console.log('✅ Google Vision AI initialized with service account');
+        logger.info('✅ Google Vision AI initialized with service account');
       } else if (projectId && clientId && clientSecret) {
-        console.log('🔑 Initializing Google Vision with OAuth credentials');
+        logger.info('🔑 Initializing Google Vision with OAuth credentials');
         this.client = new ImageAnnotatorClient({
           projectId,
           credentials: {
@@ -31,22 +32,22 @@ export class GoogleVisionService {
           }
         });
         this.isEnabled = true;
-        console.log('✅ Google Vision AI initialized with OAuth credentials');
+        logger.info('✅ Google Vision AI initialized with OAuth credentials');
       } else if (projectId) {
-        console.log('🔑 Missing detailed credentials, trying with project ID only...');
+        logger.info('🔑 Missing detailed credentials, trying with project ID only...');
         this.client = new ImageAnnotatorClient({
           projectId
         });
         this.isEnabled = true;
-        console.log('✅ Google Vision AI initialized with project ID');
+        logger.info('✅ Google Vision AI initialized with project ID');
       } else {
-        console.log('🔑 Trying Google Vision with default credentials...');
+        logger.info('🔑 Trying Google Vision with default credentials...');
         this.client = new ImageAnnotatorClient();
         this.isEnabled = true;
-        console.log('✅ Google Vision AI initialized with default credentials');
+        logger.info('✅ Google Vision AI initialized with default credentials');
       }
     } catch (error) {
-      console.error('❌ Google Vision AI initialization failed:', error);
+      logger.error('❌ Google Vision AI initialization failed:', error);
       this.isEnabled = false;
     }
   }

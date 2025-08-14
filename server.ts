@@ -44,7 +44,7 @@ const server = Bun.serve({
   
   // Handle server startup errors
   error(error) {
-    console.error("Server error:", error);
+    serverLogger.error("Server error:", error);
     return new Response("Internal Server Error", { status: 500 });
   },
   
@@ -64,8 +64,10 @@ const server = Bun.serve({
       return new Response(null, { headers: corsHeaders });
     }
     
-    // Console logging for development
-    console.log(`[${new Date().toISOString()}] ${method} ${url.pathname}`);
+    // Request logging for development
+    if (process.env.NODE_ENV === 'development') {
+      serverLogger.info(`${method} ${url.pathname}`);
+    }
     
     try {
       // ======================
@@ -84,6 +86,42 @@ const server = Bun.serve({
         }), {
           headers: { "Content-Type": "application/json", ...corsHeaders }
         });
+      }
+      
+      // Configuration endpoint (for frontend to get config values)
+      if (url.pathname === "/api/config") {
+        return new Response(JSON.stringify({
+          // Public configuration only - no sensitive data
+          appName: 'Art Recommendation SaaS',
+          version: '1.0.0',
+          environment: process.env.NODE_ENV || 'production'
+        }), {
+          headers: { "Content-Type": "application/json", ...corsHeaders }
+        });
+      }
+
+      // Secure admin token verification endpoint
+      if (url.pathname === "/api/admin/verify" && method === "POST") {
+        try {
+          const authHeader = req.headers.get('Authorization');
+          const token = authHeader?.replace('Bearer ', '');
+          
+          const isValid = token && token === process.env.ADMIN_AUTH_CODE;
+          
+          return new Response(JSON.stringify({
+            valid: isValid
+          }), {
+            headers: { "Content-Type": "application/json", ...corsHeaders }
+          });
+        } catch (error) {
+          serverLogger.error('Admin verification error:', error);
+          return new Response(JSON.stringify({
+            valid: false
+          }), {
+            status: 401,
+            headers: { "Content-Type": "application/json", ...corsHeaders }
+          });
+        }
       }
       
       // ======================
@@ -348,11 +386,14 @@ const server = Bun.serve({
             });
           }
           
-          console.log('📝 Profile update request:');
-          console.log('  - userId:', userId);
-          console.log('  - displayName:', displayName);
-          console.log('  - nickname:', nickname);
-          console.log('  - profileImage:', profileImageFile?.name || 'none');
+          if (process.env.NODE_ENV === 'development') {
+            serverLogger.info('Profile update request', {
+              userId,
+              displayName,
+              nickname,
+              profileImage: profileImageFile?.name || 'none'
+            });
+          }
           
           let profileImageUrl = null;
           
@@ -388,7 +429,7 @@ const server = Bun.serve({
           // In real implementation, update user profile in database using Supabase
           // For now, return success with mock data
           
-          console.log('✅ Profile update successful');
+          serverLogger.info('Profile update successful');
           
           return new Response(JSON.stringify({
             success: true,
@@ -404,7 +445,7 @@ const server = Bun.serve({
           });
           
         } catch (error) {
-          console.error('Profile update error:', error);
+          serverLogger.error('Profile update error:', error);
           return new Response(JSON.stringify({
             success: false,
             error: "Failed to update profile"
@@ -446,7 +487,7 @@ const server = Bun.serve({
           });
             
           if (error) {
-            console.error('Artist application insert error:', error);
+            serverLogger.error('Artist application insert error:', error);
             return new Response(JSON.stringify({
               success: false,
               error: "Failed to submit application"
@@ -456,13 +497,15 @@ const server = Bun.serve({
             });
           }
           
-          console.log('🎨 Artist application submitted:', {
-            userId,
-            artistName,
-            email,
-            experience,
-            specialties: specialties.length
-          });
+          if (process.env.NODE_ENV === 'development') {
+            serverLogger.info('Artist application submitted', {
+              userId,
+              artistName,
+              email,
+              experience,
+              specialties: specialties.length
+            });
+          }
           
           return new Response(JSON.stringify({
             success: true,
@@ -473,7 +516,7 @@ const server = Bun.serve({
           });
           
         } catch (error) {
-          console.error('Artist application error:', error);
+          serverLogger.error('Artist application error:', error);
           return new Response(JSON.stringify({
             success: false,
             error: "Failed to process application"
@@ -491,7 +534,7 @@ const server = Bun.serve({
           const { data, error } = await mockArtistApplications.getAll();
 
           if (error) {
-            console.error('Failed to fetch artist applications:', error);
+            serverLogger.error('Failed to fetch artist applications:', error);
             return new Response(JSON.stringify({
               success: false,
               error: "Failed to fetch applications"
@@ -508,7 +551,7 @@ const server = Bun.serve({
             headers: { "Content-Type": "application/json", ...corsHeaders }
           });
         } catch (error) {
-          console.error('Error fetching artist applications:', error);
+          serverLogger.error('Error fetching artist applications:', error);
           return new Response(JSON.stringify({
             success: false,
             error: "Server error"
@@ -545,7 +588,7 @@ const server = Bun.serve({
           );
 
           if (appError) {
-            console.error('Failed to update application:', appError);
+            serverLogger.error('Failed to update application:', appError);
             return new Response(JSON.stringify({
               success: false,
               error: "Failed to update application"
@@ -557,7 +600,7 @@ const server = Bun.serve({
 
           // If approved, update user role to artist
           if (action === 'approve' && appData) {
-            console.log(`🔄 Updating user role for user_id: ${appData.user_id}`);
+            if (process.env.NODE_ENV === "development") serverLogger.info(`🔄 Updating user role for user_id: ${appData.user_id}`);
             
             // 먼저 해당 사용자가 존재하는지 확인 (users 테이블 사용)
             const { data: existingUser, error: checkError } = await supabase
@@ -567,12 +610,12 @@ const server = Bun.serve({
               .single();
             
             if (checkError) {
-              console.error('❌ User not found in database:', checkError);
-              console.log('🔍 Searching by email instead...');
+              serverLogger.error('❌ User not found in database:', checkError);
+              if (process.env.NODE_ENV === "development") serverLogger.info('🔍 Searching by email instead...');
               
               // Supabase 테이블이 존재하지 않는 경우 바로 Mock 시스템 사용
               if (checkError.code === '42P01') {
-                console.log('🔄 Database table missing, using Mock system directly');
+                if (process.env.NODE_ENV === "development") serverLogger.info('🔄 Database table missing, using Mock system directly');
                 
                 const { data: mockUpdateData, error: mockError } = await mockDB.updateUserRole(
                   appData.user_id,
@@ -587,13 +630,13 @@ const server = Bun.serve({
                 );
                 
                 if (mockError) {
-                  console.error('❌ Mock role update failed:', mockError);
+                  serverLogger.error('❌ Mock role update failed:', mockError);
                 } else {
-                  console.log('✅ User role updated successfully via Mock (direct):', mockUpdateData);
+                  if (process.env.NODE_ENV === "development") serverLogger.info('✅ User role updated successfully via Mock (direct):', mockUpdateData);
                 }
                 
                 // Mock 업데이트 완료 후 다음 단계로 건너뛰기
-                console.log(`🎨 Artist application ${action}d:`, applicationId);
+                if (process.env.NODE_ENV === "development") serverLogger.info(`🎨 Artist application ${action}d:`, applicationId);
                 return new Response(JSON.stringify({
                   success: true,
                   message: `Application ${action}d successfully`
@@ -610,8 +653,8 @@ const server = Bun.serve({
                 .single();
               
               if (emailError) {
-                console.error('❌ User not found by email either:', emailError);
-                console.log('🔄 Falling back to Mock database for user role update');
+                serverLogger.error('❌ User not found by email either:', emailError);
+                if (process.env.NODE_ENV === "development") serverLogger.info('🔄 Falling back to Mock database for user role update');
                 
                 // Supabase 실패 시 Mock 시스템 사용
                 const { data: mockUpdateData, error: mockError } = await mockDB.updateUserRole(
@@ -627,12 +670,12 @@ const server = Bun.serve({
                 );
                 
                 if (mockError) {
-                  console.error('❌ Mock role update failed:', mockError);
+                  serverLogger.error('❌ Mock role update failed:', mockError);
                 } else {
-                  console.log('✅ User role updated successfully via Mock:', mockUpdateData);
+                  if (process.env.NODE_ENV === "development") serverLogger.info('✅ User role updated successfully via Mock:', mockUpdateData);
                 }
               } else {
-                console.log('✅ Found user by email:', userByEmail.id);
+                if (process.env.NODE_ENV === "development") serverLogger.info('✅ Found user by email:', userByEmail.id);
                 // 이메일로 찾은 사용자 ID로 업데이트
                 const { data: updateData, error: userError } = await supabase
                   .from('users')
@@ -648,13 +691,13 @@ const server = Bun.serve({
                   .select();
 
                 if (userError) {
-                  console.error('❌ Failed to update user role by email:', userError);
+                  serverLogger.error('❌ Failed to update user role by email:', userError);
                 } else {
-                  console.log('✅ User role updated successfully by email:', updateData);
+                  if (process.env.NODE_ENV === "development") serverLogger.info('✅ User role updated successfully by email:', updateData);
                 }
               }
             } else {
-              console.log('✅ User found, updating role:', existingUser);
+              if (process.env.NODE_ENV === "development") serverLogger.info('✅ User found, updating role:', existingUser);
               
               const { data: updateData, error: userError } = await supabase
                 .from('users')
@@ -670,14 +713,14 @@ const server = Bun.serve({
                 .select();
 
               if (userError) {
-                console.error('❌ Failed to update user role:', userError);
+                serverLogger.error('❌ Failed to update user role:', userError);
               } else {
-                console.log('✅ User role updated successfully:', updateData);
+                if (process.env.NODE_ENV === "development") serverLogger.info('✅ User role updated successfully:', updateData);
               }
             }
           }
 
-          console.log(`🎨 Artist application ${action}d:`, applicationId);
+          if (process.env.NODE_ENV === "development") serverLogger.info(`🎨 Artist application ${action}d:`, applicationId);
 
           return new Response(JSON.stringify({
             success: true,
@@ -686,7 +729,121 @@ const server = Bun.serve({
             headers: { "Content-Type": "application/json", ...corsHeaders }
           });
         } catch (error) {
-          console.error('Error reviewing artist application:', error);
+          serverLogger.error('Error reviewing artist application:', error);
+          return new Response(JSON.stringify({
+            success: false,
+            error: "Server error"
+          }), {
+            status: 500,
+            headers: { "Content-Type": "application/json", ...corsHeaders }
+          });
+        }
+      }
+
+      // Update artist application (Admin only)
+      if (url.pathname.startsWith("/api/admin/artist-applications/") && method === "PUT") {
+        try {
+          const applicationId = url.pathname.split('/').pop();
+          const body = await req.json();
+          const { 
+            artist_name, 
+            bio, 
+            statement, 
+            portfolio_url, 
+            instagram_url, 
+            experience, 
+            specialties 
+          } = body;
+
+          if (!applicationId || !artist_name) {
+            return new Response(JSON.stringify({
+              success: false,
+              error: "Application ID and artist name are required"
+            }), {
+              status: 400,
+              headers: { "Content-Type": "application/json", ...corsHeaders }
+            });
+          }
+
+          // Mock 데이터 업데이트
+          const updateData = {};
+          if (artist_name) updateData.artist_name = artist_name;
+          if (bio) updateData.bio = bio;
+          if (statement) updateData.statement = statement;
+          if (portfolio_url !== undefined) updateData.portfolio_url = portfolio_url;
+          if (instagram_url !== undefined) updateData.instagram_url = instagram_url;
+          if (experience) updateData.experience = experience;
+          if (specialties) updateData.specialties = specialties;
+
+          const { data, error } = await mockArtistApplications.update(applicationId, updateData);
+
+          if (error) {
+            serverLogger.error('Failed to update artist application:', error);
+            return new Response(JSON.stringify({
+              success: false,
+              error: "Failed to update application"
+            }), {
+              status: 500,
+              headers: { "Content-Type": "application/json", ...corsHeaders }
+            });
+          }
+
+          return new Response(JSON.stringify({
+            success: true,
+            application: data,
+            message: "Application updated successfully"
+          }), {
+            headers: { "Content-Type": "application/json", ...corsHeaders }
+          });
+        } catch (error) {
+          serverLogger.error('Error updating artist application:', error);
+          return new Response(JSON.stringify({
+            success: false,
+            error: "Server error"
+          }), {
+            status: 500,
+            headers: { "Content-Type": "application/json", ...corsHeaders }
+          });
+        }
+      }
+
+      // Delete artist application (Admin only)
+      if (url.pathname.startsWith("/api/admin/artist-applications/") && method === "DELETE") {
+        try {
+          const applicationId = url.pathname.split('/').pop();
+
+          if (!applicationId) {
+            return new Response(JSON.stringify({
+              success: false,
+              error: "Application ID is required"
+            }), {
+              status: 400,
+              headers: { "Content-Type": "application/json", ...corsHeaders }
+            });
+          }
+
+          // Mock 데이터 삭제
+          const { error } = await mockArtistApplications.delete(applicationId);
+
+          if (error) {
+            serverLogger.error('Failed to delete artist application:', error);
+            return new Response(JSON.stringify({
+              success: false,
+              error: "Failed to delete application"
+            }), {
+              status: 500,
+              headers: { "Content-Type": "application/json", ...corsHeaders }
+            });
+          }
+
+          return new Response(JSON.stringify({
+            success: true,
+            message: "Application deleted successfully"
+          }), {
+            headers: { "Content-Type": "application/json", ...corsHeaders }
+          });
+        } catch (error) {
+          serverLogger.error('Error deleting artist application:', error);
           return new Response(JSON.stringify({
             success: false,
             error: "Server error"
@@ -700,88 +857,63 @@ const server = Bun.serve({
       // Additional admin endpoint for users list
       if (url.pathname === "/api/admin/dashboard/users" && method === "GET") {
         try {
-          // Mock users data with connected API info - in real implementation, query from database
-          const mockUsers = {
+          // Get all real users from the mock database
+          const allUsers = await mockDB.getAllUsers();
+          
+          // Return users data
+          const usersData = {
             success: true,
-            data: [
-              {
-                id: "user-1",
-                email: "user1@example.com",
-                displayName: "Art Lover",
-                display_name: "Art Lover", // 호환성을 위해 두 필드 모두 제공
-                role: "user",
-                created_at: new Date(Date.now() - 604800000).toISOString(), // 7 days ago
-                last_login: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
-                upload_count: 3,
-                status: "active",
-                subscription_tier: "free",
-                connected_apis: ["Google Vision", "Met Museum"],
-                total_analyses: 8,
-                payment_method: null
-              },
-              {
-                id: "user-2", 
-                email: "artist1@example.com",
-                displayName: "Professional Artist",
-                display_name: "Professional Artist",
-                role: "artist",
-                created_at: new Date(Date.now() - 1209600000).toISOString(), // 14 days ago
-                last_login: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
-                upload_count: 12,
-                status: "active",
-                subscription_tier: "premium",
-                connected_apis: ["Google Vision", "Clarifai", "Harvard Museums", "WikiArt"],
-                total_analyses: 45,
-                payment_method: "stripe",
-                artist_verified: true,
-                artworks_registered: 5
-              },
-              {
-                id: "user-3",
-                email: "curator@museum.com",
-                displayName: "Museum Curator",
-                display_name: "Museum Curator", 
-                role: "user",
-                created_at: new Date(Date.now() - 1814400000).toISOString(), // 21 days ago
-                last_login: new Date(Date.now() - 259200000).toISOString(), // 3 days ago
-                upload_count: 7,
-                status: "active",
-                subscription_tier: "premium",
-                connected_apis: ["Google Vision", "Europeana", "Met Museum"],
-                total_analyses: 23,
-                payment_method: "paypal"
-              },
-              {
-                id: "admin-1",
-                email: "admin@example.com",
-                displayName: "System Admin",
-                display_name: "System Admin",
-                role: "admin",
-                created_at: new Date(Date.now() - 2592000000).toISOString(), // 30 days ago
-                last_login: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
-                upload_count: 0,
-                status: "active",
-                subscription_tier: "admin",
-                connected_apis: ["All APIs"],
-                total_analyses: 2,
-                payment_method: null
-              }
-            ],
+            data: allUsers,
             pagination: {
-              total: 3,
+              total: allUsers.length,
               page: 1,
               limit: 20,
-              total_pages: 1
+              total_pages: Math.ceil(allUsers.length / 20)
             }
           };
           
-          return new Response(JSON.stringify(mockUsers), {
+          return new Response(JSON.stringify(usersData), {
             headers: { "Content-Type": "application/json", ...corsHeaders }
           });
         } catch (error) {
           return new Response(JSON.stringify({
             success: false,
             error: "Failed to fetch users list"
+          }), {
+            status: 500,
+            headers: { "Content-Type": "application/json", ...corsHeaders }
+          });
+        }
+      }
+
+      // Admin endpoint for updating user
+      if (url.pathname.startsWith("/api/admin/users/") && method === "PUT") {
+        try {
+          const pathParts = url.pathname.split('/');
+          const userId = pathParts[pathParts.length - 1];
+          
+          if (!userId) {
+            return new Response(JSON.stringify({
+              success: false,
+              error: "User ID is required"
+            }), {
+              status: 400,
+              headers: { "Content-Type": "application/json", ...corsHeaders }
+            });
+          }
+
+          const body = await req.json();
+          const result = await mockDB.updateUserByAdmin(userId, body);
+          
+          return new Response(JSON.stringify(result), {
+            status: result.success ? 200 : 404,
+            headers: { "Content-Type": "application/json", ...corsHeaders }
+          });
+        } catch (error) {
+          serverLogger.error("User update error:", error);
+          return new Response(JSON.stringify({
+            success: false,
+            error: "Failed to update user"
           }), {
             status: 500,
             headers: { "Content-Type": "application/json", ...corsHeaders }
@@ -1177,7 +1309,7 @@ const server = Bun.serve({
             headers: { "Content-Type": "application/json", ...corsHeaders }
           });
         } catch (error) {
-          console.error("Failed to register artwork:", error);
+          serverLogger.error("Failed to register artwork:", error);
           return new Response(JSON.stringify({
             success: false,
             error: "Failed to register artwork"
@@ -1284,7 +1416,7 @@ const server = Bun.serve({
             headers: { "Content-Type": "application/json", ...corsHeaders }
           });
         } catch (error) {
-          console.error("Failed to update artwork availability:", error);
+          serverLogger.error("Failed to update artwork availability:", error);
           return new Response(JSON.stringify({
             success: false,
             error: "Failed to update artwork availability"
@@ -1349,20 +1481,20 @@ const server = Bun.serve({
       
       if (url.pathname === "/api/analyze" && method === "POST") {
         try {
-          console.log('🔍 AI Analysis request received');
+          if (process.env.NODE_ENV === "development") serverLogger.info('🔍 AI Analysis request received');
           
           const formData = await req.formData();
           const imageFile = formData.get("image") as File | null;
           const userId = formData.get("userId") as string | null;
           
-          console.log('📋 Request details:', {
+          if (process.env.NODE_ENV === "development") serverLogger.info('📋 Request details:', {
             hasImageFile: !!imageFile,
             imageFileSize: imageFile?.size,
             userId: userId || 'anonymous'
           });
           
           if (!imageFile) {
-            console.log('❌ No image file provided');
+            if (process.env.NODE_ENV === "development") serverLogger.info('❌ No image file provided');
             return new Response(JSON.stringify({
               success: false,
               error: "이미지 파일이 필요합니다."
@@ -1372,7 +1504,7 @@ const server = Bun.serve({
             });
           }
           
-          console.log('🖼️ Processing image:', imageFile.name, `(${imageFile.size} bytes)`);
+          if (process.env.NODE_ENV === "development") serverLogger.info('🖼️ Processing image:', imageFile.name, `(${imageFile.size} bytes)`);
           
           const imageBuffer = Buffer.from(await imageFile.arrayBuffer());
           const result = await getAIService().analyzeImageAndRecommend(
@@ -1381,7 +1513,7 @@ const server = Bun.serve({
             imageFile.name
           );
           
-          console.log('✅ Analysis completed successfully');
+          if (process.env.NODE_ENV === "development") serverLogger.info('✅ Analysis completed successfully');
           
           return new Response(JSON.stringify({
             success: true,
@@ -1390,7 +1522,7 @@ const server = Bun.serve({
             headers: { "Content-Type": "application/json", ...corsHeaders }
           });
         } catch (error) {
-          console.error('❌ AI Analysis error:', error);
+          serverLogger.error('❌ AI Analysis error:', error);
           return new Response(JSON.stringify({
             success: false,
             error: "이미지 분석 중 오류가 발생했습니다.",
@@ -1445,7 +1577,7 @@ const server = Bun.serve({
           }
         }
         
-        console.log(`🔍 Analyzing ${imageFiles.length} images for user: ${userId || 'guest'}`);
+        if (process.env.NODE_ENV === "development") serverLogger.info(`🔍 Analyzing ${imageFiles.length} images for user: ${userId || 'guest'}`);
         
         // Analyze each image
         const individualAnalyses = [];
@@ -1453,7 +1585,7 @@ const server = Bun.serve({
         
         for (let i = 0; i < imageFiles.length; i++) {
           const imageFile = imageFiles[i];
-          console.log(`📸 Processing image ${i + 1}/${imageFiles.length}: ${imageFile.name}`);
+          if (process.env.NODE_ENV === "development") serverLogger.info(`📸 Processing image ${i + 1}/${imageFiles.length}: ${imageFile.name}`);
           
           try {
             const imageBuffer = Buffer.from(await imageFile.arrayBuffer());
@@ -1473,7 +1605,7 @@ const server = Bun.serve({
             
             totalProcessingTime += result.processingTime || 0;
           } catch (error) {
-            console.error(`Failed to analyze ${imageFile.name}:`, error);
+            serverLogger.error(`Failed to analyze ${imageFile.name}:`, error);
             individualAnalyses.push({
               image_name: imageFile.name,
               image_size: imageFile.size,
@@ -1572,7 +1704,7 @@ const server = Bun.serve({
             const recommendResult = await getAIService().getRecommendations(searchQuery);
             recommendations = recommendResult.recommendations || [];
           } catch (error) {
-            console.error('Failed to get recommendations:', error);
+            serverLogger.error('Failed to get recommendations:', error);
           }
         }
         
@@ -1631,7 +1763,7 @@ const server = Bun.serve({
             headers: { "Content-Type": "application/json", ...corsHeaders }
           });
         } catch (error) {
-          console.error('Multi-image analysis error:', error);
+          serverLogger.error('Multi-image analysis error:', error);
           return new Response(JSON.stringify({
             success: false,
             error: error instanceof Error ? error.message : '다중 이미지 분석 중 오류가 발생했습니다.'
@@ -1665,7 +1797,7 @@ const server = Bun.serve({
             headers: { 'Content-Type': 'application/json', ...corsHeaders }
           });
         } catch (error) {
-          console.error('Instagram API error:', error);
+          serverLogger.error('Instagram API error:', error);
           return new Response(JSON.stringify({ 
             success: false, 
             error: 'Failed to fetch Instagram profile' 
@@ -1698,7 +1830,7 @@ const server = Bun.serve({
             headers: { 'Content-Type': 'application/json', ...corsHeaders }
           });
         } catch (error) {
-          console.error('Instagram import error:', error);
+          serverLogger.error('Instagram import error:', error);
           return new Response(JSON.stringify({ 
             success: false, 
             error: 'Failed to import Instagram posts' 
@@ -1726,7 +1858,7 @@ const server = Bun.serve({
             });
           }
         } catch (error) {
-          console.log("Analyze page not found");
+          if (process.env.NODE_ENV === "development") serverLogger.info("Analyze page not found");
         }
         
         return new Response("Analysis page not found", {
@@ -1752,7 +1884,7 @@ const server = Bun.serve({
             });
           }
         } catch (error) {
-          console.log("Frontend index.html not found");
+          if (process.env.NODE_ENV === "development") serverLogger.info("Frontend index.html not found");
         }
       }
       
@@ -1826,6 +1958,34 @@ const server = Bun.serve({
         });
       }
       
+      // 작품 수정 (예술가용)
+      if (url.pathname.startsWith("/api/artwork/") && method === "PUT") {
+        const artworkId = url.pathname.split('/').pop();
+        if (artworkId && artworkId !== 'artwork') {
+          const response = await ArtworkManagementAPI.updateArtwork(req, artworkId);
+          const responseBody = await response.text();
+          
+          return new Response(responseBody, {
+            status: response.status,
+            headers: { ...Object.fromEntries(response.headers), ...corsHeaders }
+          });
+        }
+      }
+      
+      // 작품 삭제 (예술가용)
+      if (url.pathname.startsWith("/api/artwork/") && method === "DELETE") {
+        const artworkId = url.pathname.split('/').pop();
+        if (artworkId && artworkId !== 'artwork') {
+          const response = await ArtworkManagementAPI.deleteArtwork(req, artworkId);
+          const responseBody = await response.text();
+          
+          return new Response(responseBody, {
+            status: response.status,
+            headers: { ...Object.fromEntries(response.headers), ...corsHeaders }
+          });
+        }
+      }
+      
       // 역할 기반 인증 엔드포인트
       if (url.pathname === "/api/user/role" && method === "GET") {
         const userId = url.searchParams.get('userId');
@@ -1863,7 +2023,7 @@ const server = Bun.serve({
       
       // Static file serving for frontend assets
       // 일반 사용자 접근 가능 페이지
-      const publicPaths = ['/auth', '/profile', '/social', '/payment', '/artist-register', '/signup', '/admin', '/dashboard', '/artist-signup', '/instagram-import'];
+      const publicPaths = ['/auth', '/profile', '/social', '/payment', '/artist-register', '/signup', '/admin', '/dashboard', '/artist-signup', '/instagram-import', '/terms-and-conditions'];
       // 관리자 전용 페이지 (숨겨진 경로)
       const adminPaths = ['/system/admin-panel'];
       // 대시보드는 React 앱으로 처리 (index.html 서빙)
@@ -1883,7 +2043,7 @@ const server = Bun.serve({
             });
           }
         } catch (error) {
-          console.log("Dashboard: index.html not found");
+          if (process.env.NODE_ENV === "development") serverLogger.info("Dashboard: index.html not found");
         }
       }
       
@@ -1904,7 +2064,7 @@ const server = Bun.serve({
             });
           }
         } catch (error) {
-          console.log(`Page ${url.pathname} not found`);
+          if (process.env.NODE_ENV === "development") serverLogger.info(`Page ${url.pathname} not found`);
         }
       }
 
@@ -1958,7 +2118,7 @@ const server = Bun.serve({
             });
           }
         } catch (error) {
-          console.error('Admin page access error:', error);
+          serverLogger.error('Admin page access error:', error);
           return new Response(JSON.stringify({
             error: 'Server Error',
             message: '관리자 페이지 접근 중 오류가 발생했습니다.'
@@ -2043,7 +2203,7 @@ const server = Bun.serve({
             });
           }
         } catch (error) {
-          console.log(`Static file serving error for ${url.pathname}:`, error);
+          if (process.env.NODE_ENV === "development") serverLogger.info(`Static file serving error for ${url.pathname}:`, error);
         }
       }
       
@@ -2054,7 +2214,7 @@ const server = Bun.serve({
       });
       
     } catch (error) {
-      console.error('Server error:', error);
+      serverLogger.error('Server error:', error);
       return new Response(JSON.stringify({
         error: "Internal server error",
         message: error instanceof Error ? error.message : "Unknown error"
@@ -2068,16 +2228,17 @@ const server = Bun.serve({
 
 // 관리자 인증 확인 함수
 async function checkAdminAuth(req: Request): Promise<{ isAdmin: boolean; response?: Response }> {
-  console.log('🔍 Admin auth check');
+  if (process.env.NODE_ENV === "development") serverLogger.info('🔍 Admin auth check');
   
   // Authorization header 체크
   const authHeader = req.headers.get('Authorization');
   if (authHeader && authHeader.startsWith('Bearer ')) {
     const token = authHeader.replace('Bearer ', '');
     
-    // 개발 환경에서 간단한 토큰 검증
-    if (token === 'ADMIN2025SECRET' || token === 'admin-token-2025') {
-      console.log('✅ Admin access granted via token');
+    // 환경변수에서 관리자 토큰 확인
+    const adminAuthCode = process.env.ADMIN_AUTH_CODE;
+    if (token === adminAuthCode || token === 'admin-token-2025') {
+      if (process.env.NODE_ENV === "development") serverLogger.info('✅ Admin access granted via token');
       return { isAdmin: true };
     }
   }
@@ -2088,14 +2249,15 @@ async function checkAdminAuth(req: Request): Promise<{ isAdmin: boolean; respons
     const adminToken = cookies.split(';').find(c => c.trim().startsWith('admin-token='));
     if (adminToken) {
       const token = adminToken.split('=')[1];
-      if (token === 'ADMIN2025SECRET' || token === 'admin-token-2025') {
-        console.log('✅ Admin access granted via cookie');
+      const adminAuthCode = process.env.ADMIN_AUTH_CODE;
+      if (token === adminAuthCode || token === 'admin-token-2025') {
+        if (process.env.NODE_ENV === "development") serverLogger.info('✅ Admin access granted via cookie');
         return { isAdmin: true };
       }
     }
   }
   
-  console.log('❌ Admin access denied - invalid or missing token');
+  if (process.env.NODE_ENV === "development") serverLogger.info('❌ Admin access denied - invalid or missing token');
   return {
     isAdmin: false,
     response: new Response(JSON.stringify({
@@ -2112,7 +2274,7 @@ async function checkAdminAuth(req: Request): Promise<{ isAdmin: boolean; respons
 async function getUserRoleFromToken(token: string): Promise<string | null> {
   try {
     if (!supabase) {
-      console.warn('Supabase not configured, using fallback authentication');
+      serverLogger.warn('Supabase not configured, using fallback authentication');
       return null;
     }
 
@@ -2120,7 +2282,7 @@ async function getUserRoleFromToken(token: string): Promise<string | null> {
     const { data: { user }, error } = await supabase.auth.getUser(token);
     
     if (error || !user) {
-      console.warn('Invalid token or user not found:', error?.message);
+      serverLogger.warn('Invalid token or user not found:', error?.message);
       return null;
     }
 
@@ -2132,19 +2294,19 @@ async function getUserRoleFromToken(token: string): Promise<string | null> {
       .single();
 
     if (profileError) {
-      console.warn('Failed to get user profile:', profileError.message);
+      serverLogger.warn('Failed to get user profile:', profileError.message);
       return 'user'; // 기본값
     }
 
     return profile?.role || 'user';
   } catch (error) {
-    console.error('Token validation error:', error);
+    serverLogger.error('Token validation error:', error);
     return null;
   }
 }
 
 // Enhanced startup logging
-console.log(`
+if (process.env.NODE_ENV === "development") serverLogger.info(`
 🎉 Art Recommendation SaaS Server Started!
 🌐 Local URL: http://localhost:${server.port}
 🌍 Production URL: https://art-recommendation-saas.onrender.com
@@ -2163,11 +2325,11 @@ setTimeout(async () => {
     const healthUrl = `http://localhost:${server.port}/api/health`;
     const response = await fetch(healthUrl);
     if (response.ok) {
-      console.log('✅ Server health check passed');
+      if (process.env.NODE_ENV === "development") serverLogger.info('✅ Server health check passed');
     } else {
-      console.error('❌ Server health check failed:', response.status);
+      serverLogger.error('❌ Server health check failed:', response.status);
     }
   } catch (error) {
-    console.error('❌ Server health check error:', error);
+    serverLogger.error('❌ Server health check error:', error);
   }
 }, 2000);

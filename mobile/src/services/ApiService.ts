@@ -3,11 +3,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // API 기본 URL - 실제 배포 시에는 환경변수 사용
 const API_BASE_URL = 'http://localhost:3000';
 
-interface ApiResponse<T = any> {
+interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;
-  [key: string]: any;
+  timestamp?: string;
+  requestId?: string;
 }
 
 class ApiService {
@@ -125,7 +126,7 @@ class ApiService {
   }
 
   // 작품 구매 요청
-  async requestPurchase(artworkId: string, userId: string, contactInfo: any): Promise<ApiResponse> {
+  async requestPurchase(artworkId: string, userId: string, contactInfo: Record<string, unknown>): Promise<ApiResponse> {
     return this.makeRequest('/api/purchase/request', {
       method: 'POST',
       body: JSON.stringify({

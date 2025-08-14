@@ -7,6 +7,9 @@ export class MockDatabaseService {
   private currentUserId: string | null = null;
 
   constructor() {
+    // Initialize with some test users
+    this.initializeTestUsers();
+    
     // Initialize with some mock artworks
     this.artworks = [
       {
@@ -72,25 +75,126 @@ export class MockDatabaseService {
     ];
   }
 
+  // Initialize test users for demonstration
+  private initializeTestUsers() {
+    const testUsers = [
+      {
+        id: "test-user-1",
+        email: "john.doe@example.com",
+        password: "password123",
+        display_name: "John Doe",
+        role: "user",
+        subscription_tier: "free",
+        created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+        last_login: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+        total_analyses: 5,
+        lifetimeValue: 0
+      },
+      {
+        id: "test-user-2",
+        email: "jane.artist@example.com",
+        password: "password123",
+        display_name: "Jane Smith",
+        role: "artist",
+        subscription_tier: "premium",
+        created_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+        last_login: new Date().toISOString(),
+        total_analyses: 25,
+        lifetimeValue: 99,
+        artist_name: "Jane Smith Art Studio",
+        artist_bio: "Contemporary digital artist specializing in abstract expressionism",
+        specialties: ["디지털 아트 (Digital Art)", "일러스트레이션 (Illustration)", "혼합 매체 (Mixed Media)"],
+        portfolioUrl: "https://janesmith.art",
+        website: "https://janesmithstudio.com",
+        socialMedia: {
+          instagram: "@janesmithart",
+          twitter: null
+        },
+        experience: "개인전 5회, 그룹전 20회 이상 참여. 서울대학교 미술대학 졸업. Adobe Creative Challenge 2023 수상."
+      },
+      {
+        id: "test-user-3",
+        email: "bob.wilson@example.com",
+        password: "password123",
+        display_name: "Bob Wilson",
+        role: "user",
+        subscription_tier: "standard",
+        created_at: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
+        last_login: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+        total_analyses: 12,
+        lifetimeValue: 29
+      },
+      {
+        id: "admin-user",
+        email: "admin@artrecommend.com",
+        password: "admin123",
+        display_name: "System Admin",
+        role: "admin",
+        subscription_tier: "admin",
+        created_at: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(),
+        last_login: new Date().toISOString(),
+        total_analyses: 0,
+        lifetimeValue: 0
+      }
+    ];
+
+    testUsers.forEach(user => {
+      this.users.set(user.id, user);
+    });
+
+    logger.info(`Initialized ${testUsers.length} test users in mock database`);
+  }
+
   // Auth methods
-  async signUp(email: string, password: string, displayName?: string) {
+  async signUp(email: string, password: string, displayName?: string, role?: string, artistInfo?: any) {
+    // Check if user already exists
+    for (const user of this.users.values()) {
+      if (user.email === email) {
+        return {
+          success: false,
+          error: "이미 존재하는 이메일입니다."
+        };
+      }
+    }
+
     const userId = `user_${Date.now()}_${Math.random().toString(36).substring(7)}`;
     const user = {
       id: userId,
       email,
+      password, // In production, this should be hashed
       display_name: displayName || email.split('@')[0],
+      role: role || 'user',
+      subscription_tier: 'free',
       created_at: new Date().toISOString(),
+      last_login: new Date().toISOString(),
+      total_analyses: 0,
+      lifetimeValue: 0,
       upload_count: 0,
-      last_upload_date: null
+      last_upload_date: null,
+      // Add artist info if provided
+      ...(artistInfo && {
+        artist_name: artistInfo.artist_name || null,
+        artist_bio: artistInfo.artist_bio || null,
+        specialties: artistInfo.specialties || [],
+        portfolioUrl: artistInfo.portfolioUrl || null,
+        website: artistInfo.website || null,
+        socialMedia: artistInfo.socialMedia || { instagram: null, twitter: null },
+        experience: artistInfo.experience || null
+      })
     };
-    
+
     this.users.set(userId, user);
     this.currentUserId = userId;
-    
+
+    logger.info(`New user registered: ${email} as ${role}`, artistInfo ? { artistFields: Object.keys(artistInfo) } : {});
+
     return {
       success: true,
-      user,
-      message: "회원가입이 성공적으로 완료되었습니다."
+      user: {
+        id: user.id,
+        email: user.email
+      },
+      message: "회원가입이 완료되었습니다."
     };
   }
 
@@ -165,6 +269,78 @@ export class MockDatabaseService {
     return {
       success: true,
       user
+    };
+  }
+
+  // Get all users for admin dashboard
+  async getAllUsers() {
+    const allUsers = Array.from(this.users.values()).map(user => ({
+      id: user.id,
+      email: user.email,
+      displayName: user.display_name || user.email.split('@')[0],
+      display_name: user.display_name || user.email.split('@')[0],
+      role: user.role || 'user',
+      subscription_tier: user.subscription_tier || 'free',
+      created_at: user.created_at || new Date().toISOString(),
+      last_login: user.last_login || new Date().toISOString(),
+      total_analyses: user.total_analyses || 0,
+      lifetimeValue: user.lifetimeValue || 0,
+      artist_name: user.artist_name || null,
+      artist_bio: user.artist_bio || null,
+      specialties: user.specialties || [],
+      portfolioUrl: user.portfolioUrl || null,
+      website: user.website || null,
+      socialMedia: user.socialMedia || { instagram: null, twitter: null },
+      experience: user.experience || null
+    }));
+    
+    return allUsers;
+  }
+
+  // Update user by admin
+  async updateUserByAdmin(userId: string, updates: any) {
+    const user = this.users.get(userId);
+    if (!user) {
+      return { success: false, error: "사용자를 찾을 수 없습니다." };
+    }
+    
+    // Update allowed fields
+    const allowedFields = [
+      'display_name', 'role', 'subscription_tier', 
+      'artist_name', 'artist_bio', 'total_analyses', 'lifetimeValue',
+      'specialties', 'portfolioUrl', 'website', 'socialMedia', 'experience'
+    ];
+    
+    allowedFields.forEach(field => {
+      if (updates[field] !== undefined) {
+        user[field] = updates[field];
+      }
+    });
+    
+    this.users.set(userId, user);
+    logger.info(`Admin updated user ${userId}:`, updates);
+    
+    return {
+      success: true,
+      user: {
+        id: user.id,
+        email: user.email,
+        displayName: user.display_name || user.email.split('@')[0],
+        display_name: user.display_name || user.email.split('@')[0],
+        role: user.role || 'user',
+        subscription_tier: user.subscription_tier || 'free',
+        created_at: user.created_at || new Date().toISOString(),
+        last_login: user.last_login || new Date().toISOString(),
+        total_analyses: user.total_analyses || 0,
+        lifetimeValue: user.lifetimeValue || 0,
+        artist_name: user.artist_name || null,
+        artist_bio: user.artist_bio || null,
+        specialties: user.specialties || [],
+        portfolioUrl: user.portfolioUrl || null,
+        website: user.website || null,
+        socialMedia: user.socialMedia || { instagram: null, twitter: null },
+        experience: user.experience || null
+      }
     };
   }
 
