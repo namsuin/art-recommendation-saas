@@ -124,7 +124,7 @@ NEVER proactively create documentation files (*.md) or README files. Only create
 - 사용자/예술가/관리자 역할 분리
 - 회원가입 시 역할 선택 (`/signup`)
 - **예술가 신청 및 승인 시스템**: 완전 구현 ✨
-- 관리자 인증 코드: `ADMIN2025SECRET`
+- 관리자 인증 코드: 환경 변수 `ADMIN_AUTH_CODE`에서 설정
 - Mock 데이터베이스 대체 시스템 (Supabase 불필요)
 
 ### 🎨 예술가 승인 워크플로우 (신규 완성)

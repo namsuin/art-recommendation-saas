@@ -17,13 +17,11 @@
   "dependencies": {
     "@google-cloud/vision": "^5.3.3",
     "@supabase/supabase-js": "^2.55.0",
-    "@types/pg": "^8.15.5",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "axios": "^1.11.0",
     "clarifai-nodejs-grpc": "^8.0.0",
     "lucide-react": "^0.539.0",
-    "pg": "^8.16.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-dropzone": "^14.2.3",

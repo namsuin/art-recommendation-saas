@@ -103,22 +103,35 @@ const server = Bun.serve({
       // Secure admin token verification endpoint
       if (url.pathname === "/api/admin/verify" && method === "POST") {
         try {
-          const authHeader = req.headers.get('Authorization');
-          const token = authHeader?.replace('Bearer ', '');
+          const body = await req.json();
+          const token = body.token;
           
-          const isValid = token && token === process.env.ADMIN_AUTH_CODE;
+          const adminAuthCode = process.env.ADMIN_AUTH_CODE;
+          const isValid = token && adminAuthCode && token === adminAuthCode;
           
-          return new Response(JSON.stringify({
-            valid: isValid
-          }), {
-            headers: { "Content-Type": "application/json", ...corsHeaders }
-          });
+          if (isValid) {
+            return new Response(JSON.stringify({
+              valid: true
+            }), {
+              status: 200,
+              headers: { "Content-Type": "application/json", ...corsHeaders }
+            });
+          } else {
+            return new Response(JSON.stringify({
+              valid: false,
+              error: "Invalid admin token"
+            }), {
+              status: 401,
+              headers: { "Content-Type": "application/json", ...corsHeaders }
+            });
+          }
         } catch (error) {
           serverLogger.error('Admin verification error:', error);
           return new Response(JSON.stringify({
-            valid: false
+            valid: false,
+            error: "Token verification failed"
           }), {
-            status: 401,
+            status: 500,
             headers: { "Content-Type": "application/json", ...corsHeaders }
           });
         }
@@ -2237,7 +2250,7 @@ async function checkAdminAuth(req: Request): Promise<{ isAdmin: boolean; respons
     
     // 환경변수에서 관리자 토큰 확인
     const adminAuthCode = process.env.ADMIN_AUTH_CODE;
-    if (token === adminAuthCode || token === 'admin-token-2025') {
+    if (token && token === adminAuthCode) {
       if (process.env.NODE_ENV === "development") serverLogger.info('✅ Admin access granted via token');
       return { isAdmin: true };
     }
@@ -2250,7 +2263,7 @@ async function checkAdminAuth(req: Request): Promise<{ isAdmin: boolean; respons
     if (adminToken) {
       const token = adminToken.split('=')[1];
       const adminAuthCode = process.env.ADMIN_AUTH_CODE;
-      if (token === adminAuthCode || token === 'admin-token-2025') {
+      if (token && token === adminAuthCode) {
         if (process.env.NODE_ENV === "development") serverLogger.info('✅ Admin access granted via cookie');
         return { isAdmin: true };
       }

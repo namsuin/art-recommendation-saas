@@ -101,7 +101,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onClose })
 
   // Helper function to get admin headers
   const getAdminHeaders = () => {
-    const token = localStorage.getItem('admin-token') || 'admin-token-2025';
+    const token = localStorage.getItem('admin-token');
+    if (!token) {
+      throw new Error('관리자 토큰이 없습니다. 다시 로그인하세요.');
+    }
     return {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json'
