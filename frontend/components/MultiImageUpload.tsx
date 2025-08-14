@@ -215,20 +215,6 @@ export default function MultiImageUpload({ userId, onAnalysisComplete }: MultiIm
             </div>
           </div>
           
-          {/* 추가 안내 메시지 */}
-          <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded">
-            <p className="text-sm text-orange-800">
-              <strong>📢 현재 지원 상태:</strong>
-            </p>
-            <ul className="text-xs text-orange-700 mt-1 space-y-1">
-              <li>• <span className="text-green-600">✅ 1-3장</span>: 완전 지원 (무료)</li>
-              <li>• <span className="text-orange-600">🚧 4-10장</span>: 개발 중 - 곧 지원 예정</li>
-              <li>• <span className="text-orange-600">🚧 11장 이상</span>: 개발 중 - 곧 지원 예정</li>
-            </ul>
-            <p className="text-xs text-orange-600 mt-2">
-              💡 더 많은 이미지 분석이 필요하시면 현재는 3장씩 나누어 분석해 주세요.
-            </p>
-          </div>
         </div>
 
         {/* 이미지 업로드 영역 */}
@@ -242,17 +228,6 @@ export default function MultiImageUpload({ userId, onAnalysisComplete }: MultiIm
           />
         )}
         
-        {/* 최대 3장 제한 안내 */}
-        {images.length >= 3 && (
-          <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <p className="text-sm text-yellow-800">
-              <strong>📸 최대 업로드 완료!</strong> 현재는 최대 3장까지만 동시 분석이 가능합니다.
-            </p>
-            <p className="text-xs text-yellow-700 mt-1">
-              더 많은 이미지를 분석하려면 기존 이미지를 제거한 후 새 이미지를 업로드하거나, 4장 이상 지원 기능이 완성될 때까지 기다려 주세요.
-            </p>
-          </div>
-        )}
 
         {/* 업로드된 이미지 미리보기 */}
         <ImagePreviewGrid
