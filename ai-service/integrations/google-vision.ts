@@ -129,14 +129,14 @@ export class GoogleVisionService {
 
     // Process labels with confidence threshold
     result.labels.forEach(label => {
-      if (label.score > 0.5) {
+      if (label.score > 0.3) { // Lowered threshold for more keywords
         keywords.add(label.description.toLowerCase());
       }
     });
 
     // Process objects
     result.objects.forEach(obj => {
-      if (obj.score > 0.5) {
+      if (obj.score > 0.3) { // Lowered threshold for more objects
         keywords.add(obj.name.toLowerCase());
       }
     });

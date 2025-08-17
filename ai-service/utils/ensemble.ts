@@ -60,26 +60,26 @@ export class AIEnsembleService {
       this.styleTransfer = new StyleTransferService(); // Will be disabled internally
     }
 
-    // Default configuration
+    // Default configuration - Google Vision and Clarifai both enabled
     this.config = {
       google_vision: {
-        enabled: true,
-        weight: 0.2,
+        enabled: true, // Re-enabled with service account key
+        weight: 0.3,
         features: ['labels', 'objects', 'colors']
       },
       clarifai: {
         enabled: true,
-        weight: 0.2,
+        weight: 0.3, // Balanced weight with Google Vision
         model_id: 'general'
       },
       replicate: {
         enabled: true,
-        weight: 0.25,
+        weight: 0.2,
         model_version: 'clip-interrogator'
       },
       local_clip: {
-        enabled: true,
-        weight: 0.15,
+        enabled: false, // Disabled for deployment compatibility
+        weight: 0.0,
         model_path: './models/clip'
       },
       style_transfer: {

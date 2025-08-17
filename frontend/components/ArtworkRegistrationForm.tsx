@@ -18,6 +18,7 @@ interface ArtworkFormData {
   keywords: string[];
   tags: string[];
   imageFile: File | null;
+  link: string;
 }
 
 const CATEGORIES = [
@@ -47,7 +48,8 @@ export default function ArtworkRegistrationForm({ userId }: { userId: string }) 
     isForSale: false,
     keywords: [],
     tags: [],
-    imageFile: null
+    imageFile: null,
+    link: ''
   });
 
   const [newKeyword, setNewKeyword] = useState('');
@@ -165,6 +167,7 @@ export default function ArtworkRegistrationForm({ userId }: { userId: string }) 
         is_for_sale: formData.isForSale,
         keywords: formData.keywords,
         tags: formData.tags,
+        link: formData.link || null,
         status: type,
         submitted_at: type === 'pending' ? new Date().toISOString() : null
       };
@@ -443,6 +446,24 @@ export default function ArtworkRegistrationForm({ userId }: { userId: string }) 
               />
             </div>
           )}
+        </div>
+
+        {/* 작품 링크 */}
+        <div className="mt-6">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            <DollarSign className="inline w-4 h-4 mr-1" />
+            작품 상세 링크 (선택사항)
+          </label>
+          <input
+            type="url"
+            value={formData.link || ''}
+            onChange={(e) => setFormData(prev => ({ ...prev, link: e.target.value }))}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="https://example.com/artwork-detail"
+          />
+          <p className="mt-1 text-sm text-gray-500">
+            작품의 상세 정보를 볼 수 있는 링크를 입력하세요. 이미지 분석 후 추천 작품 클릭 시 이 링크로 이동합니다.
+          </p>
         </div>
 
         {/* 키워드 및 태그 */}

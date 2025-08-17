@@ -22,6 +22,7 @@ export class MockDatabaseService {
         description: "레오나르도 다빈치의 걸작",
         price: 0,
         available: true,
+        link: "https://en.wikipedia.org/wiki/Mona_Lisa",
         created_at: "2024-01-01T00:00:00Z"
       },
       {
@@ -34,6 +35,7 @@ export class MockDatabaseService {
         description: "반 고흐의 대표작",
         price: 0,
         available: true,
+        link: "https://en.wikipedia.org/wiki/The_Starry_Night",
         created_at: "2024-01-02T00:00:00Z"
       },
       {
@@ -46,6 +48,7 @@ export class MockDatabaseService {
         description: "네덜란드 바로크 시대의 걸작",
         price: 0,
         available: true,
+        link: "https://en.wikipedia.org/wiki/Girl_with_a_Pearl_Earring",
         created_at: "2024-01-03T00:00:00Z"
       },
       {
@@ -58,6 +61,7 @@ export class MockDatabaseService {
         description: "일본 우키요에의 대표작",
         price: 0,
         available: true,
+        link: "https://en.wikipedia.org/wiki/The_Great_Wave_off_Kanagawa",
         created_at: "2024-01-04T00:00:00Z"
       },
       {
@@ -70,6 +74,7 @@ export class MockDatabaseService {
         description: "표현주의의 상징적 작품",
         price: 0,
         available: true,
+        link: "https://en.wikipedia.org/wiki/The_Scream",
         created_at: "2024-01-05T00:00:00Z"
       }
     ];

@@ -151,7 +151,7 @@ export class AIAnalysisService {
       // Use Supabase's vector similarity search
       const { data, error } = await supabase.rpc('vector_similarity_search', {
         query_embedding: analysis.embeddings,
-        similarity_threshold: 0.5,
+        similarity_threshold: 0.3, // Lowered from 0.5 for more recommendations
         match_count: limit * 2 // Get more results to filter and rank
       });
 
@@ -254,7 +254,7 @@ export class AIAnalysisService {
                 match_score: artwork.match_score
               }
             },
-            similarity: Math.min(0.95, 0.7 + (artwork.match_score || 0) * 0.05), // High base score for registered artworks
+            similarity: Math.min(0.95, 0.5 + (artwork.match_score || 0) * 0.1), // Adjusted base score for more variety
             reasons,
             confidence: 0.9
           };
@@ -479,7 +479,7 @@ export class AIAnalysisService {
   }
 
   private calculateKeywordSimilarity(userKeywords: string[], artworkKeywords: string[]): number {
-    if (!artworkKeywords || artworkKeywords.length === 0) return 0.1;
+    if (!artworkKeywords || artworkKeywords.length === 0) return 0.3; // Increased base score from 0.1
     
     const normalizedUserKeywords = userKeywords.map(k => k.toLowerCase());
     const normalizedArtworkKeywords = artworkKeywords.map(k => k.toLowerCase());
@@ -494,7 +494,9 @@ export class AIAnalysisService {
       }
     }
     
-    return Math.min(matches / Math.max(normalizedUserKeywords.length, normalizedArtworkKeywords.length), 1.0);
+    // More generous scoring: base 0.3 + calculated similarity * 0.7
+    const baseSimilarity = matches / Math.max(normalizedUserKeywords.length, normalizedArtworkKeywords.length);
+    return Math.min(0.3 + (baseSimilarity * 0.7), 1.0);
   }
 
   private async getFallbackRecommendations(limit: number): Promise<Recommendation[]> {

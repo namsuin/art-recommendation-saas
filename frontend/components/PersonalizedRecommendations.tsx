@@ -155,9 +155,9 @@ export const PersonalizedRecommendations: React.FC<PersonalizedRecommendationsPr
   };
 
   const getConfidenceColor = (confidence: number) => {
-    if (confidence >= 0.8) return 'text-green-600';
-    if (confidence >= 0.6) return 'text-yellow-600';
-    return 'text-red-600';
+    if (confidence >= 0.6) return 'text-green-600'; // Lowered from 0.8
+    if (confidence >= 0.4) return 'text-yellow-600'; // Lowered from 0.6
+    return 'text-orange-600'; // Changed from red to orange for better UX
   };
 
   const getFactorLabel = (factor: string) => {

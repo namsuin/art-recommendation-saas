@@ -567,8 +567,9 @@
                     const similarity = rec.similarity || 0;
                     
                     return `
-                    <div class="recommendation-item bg-white rounded-lg p-4 border hover:shadow-md transition-all cursor-pointer"
-                         onclick="window.open('${artwork.source_url || '#'}', '_blank')">
+                    <div class="recommendation-item bg-white rounded-lg p-4 border hover:shadow-md transition-all ${artwork.link || artwork.source_url ? 'cursor-pointer' : ''}"
+                         onclick="${artwork.link || artwork.source_url ? `window.open('${artwork.link || artwork.source_url}', '_blank')` : ''}"
+                         title="${artwork.link || artwork.source_url ? '클릭하여 작품 상세 보기' : ''}">
                         <div class="flex items-start space-x-4">
                             ${imageUrl ? 
                                 `<img src="${imageUrl}" alt="${title}" class="w-20 h-20 object-cover rounded-lg" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
@@ -579,7 +580,10 @@
                                 <h4 class="font-bold text-gray-900 mb-1 line-clamp-2">${title}</h4>
                                 <p class="text-sm text-gray-600 mb-2">${artist}</p>
                                 <div class="flex items-center justify-between">
-                                    <span class="text-xs px-2 py-1 bg-gray-100 rounded-full text-gray-600">${source}</span>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-xs px-2 py-1 bg-gray-100 rounded-full text-gray-600">${source}</span>
+                                        ${artwork.link || artwork.source_url ? '<svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>' : ''}
+                                    </div>
                                     <span class="text-xs text-blue-600 font-medium">${Math.round(similarity * 100)}% 일치</span>
                                 </div>
                                 ${rec.reasons ? `<div class="mt-2">

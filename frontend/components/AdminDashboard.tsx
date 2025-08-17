@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ArtworkRegistry } from './ArtworkRegistry';
+import AdminArtworkDashboard from './AdminArtworkDashboard';
 
 interface AdminDashboardProps {
   user: any;
@@ -772,6 +773,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onClose })
   };
 
   const renderArtworks = () => (
+    <AdminArtworkDashboard userId={user.id} />
+  );
+
+  const renderArtworksOLD = () => (
     <div className="space-y-6">
       {/* Artworks Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

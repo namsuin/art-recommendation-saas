@@ -133,7 +133,7 @@ export class ClarifaiService {
 
     // Process concepts with confidence threshold
     result.concepts.forEach(concept => {
-      if (concept.value > 0.5) {
+      if (concept.value > 0.3) { // Lowered threshold for more concepts
         keywords.add(concept.name.toLowerCase());
       }
     });
