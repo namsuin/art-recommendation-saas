@@ -2,61 +2,20 @@ services:
   - type: web
     name: art-recommendation-saas
     runtime: docker
-    plan: free
-    dockerfilePath: ./Dockerfile
-    # Health check endpoint
-    healthCheckPath: /api/health
-    # Build settings
-    buildCommand: |
-      echo "Building with Bun on Render"
-      echo "Node version: $(node --version)" || echo "Node not available"
-      echo "Bun version: $(bun --version)" || echo "Bun not available in build"
-    # Environment variables for production
+    repo: https://github.com/namsuin/art-recommendation-saas
+    branch: main
     envVars:
-      - key: PORT
-        value: 10000
       - key: NODE_ENV
         value: production
-      - key: BUN_ENV
-        value: production
-      # Mock Database (no external dependencies)
-      - key: SUPABASE_URL
-        value: https://mock.supabase.co
-      - key: SUPABASE_ANON_KEY
-        value: mock-anon-key
-      - key: SUPABASE_SERVICE_ROLE_KEY
-        value: mock-service-key
-      # AI Services (Optional - using mock for free tier)
-      - key: GOOGLE_CLOUD_PROJECT_ID
-        value: mock-project
-      - key: GOOGLE_CLOUD_KEY_FILE
-        value: mock-key-file
+      - key: PORT
+        value: 3000
+      - key: GOOGLE_VISION_API_KEY
+        sync: false
       - key: CLARIFAI_API_KEY
-        value: mock-clarifai-key
-      - key: REPLICATE_API_TOKEN
-        value: mock-replicate-token
-      - key: GEMINI_API_KEY
-        value: mock-gemini-key
-      - key: MISTRAL_API_KEY
-        value: mock-mistral-key
-      - key: OPENAI_API_KEY
-        value: mock-openai-key
-      # Payment (Mock for demo)
-      - key: STRIPE_SECRET_KEY
-        value: sk_test_mock
-      - key: STRIPE_PUBLISHABLE_KEY
-        value: pk_test_mock
-      # Admin
+        sync: false
       - key: ADMIN_AUTH_CODE
-        value: ADMIN2025SECRET
-    # Scaling and performance
+        sync: false
+    buildCommand: bun install
+    startCommand: bun run start
+    healthCheckPath: /api/health
     autoDeploy: true
-    region: oregon
-    # Custom domain
-    domains:
-      - art-recommendation-saas.onrender.com
-    # Resource limits for free tier
-    disk:
-      name: data
-      mountPath: /data
-      sizeGB: 1

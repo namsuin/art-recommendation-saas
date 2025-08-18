@@ -1,0 +1,17 @@
+{
+  "buildCommand": "bun install",
+  "outputDirectory": "./",
+  "installCommand": "curl -fsSL https://bun.sh/install | bash && ~/.bun/bin/bun install",
+  "framework": null,
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/api/serverless"
+    }
+  ],
+  "functions": {
+    "api/serverless.js": {
+      "maxDuration": 30
+    }
+  }
+}
