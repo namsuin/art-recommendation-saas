@@ -325,12 +325,12 @@ export const ArtworkList: React.FC<ArtworkListProps> = ({
           )}
           
           <div className="flex flex-wrap gap-1 mt-2">
-            {artwork.keywords.slice(0, 3).map((keyword, idx) => (
+            {artwork.keywords && artwork.keywords.slice(0, 3).map((keyword, idx) => (
               <span key={idx} className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded">
                 {keyword}
               </span>
             ))}
-            {artwork.keywords.length > 3 && (
+            {artwork.keywords && artwork.keywords.length > 3 && (
               <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded">
                 +{artwork.keywords.length - 3}
               </span>

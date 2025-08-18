@@ -309,11 +309,30 @@
             const [users, setUsers] = useState([]);
             const [revenueData, setRevenueData] = useState([]);
             const [applications, setApplications] = useState([]);
+            const [artworks, setArtworks] = useState([]);
             const [loading, setLoading] = useState(true);
             const [error, setError] = useState(null);
             const [isAuthenticated, setIsAuthenticated] = useState(false);
             const [editingApplication, setEditingApplication] = useState(null);
             const [editFormData, setEditFormData] = useState(null);
+            const [editingArtwork, setEditingArtwork] = useState(null);
+            const [editArtworkData, setEditArtworkData] = useState(null);
+            const [showAddArtwork, setShowAddArtwork] = useState(false);
+            const [newArtworkData, setNewArtworkData] = useState({
+                title: '',
+                artist_name: '',
+                description: '',
+                image_url: '',
+                price: '',
+                category: 'painting',
+                tags: '',
+                status: 'pending'
+            });
+            
+            // 작품 관리 탭을 위한 추가 상태들
+            const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'table'
+            const [searchTerm, setSearchTerm] = useState('');
+            const [filterStatus, setFilterStatus] = useState('all');
 
             // Mock 관리자 ID (실제로는 인증 시스템에서 가져와야 함)
             const adminUserId = 'admin_user_1';
@@ -406,6 +425,14 @@
                     
                     if (applicationsResult.success) {
                         setApplications(applicationsResult.applications || []);
+                    }
+
+                    // 작품 데이터 로드
+                    const artworksResponse = await fetch(`/api/admin/artworks`, { headers });
+                    const artworksResult = await artworksResponse.json();
+                    
+                    if (artworksResult.success) {
+                        setArtworks(artworksResult.artworks || []);
                     }
 
                 } catch (error) {
@@ -502,6 +529,209 @@
             const cancelEdit = () => {
                 setEditingApplication(null);
                 setEditFormData(null);
+            };
+
+            // 작품 관리 핸들러들
+            const handleEditArtwork = (artwork) => {
+                setEditingArtwork(artwork);
+                setEditArtworkData({
+                    title: artwork.title,
+                    artist_name: artwork.artist_name,
+                    description: artwork.description || '',
+                    image_url: artwork.image_url || '',
+                    price: artwork.price || '',
+                    category: artwork.category || 'painting',
+                    tags: artwork.tags || '',
+                    status: artwork.status || 'pending'
+                });
+            };
+
+            const handleEditArtworkChange = (e) => {
+                const { name, value } = e.target;
+                setEditArtworkData(prev => ({
+                    ...prev,
+                    [name]: value
+                }));
+            };
+
+            const handleEditArtworkSubmit = async (e) => {
+                e.preventDefault();
+                
+                try {
+                    const adminToken = localStorage.getItem('admin-token');
+                    const response = await fetch(`/api/admin/artworks/${editingArtwork.id}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${adminToken}`
+                        },
+                        body: JSON.stringify(editArtworkData)
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        alert('작품이 수정되었습니다.');
+                        setEditingArtwork(null);
+                        setEditArtworkData(null);
+                        loadDashboardData();
+                    } else {
+                        alert('수정 중 오류가 발생했습니다: ' + result.error);
+                    }
+                } catch (error) {
+                    console.error('Artwork edit error:', error);
+                    alert('서버 오류가 발생했습니다.');
+                }
+            };
+
+            const handleDeleteArtwork = async (artworkId) => {
+                if (!confirm('정말로 이 작품을 삭제하시겠습니까?')) {
+                    return;
+                }
+                
+                try {
+                    const adminToken = localStorage.getItem('admin-token');
+                    const response = await fetch(`/api/admin/artworks/${artworkId}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': `Bearer ${adminToken}`
+                        }
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        alert('작품이 삭제되었습니다.');
+                        loadDashboardData();
+                    } else {
+                        alert('삭제 중 오류가 발생했습니다: ' + result.error);
+                    }
+                } catch (error) {
+                    console.error('Artwork delete error:', error);
+                    alert('서버 오류가 발생했습니다.');
+                }
+            };
+
+            const handleApproveArtwork = async (artworkId) => {
+                try {
+                    const adminToken = localStorage.getItem('admin-token');
+                    const response = await fetch(`/api/admin/artworks/${artworkId}/approve`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${adminToken}`
+                        }
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        alert('작품이 승인되었습니다.');
+                        loadDashboardData();
+                    } else {
+                        alert('승인 중 오류가 발생했습니다: ' + result.error);
+                    }
+                } catch (error) {
+                    console.error('Artwork approve error:', error);
+                    alert('서버 오류가 발생했습니다.');
+                }
+            };
+
+            const handleRejectArtwork = async (artworkId) => {
+                const reason = prompt('거부 사유를 입력하세요 (선택사항):');
+                if (reason === null) return; // 취소 버튼 클릭 시
+                
+                try {
+                    const adminToken = localStorage.getItem('admin-token');
+                    const response = await fetch(`/api/admin/artworks/${artworkId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${adminToken}`
+                        },
+                        body: JSON.stringify({
+                            status: 'rejected',
+                            rejection_reason: reason || '관리자에 의해 거부됨'
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        alert('작품이 거부되었습니다.');
+                        loadDashboardData();
+                    } else {
+                        alert('거부 중 오류가 발생했습니다: ' + result.error);
+                    }
+                } catch (error) {
+                    console.error('Reject error:', error);
+                    alert('서버 오류가 발생했습니다.');
+                }
+            };
+
+            const handleNewArtworkChange = (e) => {
+                const { name, value } = e.target;
+                setNewArtworkData(prev => ({
+                    ...prev,
+                    [name]: value
+                }));
+            };
+
+            const handleAddArtworkSubmit = async (e) => {
+                e.preventDefault();
+                
+                try {
+                    const adminToken = localStorage.getItem('admin-token');
+                    const response = await fetch(`/api/admin/artworks`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${adminToken}`
+                        },
+                        body: JSON.stringify(newArtworkData)
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        alert('작품이 등록되었습니다.');
+                        setShowAddArtwork(false);
+                        setNewArtworkData({
+                            title: '',
+                            artist_name: '',
+                            description: '',
+                            image_url: '',
+                            price: '',
+                            category: 'painting',
+                            tags: '',
+                            status: 'pending'
+                        });
+                        loadDashboardData();
+                    } else {
+                        alert('등록 중 오류가 발생했습니다: ' + result.error);
+                    }
+                } catch (error) {
+                    console.error('Artwork add error:', error);
+                    alert('서버 오류가 발생했습니다.');
+                }
+            };
+
+            const cancelEditArtwork = () => {
+                setEditingArtwork(null);
+                setEditArtworkData(null);
+            };
+
+            const cancelAddArtwork = () => {
+                setShowAddArtwork(false);
+                setNewArtworkData({
+                    title: '',
+                    artist_name: '',
+                    description: '',
+                    image_url: '',
+                    price: '',
+                    category: 'painting',
+                    tags: '',
+                    status: 'pending'
+                });
             };
 
             // 예술가 신청 삭제 핸들러
@@ -622,6 +852,29 @@
                                             {applications.filter(app => app.status === 'pending').length}
                                         </span>
                                     }
+                                </button>
+                                <button
+                                    onClick={() => setActiveTab('artworks')}
+                                    className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                                        activeTab === 'artworks'
+                                            ? 'border-blue-500 text-blue-600'
+                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                    }`}
+                                >
+                                    🖼️ 작품 관리
+                                    <span className="ml-1 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                        {artworks.length}
+                                    </span>
+                                </button>
+                                <button
+                                    onClick={() => setActiveTab('artwork-register')}
+                                    className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                                        activeTab === 'artwork-register'
+                                            ? 'border-blue-500 text-blue-600'
+                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                    }`}
+                                >
+                                    ➕ 작품 등록
                                 </button>
                             </nav>
                         </div>
@@ -847,6 +1100,268 @@
                                             }).length}
                                         </p>
                                     </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'artworks' && (
+                            <div className="space-y-6">
+                                <div className="bg-white rounded-lg shadow">
+                                    <div className="px-6 py-4 border-b border-gray-200">
+                                        <div className="flex justify-between items-center mb-4">
+                                            <h3 className="text-lg font-medium text-gray-900">
+                                                작품 관리
+                                                <span className="ml-2 text-sm text-gray-500">
+                                                    (총 {artworks.length}개 작품)
+                                                </span>
+                                            </h3>
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => setViewMode(viewMode === 'grid' ? 'table' : 'grid')}
+                                                    className="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50"
+                                                >
+                                                    {viewMode === 'grid' ? '📋 테이블 보기' : '🔲 그리드 보기'}
+                                                </button>
+                                                <button
+                                                    onClick={() => setActiveTab('artwork-register')}
+                                                    className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium"
+                                                >
+                                                    ➕ 새 작품 등록
+                                                </button>
+                                            </div>
+                                        </div>
+                                        
+                                        {/* 필터 및 검색 */}
+                                        <div className="flex gap-4">
+                                            <input
+                                                type="text"
+                                                placeholder="작품명 또는 작가명 검색..."
+                                                value={searchTerm}
+                                                onChange={(e) => setSearchTerm(e.target.value)}
+                                                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            />
+                                            <select
+                                                value={filterStatus}
+                                                onChange={(e) => setFilterStatus(e.target.value)}
+                                                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            >
+                                                <option value="all">전체 상태</option>
+                                                <option value="pending">대기중</option>
+                                                <option value="approved">승인됨</option>
+                                                <option value="rejected">거부됨</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    
+                                    {artworks.length === 0 ? (
+                                        <div className="px-6 py-12 text-center">
+                                            <div className="text-gray-400 text-6xl mb-4">🖼️</div>
+                                            <h3 className="text-lg font-medium text-gray-900 mb-2">등록된 작품이 없습니다</h3>
+                                            <p className="text-gray-500">새 작품을 등록해주세요.</p>
+                                            <button
+                                                onClick={() => setShowAddArtwork(true)}
+                                                className="mt-4 bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg"
+                                            >
+                                                첫 작품 등록하기
+                                            </button>
+                                        </div>
+                                    ) : viewMode === 'grid' ? (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
+                                            {artworks
+                                                .filter(artwork => {
+                                                    const matchesSearch = searchTerm === '' || 
+                                                        artwork.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                                        artwork.artist_name.toLowerCase().includes(searchTerm.toLowerCase());
+                                                    const matchesStatus = filterStatus === 'all' || artwork.status === filterStatus;
+                                                    return matchesSearch && matchesStatus;
+                                                })
+                                                .map((artwork) => (
+                                                <div key={artwork.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+                                                    {artwork.image_url && (
+                                                        <img 
+                                                            src={artwork.image_url} 
+                                                            alt={artwork.title}
+                                                            className="w-full h-48 object-cover"
+                                                        />
+                                                    )}
+                                                    <div className="p-4">
+                                                        <div className="flex justify-between items-start mb-2">
+                                                            <h4 className="text-lg font-semibold text-gray-900">{artwork.title}</h4>
+                                                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                                                artwork.status === 'approved' ? 'bg-green-100 text-green-800' :
+                                                                artwork.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                                                'bg-red-100 text-red-800'
+                                                            }`}>
+                                                                {artwork.status === 'approved' ? '승인됨' :
+                                                                 artwork.status === 'pending' ? '대기중' : '거부됨'}
+                                                            </span>
+                                                        </div>
+                                                        <p className="text-sm text-gray-600 mb-1">작가: {artwork.artist_name}</p>
+                                                        <p className="text-sm text-gray-600 mb-2">카테고리: {artwork.category}</p>
+                                                        {artwork.price && (
+                                                            <p className="text-lg font-bold text-blue-600 mb-2">₩{Number(artwork.price).toLocaleString()}</p>
+                                                        )}
+                                                        <p className="text-sm text-gray-500 mb-3 line-clamp-2">{artwork.description}</p>
+                                                        {artwork.tags && (
+                                                            <div className="flex flex-wrap gap-1 mb-3">
+                                                                {artwork.tags.split(',').map((tag, index) => (
+                                                                    <span key={index} className="inline-flex px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">
+                                                                        {tag.trim()}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                        <div className="flex gap-2 mt-4">
+                                                            <button
+                                                                onClick={() => handleEditArtwork(artwork)}
+                                                                className="flex-1 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200 shadow-sm"
+                                                            >
+                                                                ✏️ 수정
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDeleteArtwork(artwork.id)}
+                                                                className="flex-1 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200 shadow-sm"
+                                                            >
+                                                                🗑️ 삭제
+                                                            </button>
+                                                            {artwork.status === 'pending' && (
+                                                                <button
+                                                                    onClick={() => handleApproveArtwork(artwork.id)}
+                                                                    className="flex-1 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200 shadow-sm"
+                                                                >
+                                                                    ✅ 승인
+                                                                </button>
+                                                            )}
+                                                            {artwork.status === 'approved' && (
+                                                                <button
+                                                                    onClick={() => handleRejectArtwork(artwork.id)}
+                                                                    className="flex-1 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200 shadow-sm"
+                                                                >
+                                                                    ❌ 거부
+                                                                </button>
+                                                            )}
+                                                            {artwork.status === 'rejected' && (
+                                                                <button
+                                                                    onClick={() => handleApproveArtwork(artwork.id)}
+                                                                    className="flex-1 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200 shadow-sm"
+                                                                >
+                                                                    ✅ 재승인
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        // 테이블 뷰
+                                        <div className="overflow-x-auto">
+                                            <table className="min-w-full divide-y divide-gray-200">
+                                                <thead className="bg-gray-50">
+                                                    <tr>
+                                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">이미지</th>
+                                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">작품명</th>
+                                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">작가</th>
+                                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">카테고리</th>
+                                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">가격</th>
+                                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">상태</th>
+                                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">액션</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="bg-white divide-y divide-gray-200">
+                                                    {artworks
+                                                        .filter(artwork => {
+                                                            const matchesSearch = searchTerm === '' || 
+                                                                artwork.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                                                artwork.artist_name.toLowerCase().includes(searchTerm.toLowerCase());
+                                                            const matchesStatus = filterStatus === 'all' || artwork.status === filterStatus;
+                                                            return matchesSearch && matchesStatus;
+                                                        })
+                                                        .map((artwork) => (
+                                                        <tr key={artwork.id} className="hover:bg-gray-50">
+                                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                                {artwork.image_url ? (
+                                                                    <img 
+                                                                        src={artwork.image_url} 
+                                                                        alt={artwork.title}
+                                                                        className="w-12 h-12 object-cover rounded"
+                                                                    />
+                                                                ) : (
+                                                                    <div className="w-12 h-12 bg-gray-200 rounded flex items-center justify-center">
+                                                                        <span className="text-gray-400 text-xs">No Image</span>
+                                                                    </div>
+                                                                )}
+                                                            </td>
+                                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                                <div className="text-sm font-medium text-gray-900">{artwork.title}</div>
+                                                            </td>
+                                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                                <div className="text-sm text-gray-900">{artwork.artist_name}</div>
+                                                            </td>
+                                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                                <div className="text-sm text-gray-900">{artwork.category}</div>
+                                                            </td>
+                                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                                <div className="text-sm text-gray-900">
+                                                                    {artwork.price ? `₩${Number(artwork.price).toLocaleString()}` : '-'}
+                                                                </div>
+                                                            </td>
+                                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                                                    artwork.status === 'approved' ? 'bg-green-100 text-green-800' :
+                                                                    artwork.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                                                    'bg-red-100 text-red-800'
+                                                                }`}>
+                                                                    {artwork.status === 'approved' ? '승인됨' :
+                                                                     artwork.status === 'pending' ? '대기중' : '거부됨'}
+                                                                </span>
+                                                            </td>
+                                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                                                <div className="flex gap-2">
+                                                                    <button
+                                                                        onClick={() => handleEditArtwork(artwork)}
+                                                                        className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm font-medium transition-colors"
+                                                                    >
+                                                                        ✏️ 수정
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => handleDeleteArtwork(artwork.id)}
+                                                                        className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm font-medium transition-colors"
+                                                                    >
+                                                                        🗑️ 삭제
+                                                                    </button>
+                                                                    {artwork.status === 'pending' && (
+                                                                        <button
+                                                                            onClick={() => handleApproveArtwork(artwork.id)}
+                                                                            className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm font-medium transition-colors"
+                                                                        >
+                                                                            ✅ 승인
+                                                                        </button>
+                                                                    )}
+                                                                    {artwork.status === 'approved' && (
+                                                                        <button
+                                                                            onClick={() => handleRejectArtwork(artwork.id)}
+                                                                            className="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1 rounded text-sm font-medium transition-colors"
+                                                                        >
+                                                                            ❌ 거부
+                                                                        </button>
+                                                                    )}
+                                                                    {artwork.status === 'rejected' && (
+                                                                        <button
+                                                                            onClick={() => handleApproveArtwork(artwork.id)}
+                                                                            className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm font-medium transition-colors"
+                                                                        >
+                                                                            ✅ 재승인
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         )}
@@ -1091,7 +1606,543 @@
                                 </div>
                             </div>
                         )}
+
+                        {activeTab === 'artwork-register' && (
+                            <div className="space-y-6">
+                                <div className="bg-white rounded-lg shadow p-6">
+                                    <h3 className="text-2xl font-bold mb-6">새 작품 등록</h3>
+                                    
+                                    <form onSubmit={handleAddArtworkSubmit}>
+                                        {/* 기본 정보 */}
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                    작품명 *
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    name="title"
+                                                    value={newArtworkData.title}
+                                                    onChange={handleNewArtworkChange}
+                                                    required
+                                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                    작가명 *
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    name="artist_name"
+                                                    value={newArtworkData.artist_name}
+                                                    onChange={handleNewArtworkChange}
+                                                    required
+                                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* 작품 설명 */}
+                                        <div className="mb-6">
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                작품 설명
+                                            </label>
+                                            <textarea
+                                                name="description"
+                                                value={newArtworkData.description}
+                                                onChange={handleNewArtworkChange}
+                                                rows={4}
+                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                placeholder="작품에 대한 설명을 입력해주세요..."
+                                            />
+                                        </div>
+
+                                        {/* 이미지 URL */}
+                                        <div className="mb-6">
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                작품 이미지 URL
+                                            </label>
+                                            <input
+                                                type="url"
+                                                name="image_url"
+                                                value={newArtworkData.image_url}
+                                                onChange={handleNewArtworkChange}
+                                                placeholder="https://example.com/artwork-image.jpg"
+                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            />
+                                            {newArtworkData.image_url && (
+                                                <div className="mt-4">
+                                                    <img
+                                                        src={newArtworkData.image_url}
+                                                        alt="작품 미리보기"
+                                                        className="max-h-64 rounded-lg object-contain"
+                                                        onError={(e) => {
+                                                            e.target.style.display = 'none';
+                                                        }}
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* 상세 정보 */}
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                    카테고리
+                                                </label>
+                                                <select
+                                                    name="category"
+                                                    value={newArtworkData.category}
+                                                    onChange={handleNewArtworkChange}
+                                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                >
+                                                    <option value="painting">회화</option>
+                                                    <option value="sculpture">조각</option>
+                                                    <option value="photography">사진</option>
+                                                    <option value="digital">디지털아트</option>
+                                                    <option value="installation">설치미술</option>
+                                                    <option value="drawing">드로잉</option>
+                                                    <option value="print">판화</option>
+                                                    <option value="ceramics">도예</option>
+                                                    <option value="textile">섬유예술</option>
+                                                    <option value="mixed">혼합매체</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                    가격 (원)
+                                                </label>
+                                                <input
+                                                    type="number"
+                                                    name="price"
+                                                    value={newArtworkData.price}
+                                                    onChange={handleNewArtworkChange}
+                                                    placeholder="100000"
+                                                    min="0"
+                                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                    상태
+                                                </label>
+                                                <select
+                                                    name="status"
+                                                    value={newArtworkData.status}
+                                                    onChange={handleNewArtworkChange}
+                                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                >
+                                                    <option value="pending">대기중</option>
+                                                    <option value="approved">승인됨</option>
+                                                    <option value="rejected">거부됨</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        {/* 태그 */}
+                                        <div className="mb-6">
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                태그 (쉼표로 구분)
+                                            </label>
+                                            <input
+                                                type="text"
+                                                name="tags"
+                                                value={newArtworkData.tags}
+                                                onChange={handleNewArtworkChange}
+                                                placeholder="추상화, 현대미술, 아크릴"
+                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            />
+                                        </div>
+
+                                        {/* 제출 버튼 */}
+                                        <div className="flex justify-end space-x-4">
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setNewArtworkData({
+                                                        title: '',
+                                                        artist_name: '',
+                                                        description: '',
+                                                        image_url: '',
+                                                        price: '',
+                                                        category: 'painting',
+                                                        tags: '',
+                                                        status: 'pending'
+                                                    });
+                                                }}
+                                                className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                                            >
+                                                초기화
+                                            </button>
+                                            <button
+                                                type="submit"
+                                                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                                            >
+                                                작품 등록
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+
+                                {/* 등록된 작품 미리보기 */}
+                                {artworks.length > 0 && (
+                                    <div className="bg-white rounded-lg shadow p-6">
+                                        <h4 className="text-lg font-semibold mb-4">최근 등록된 작품</h4>
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            {artworks.slice(0, 3).map((artwork) => (
+                                                <div key={artwork.id} className="border rounded-lg p-4">
+                                                    {artwork.image_url && (
+                                                        <img
+                                                            src={artwork.image_url}
+                                                            alt={artwork.title}
+                                                            className="w-full h-32 object-cover rounded mb-2"
+                                                        />
+                                                    )}
+                                                    <h5 className="font-semibold">{artwork.title}</h5>
+                                                    <p className="text-sm text-gray-600">{artwork.artist_name}</p>
+                                                    <span className={`inline-flex px-2 py-1 text-xs rounded-full mt-2 ${
+                                                        artwork.status === 'approved' ? 'bg-green-100 text-green-800' :
+                                                        artwork.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                                        'bg-red-100 text-red-800'
+                                                    }`}>
+                                                        {artwork.status === 'approved' ? '승인됨' :
+                                                         artwork.status === 'pending' ? '대기중' : '거부됨'}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        {artworks.length > 3 && (
+                                            <button
+                                                onClick={() => setActiveTab('artworks')}
+                                                className="mt-4 text-blue-600 hover:text-blue-700 text-sm"
+                                            >
+                                                전체 작품 보기 →
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
+
+                    {/* 작품 등록 모달 */}
+                    {showAddArtwork && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                            <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                                <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
+                                    <h2 className="text-2xl font-bold">새 작품 등록</h2>
+                                    <button
+                                        onClick={cancelAddArtwork}
+                                        className="text-gray-500 hover:text-gray-700 text-2xl"
+                                    >
+                                        ✕
+                                    </button>
+                                </div>
+
+                                <form onSubmit={handleAddArtworkSubmit} className="p-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                작품 제목 *
+                                            </label>
+                                            <input
+                                                type="text"
+                                                name="title"
+                                                value={newArtworkData.title}
+                                                onChange={handleNewArtworkChange}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                required
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                작가명 *
+                                            </label>
+                                            <input
+                                                type="text"
+                                                name="artist_name"
+                                                value={newArtworkData.artist_name}
+                                                onChange={handleNewArtworkChange}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                required
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-4">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            작품 설명
+                                        </label>
+                                        <textarea
+                                            name="description"
+                                            value={newArtworkData.description}
+                                            onChange={handleNewArtworkChange}
+                                            rows={4}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        />
+                                    </div>
+
+                                    <div className="mt-4">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            이미지 URL
+                                        </label>
+                                        <input
+                                            type="url"
+                                            name="image_url"
+                                            value={newArtworkData.image_url}
+                                            onChange={handleNewArtworkChange}
+                                            placeholder="https://example.com/image.jpg"
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        />
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                가격
+                                            </label>
+                                            <input
+                                                type="number"
+                                                name="price"
+                                                value={newArtworkData.price}
+                                                onChange={handleNewArtworkChange}
+                                                placeholder="100000"
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                카테고리
+                                            </label>
+                                            <select
+                                                name="category"
+                                                value={newArtworkData.category}
+                                                onChange={handleNewArtworkChange}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            >
+                                                <option value="painting">회화</option>
+                                                <option value="sculpture">조각</option>
+                                                <option value="photography">사진</option>
+                                                <option value="digital">디지털아트</option>
+                                                <option value="installation">설치미술</option>
+                                                <option value="drawing">드로잉</option>
+                                                <option value="print">판화</option>
+                                                <option value="ceramics">도예</option>
+                                                <option value="textile">섬유예술</option>
+                                                <option value="mixed">혼합매체</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-4">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            태그 (쉼표로 구분)
+                                        </label>
+                                        <input
+                                            type="text"
+                                            name="tags"
+                                            value={newArtworkData.tags}
+                                            onChange={handleNewArtworkChange}
+                                            placeholder="추상화, 현대미술, 아크릴"
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        />
+                                    </div>
+
+                                    <div className="mt-4">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            상태
+                                        </label>
+                                        <select
+                                            name="status"
+                                            value={newArtworkData.status}
+                                            onChange={handleNewArtworkChange}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        >
+                                            <option value="pending">대기중</option>
+                                            <option value="approved">승인됨</option>
+                                            <option value="rejected">거부됨</option>
+                                        </select>
+                                    </div>
+
+                                    <div className="mt-6 flex justify-end space-x-3">
+                                        <button
+                                            type="button"
+                                            onClick={cancelAddArtwork}
+                                            className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                                        >
+                                            취소
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                                        >
+                                            등록하기
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 작품 수정 모달 */}
+                    {editingArtwork && editArtworkData && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                            <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                                <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
+                                    <h2 className="text-2xl font-bold">작품 수정</h2>
+                                    <button
+                                        onClick={cancelEditArtwork}
+                                        className="text-gray-500 hover:text-gray-700 text-2xl"
+                                    >
+                                        ✕
+                                    </button>
+                                </div>
+
+                                <form onSubmit={handleEditArtworkSubmit} className="p-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                작품 제목 *
+                                            </label>
+                                            <input
+                                                type="text"
+                                                name="title"
+                                                value={editArtworkData.title}
+                                                onChange={handleEditArtworkChange}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                required
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                작가명 *
+                                            </label>
+                                            <input
+                                                type="text"
+                                                name="artist_name"
+                                                value={editArtworkData.artist_name}
+                                                onChange={handleEditArtworkChange}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                required
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-4">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            작품 설명
+                                        </label>
+                                        <textarea
+                                            name="description"
+                                            value={editArtworkData.description}
+                                            onChange={handleEditArtworkChange}
+                                            rows={4}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        />
+                                    </div>
+
+                                    <div className="mt-4">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            이미지 URL
+                                        </label>
+                                        <input
+                                            type="url"
+                                            name="image_url"
+                                            value={editArtworkData.image_url}
+                                            onChange={handleEditArtworkChange}
+                                            placeholder="https://example.com/image.jpg"
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        />
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                가격
+                                            </label>
+                                            <input
+                                                type="number"
+                                                name="price"
+                                                value={editArtworkData.price}
+                                                onChange={handleEditArtworkChange}
+                                                placeholder="100000"
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                카테고리
+                                            </label>
+                                            <select
+                                                name="category"
+                                                value={editArtworkData.category}
+                                                onChange={handleEditArtworkChange}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            >
+                                                <option value="painting">회화</option>
+                                                <option value="sculpture">조각</option>
+                                                <option value="photography">사진</option>
+                                                <option value="digital">디지털아트</option>
+                                                <option value="installation">설치미술</option>
+                                                <option value="drawing">드로잉</option>
+                                                <option value="print">판화</option>
+                                                <option value="ceramics">도예</option>
+                                                <option value="textile">섬유예술</option>
+                                                <option value="mixed">혼합매체</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-4">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            태그 (쉼표로 구분)
+                                        </label>
+                                        <input
+                                            type="text"
+                                            name="tags"
+                                            value={editArtworkData.tags}
+                                            onChange={handleEditArtworkChange}
+                                            placeholder="추상화, 현대미술, 아크릴"
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        />
+                                    </div>
+
+                                    <div className="mt-4">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            상태
+                                        </label>
+                                        <select
+                                            name="status"
+                                            value={editArtworkData.status}
+                                            onChange={handleEditArtworkChange}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        >
+                                            <option value="pending">대기중</option>
+                                            <option value="approved">승인됨</option>
+                                            <option value="rejected">거부됨</option>
+                                        </select>
+                                    </div>
+
+                                    <div className="mt-6 flex justify-end space-x-3">
+                                        <button
+                                            type="button"
+                                            onClick={cancelEditArtwork}
+                                            className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                                        >
+                                            취소
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                                        >
+                                            수정 완료
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
 
                     {/* 예술가 신청 수정 모달 */}
                     {editingApplication && editFormData && (

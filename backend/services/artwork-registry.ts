@@ -370,6 +370,37 @@ class ArtworkRegistryService {
   }
 
   /**
+   * Register artwork without AI analysis (for dashboard)
+   */
+  registerSimpleArtwork(data: any): RegisteredArtwork {
+    const id = data.id || `artwork-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
+    const artwork: RegisteredArtwork = {
+      id,
+      title: data.title,
+      artist: data.artist_name || data.artist,
+      artist_bio: data.artist_bio,
+      image_url: data.image_url || '',
+      description: data.description,
+      year: data.year ? (typeof data.year === 'string' ? parseInt(data.year) : data.year) : undefined,
+      medium: data.medium,
+      style: data.style || data.category,
+      keywords: data.tags ? data.tags.split(',').map((t: string) => t.trim()) : [],
+      colors: [],
+      analysis: null,
+      created_at: new Date().toISOString(),
+      created_by: data.created_by || 'admin',
+      status: data.status || 'pending',
+      available: true
+    };
+    
+    this.artworks.set(id, artwork);
+    logger.info('✅ Simple artwork registered:', id);
+    
+    return artwork;
+  }
+
+  /**
    * Get all registered artworks
    */
   getAllArtworks(): RegisteredArtwork[] {
@@ -381,6 +412,19 @@ class ArtworkRegistryService {
    */
   getArtwork(id: string): RegisteredArtwork | undefined {
     return this.artworks.get(id);
+  }
+
+  /**
+   * Update artwork
+   */
+  updateArtwork(id: string, updates: Partial<RegisteredArtwork>): boolean {
+    const artwork = this.artworks.get(id);
+    if (artwork) {
+      // Update artwork fields
+      Object.assign(artwork, updates);
+      return true;
+    }
+    return false;
   }
 
   /**

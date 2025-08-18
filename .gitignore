@@ -1,48 +1,100 @@
-# dependencies (bun install)
-node_modules
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
 
-# output
-out
-dist
+# Testing
+coverage/
+*.lcov
+.nyc_output
+
+# Production
+dist/
+build/
+out/
+*.production
 *.tgz
 
-# code coverage
-coverage
-*.lcov
-
-# logs
-logs
-_.log
-report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
-
-# dotenv environment variable files
+# Environment variables
 .env
-.env.paypal
+.env.local
 .env.development.local
 .env.test.local
 .env.production.local
-.env.local
+.env.paypal
 
-# Google Cloud credentials
-*.json
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Credentials
+google-vision-key.json
 cedar-gift-*.json
 *-service-account.json
+*.key
+*.pem
+*.cert
+*.crt
 
-# caches
+# Backup files
+*.backup
+*.bak
+*.tmp
+*.temp
+
+# Cache
+.cache/
 .eslintcache
-.cache
 *.tsbuildinfo
+.parcel-cache/
+.next/
+.nuxt/
+.vuepress/dist
+.serverless/
+.fusebox/
+.dynamodb/
+.tern-port
 
-# IntelliJ based IDEs
-.idea
-
-# Finder (MacOS) folder config
-.DS_Store
-
-# AI Model cache files (too large for GitHub)
+# AI Model cache files
 ai-service/models/cache/
 *.onnx
 *.bin
+
+# Database
+*.sqlite
+*.sqlite3
+*.db
+
+# Uploads
+uploads/
+public/uploads/
+
+# Temporary files
+tmp/
+temp/
 
 # Deployment scripts
 fix-logger-imports.sh

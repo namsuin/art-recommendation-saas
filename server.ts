@@ -1273,16 +1273,38 @@ const server = Bun.serve({
       // Register new artwork (Admin only)
       if (url.pathname === "/api/admin/artworks" && method === "POST") {
         try {
-          const formData = await req.formData();
-          const title = formData.get("title") as string;
-          const artist = formData.get("artist") as string;
-          const artist_bio = formData.get("artist_bio") as string | null;
-          const description = formData.get("description") as string | null;
-          const year = formData.get("year") as string | null;
-          const medium = formData.get("medium") as string | null;
-          const style = formData.get("style") as string | null;
-          const imageFile = formData.get("image") as File | null;
-          const imageUrl = formData.get("image_url") as string | null;
+          let title, artist, artist_bio, description, year, medium, style, imageFile, imageUrl, category, tags, status, price;
+          
+          const contentType = req.headers.get('content-type') || '';
+          
+          if (contentType.includes('application/json')) {
+            // Handle JSON request
+            const body = await req.json();
+            title = body.title;
+            artist = body.artist_name || body.artist;
+            artist_bio = body.artist_bio;
+            description = body.description;
+            year = body.year;
+            medium = body.medium;
+            style = body.style || body.category;
+            imageUrl = body.image_url;
+            category = body.category;
+            tags = body.tags;
+            status = body.status || 'pending';
+            price = body.price;
+          } else {
+            // Handle FormData request
+            const formData = await req.formData();
+            title = formData.get("title") as string;
+            artist = formData.get("artist") as string;
+            artist_bio = formData.get("artist_bio") as string | null;
+            description = formData.get("description") as string | null;
+            year = formData.get("year") as string | null;
+            medium = formData.get("medium") as string | null;
+            style = formData.get("style") as string | null;
+            imageFile = formData.get("image") as File | null;
+            imageUrl = formData.get("image_url") as string | null;
+          }
           
           if (!title || !artist) {
             return new Response(JSON.stringify({
@@ -1295,28 +1317,53 @@ const server = Bun.serve({
           }
           
           if (!imageFile && !imageUrl) {
-            return new Response(JSON.stringify({
-              success: false,
-              error: "Image file or URL is required"
-            }), {
-              status: 400,
-              headers: { "Content-Type": "application/json", ...corsHeaders }
-            });
+            // Allow artwork without image for now
+            serverLogger.warn("Artwork registered without image");
           }
           
           const { artworkRegistry } = await import('./backend/services/artwork-registry');
           
-          const result = await artworkRegistry.registerArtwork({
+          // Create a simplified artwork directly for dashboard
+          const artworkData: any = {
             title,
             artist,
             artist_bio: artist_bio || undefined,
             description: description || undefined,
-            year: year ? parseInt(year) : undefined,
+            year: year ? (typeof year === 'string' ? parseInt(year) : year) : undefined,
             medium: medium || undefined,
-            style: style || undefined,
+            style: style || category || undefined,
             image_file: imageFile ? Buffer.from(await imageFile.arrayBuffer()) : undefined,
             image_url: imageUrl || undefined
-          }, 'admin');
+          };
+          
+          // Add extra fields for dashboard display
+          if (contentType.includes('application/json')) {
+            // Create simplified artwork for JSON requests from dashboard
+            const artwork = artworkRegistry.registerSimpleArtwork({
+              title,
+              artist_name: artist,
+              artist_bio: artist_bio,
+              description: description || '',
+              image_url: imageUrl || '',
+              price: price || '',
+              category: category || style || 'painting',
+              medium: medium,
+              year: year,
+              tags: tags || '',
+              status: status || 'pending',
+              created_by: 'admin'
+            });
+            
+            return new Response(JSON.stringify({
+              success: true,
+              artwork,
+              message: 'Artwork registered successfully'
+            }), {
+              headers: { "Content-Type": "application/json", ...corsHeaders }
+            });
+          }
+          
+          const result = await artworkRegistry.registerArtwork(artworkData, 'admin');
           
           return new Response(JSON.stringify(result), {
             headers: { "Content-Type": "application/json", ...corsHeaders }
@@ -1337,7 +1384,25 @@ const server = Bun.serve({
       if (url.pathname === "/api/admin/artworks" && method === "GET") {
         try {
           const { artworkRegistry } = await import('./backend/services/artwork-registry');
-          const artworks = artworkRegistry.getAllArtworks();
+          const registeredArtworks = artworkRegistry.getAllArtworks();
+          
+          // Transform to dashboard format
+          const artworks = registeredArtworks.map(artwork => ({
+            id: artwork.id,
+            title: artwork.title,
+            artist_name: artwork.artist,
+            artist_bio: artwork.artist_bio,
+            description: artwork.description,
+            image_url: artwork.image_url,
+            category: artwork.style || 'painting',
+            medium: artwork.medium,
+            year: artwork.year,
+            price: '',  // price field can be added if needed
+            tags: artwork.keywords ? artwork.keywords.join(', ') : '',
+            status: artwork.status,
+            created_at: artwork.created_at,
+            available: artwork.available
+          }));
           
           return new Response(JSON.stringify({
             success: true,
@@ -1404,7 +1469,7 @@ const server = Bun.serve({
             });
           }
           
-          // Check if it's FormData (full artwork update) or JSON (availability update)
+          // Check if it's FormData or JSON
           const contentType = req.headers.get('content-type') || '';
           let updateData: any = {};
           
@@ -1426,36 +1491,29 @@ const server = Bun.serve({
               updated_at: new Date().toISOString()
             };
           } else {
-            // Simple availability update
+            // JSON update from dashboard
             const body = await req.json();
-            const { available } = body;
-            
-            if (typeof available !== 'boolean') {
-              return new Response(JSON.stringify({
-                success: false,
-                error: "Available status is required"
-              }), {
-                status: 400,
-                headers: { "Content-Type": "application/json", ...corsHeaders }
-              });
-            }
-            updateData = { available };
+            updateData = {
+              title: body.title,
+              artist: body.artist_name,
+              description: body.description,
+              image_url: body.image_url,
+              style: body.category,
+              medium: body.medium,
+              year: body.year,
+              status: body.status,
+              tags: body.tags,
+              price: body.price,
+              updated_at: new Date().toISOString()
+            };
           }
           
-          // Update artwork using Supabase or Mock system
-          if (supabase && contentType.includes('multipart/form-data')) {
-            // Update in Supabase
-            const { data: artwork, error } = await supabase
-              .from('registered_artworks')
-              .update(updateData)
-              .eq('id', artworkId)
-              .select()
-              .single();
-
-            if (error) {
-              throw error;
-            }
-
+          // Update artwork using artwork registry
+          const { artworkRegistry } = await import('./backend/services/artwork-registry');
+          const updated = artworkRegistry.updateArtwork(artworkId, updateData);
+          
+          if (updated) {
+            const artwork = artworkRegistry.getArtwork(artworkId);
             return new Response(JSON.stringify({
               success: true,
               message: "Artwork updated successfully",
@@ -1464,16 +1522,11 @@ const server = Bun.serve({
               headers: { "Content-Type": "application/json", ...corsHeaders }
             });
           } else {
-            // Simple availability update for artwork registry
-            const { artworkRegistry } = await import('./backend/services/artwork-registry');
-            const updated = artworkRegistry.updateArtworkAvailability(artworkId, updateData.available);
-            
             return new Response(JSON.stringify({
-              success: updated,
-              message: updated ? 
-                `Artwork ${updateData.available ? 'activated' : 'deactivated'} successfully` : 
-                "Artwork not found"
+              success: false,
+              error: "Artwork not found"
             }), {
+              status: 404,
               headers: { "Content-Type": "application/json", ...corsHeaders }
             });
           }
@@ -1482,6 +1535,55 @@ const server = Bun.serve({
           return new Response(JSON.stringify({
             success: false,
             error: "Failed to update artwork"
+          }), {
+            status: 500,
+            headers: { "Content-Type": "application/json", ...corsHeaders }
+          });
+        }
+      }
+      
+      // Approve artwork
+      if (url.pathname.match(/^\/api\/admin\/artworks\/[^\/]+\/approve$/) && method === "POST") {
+        try {
+          const pathParts = url.pathname.split('/');
+          const artworkId = pathParts[pathParts.length - 2];
+          
+          if (!artworkId) {
+            return new Response(JSON.stringify({
+              success: false,
+              error: "Artwork ID is required"
+            }), {
+              status: 400,
+              headers: { "Content-Type": "application/json", ...corsHeaders }
+            });
+          }
+          
+          const { artworkRegistry } = await import('./backend/services/artwork-registry');
+          const updated = artworkRegistry.updateArtworkStatus(artworkId, 'approved');
+          
+          if (updated) {
+            const artwork = artworkRegistry.getArtwork(artworkId);
+            return new Response(JSON.stringify({
+              success: true,
+              message: "Artwork approved successfully",
+              artwork
+            }), {
+              headers: { "Content-Type": "application/json", ...corsHeaders }
+            });
+          } else {
+            return new Response(JSON.stringify({
+              success: false,
+              error: "Artwork not found"
+            }), {
+              status: 404,
+              headers: { "Content-Type": "application/json", ...corsHeaders }
+            });
+          }
+        } catch (error) {
+          serverLogger.error("Failed to approve artwork:", error);
+          return new Response(JSON.stringify({
+            success: false,
+            error: "Failed to approve artwork"
           }), {
             status: 500,
             headers: { "Content-Type": "application/json", ...corsHeaders }

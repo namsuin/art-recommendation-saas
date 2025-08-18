@@ -360,7 +360,7 @@ export function ArtworkRegistry() {
                     <p className="text-sm text-gray-500">{artwork.style}</p>
                   )}
                   
-                  {artwork.keywords.length > 0 && (
+                  {artwork.keywords && artwork.keywords.length > 0 && (
                     <div className="mt-2">
                       <p className="text-xs text-gray-600 mb-1">키워드:</p>
                       <div className="flex flex-wrap gap-1">
