@@ -11,7 +11,6 @@ import { SocialMediaIntegration } from './social-media-integration';
 import { clevelandMuseum } from './cleveland-museum';
 import { smithsonianMuseum } from './smithsonian-museum';
 import { ngaMuseum } from './nga-museum';
-import { ErrorHandler } from '../utils/error-handler';
 
 export class RecommendationService {
   private expandedArtSearch: ExpandedArtSearchService;

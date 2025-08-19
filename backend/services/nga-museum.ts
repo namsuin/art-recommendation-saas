@@ -1,5 +1,6 @@
 import { logger } from '../../shared/logger';
 import axios from 'axios';
+import type { FormattedArtwork } from '../../shared/types';
 
 interface NGAArtwork {
   objectid: number;
@@ -90,7 +91,11 @@ export class NGAMuseumService {
       
       logger.info(`✅ Loaded ${this.artworksData.length} NGA artworks with images`);
     } catch (error) {
-      logger.error('Failed to load NGA artwork data:', error);
+      if (axios.isAxiosError(error)) {
+        logger.error(`Failed to load NGA artwork data - HTTP ${error.response?.status}: ${error.message}`);
+      } else {
+        logger.error('Failed to load NGA artwork data:', error);
+      }
       // Fall back to empty dataset if loading fails
       this.artworksData = [];
     }
@@ -111,7 +116,7 @@ export class NGAMuseumService {
       const values = this.parseCSVLine(lines[i]);
       if (values.length !== headers.length) continue;
       
-      const artwork: any = {};
+      const artwork: Partial<NGAArtwork> = {};
       headers.forEach((header, index) => {
         const value = values[index]?.replace(/"/g, '').trim();
         if (value && value !== 'NULL' && value !== '') {
@@ -248,7 +253,7 @@ export class NGAMuseumService {
   /**
    * Format NGA artwork for display
    */
-  formatForDisplay(artwork: NGAArtwork): any {
+  formatForDisplay(artwork: NGAArtwork): FormattedArtwork {
     // Construct IIIF image URL if available
     let imageUrl = '';
     let thumbnailUrl = '';
@@ -323,7 +328,7 @@ export class NGAMuseumService {
   /**
    * Search artworks by style keywords for AI recommendations
    */
-  async searchByStyleKeywords(keywords: string[]): Promise<any[]> {
+  async searchByStyleKeywords(keywords: string[]): Promise<FormattedArtwork[]> {
     try {
       const results = await this.searchByKeywords(keywords, 30);
       return results.artworks.map(artwork => {
@@ -354,7 +359,7 @@ export class NGAMuseumService {
   /**
    * Get masterpiece highlights
    */
-  async getMasterpieces(limit: number = 10): Promise<any[]> {
+  async getMasterpieces(limit: number = 10): Promise<FormattedArtwork[]> {
     await this.loadArtworkData();
     
     // Filter for known masterpieces (paintings with complete information)

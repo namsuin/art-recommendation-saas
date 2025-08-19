@@ -317,3 +317,19 @@ export interface PlatformArtwork extends Artwork {
   category?: string;
   student_work?: boolean;
 }
+
+// Formatted Artwork for Display
+export interface FormattedArtwork {
+  id: string;
+  title: string;
+  artist: string;
+  image_url: string;
+  thumbnail_url: string;
+  source: string;
+  source_url: string;
+  description: string;
+  additional_info?: string;
+  keywords: string[];
+  similarity?: number;
+  metadata?: Record<string, any>;
+}
