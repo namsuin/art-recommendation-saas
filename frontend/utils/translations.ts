@@ -86,6 +86,11 @@ export const translations = {
     upgradeToPremium: 'Upgrade to Premium',
     viewOriginal: 'View Original',
     
+    // Museum Sources
+    clevelandMuseum: 'Cleveland Museum of Art',
+    museumCollection: 'Museum Collection',
+    publicDomain: 'Public Domain',
+    
     // Common
     logout: 'Logout',
     profile: 'Profile',
@@ -183,6 +188,11 @@ export const translations = {
     upgradePrompt: '추가 {count}개의 작품을 확인하려면 프리미엄 플랜이 필요합니다',
     upgradeToPremium: '프리미엄으로 업그레이드',
     viewOriginal: '원본보기',
+    
+    // Museum Sources
+    clevelandMuseum: 'Cleveland Museum of Art',
+    museumCollection: '미술관 소장품',
+    publicDomain: '퍼블릭 도메인',
     
     // Common
     logout: '로그아웃',

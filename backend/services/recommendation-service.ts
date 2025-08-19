@@ -8,6 +8,7 @@ import { mockDB } from './mock-database';
 import { ExpandedArtSearchService } from './expanded-art-search';
 import { ArtsyIntegration } from './artsy-integration';
 import { SocialMediaIntegration } from './social-media-integration';
+import { clevelandMuseum } from './cleveland-museum';
 import { ErrorHandler } from '../utils/error-handler';
 
 export class RecommendationService {
@@ -58,10 +59,13 @@ export class RecommendationService {
       // 1. 확장된 미술관 검색
       await this.searchMuseumSources(topKeywords, externalRecommendations);
       
-      // 2. Artsy 검색
+      // 2. Cleveland Museum 검색
+      await this.searchClevelandMuseum(topKeywords, externalRecommendations);
+      
+      // 3. Artsy 검색
       await this.searchArtsy(topKeywords, externalRecommendations);
       
-      // 3. 소셜 미디어 검색
+      // 4. 소셜 미디어 검색
       await this.searchSocialMedia(topKeywords, externalRecommendations);
 
       // 유사도 순으로 정렬
@@ -130,6 +134,22 @@ export class RecommendationService {
       logger.info(`🎨 Artsy: Found ${formattedResults.length} artworks`);
     } catch (error) {
       logger.error('❌ Artsy search failed:', error);
+    }
+  }
+
+  /**
+   * Cleveland Museum 검색
+   */
+  private async searchClevelandMuseum(
+    keywords: string[], 
+    results: RecommendationItem[]
+  ): Promise<void> {
+    try {
+      const clevelandResults = await clevelandMuseum.searchByStyleKeywords(keywords);
+      results.push(...clevelandResults);
+      logger.info(`🏛️ Cleveland Museum: Found ${clevelandResults.length} artworks`);
+    } catch (error) {
+      logger.error('❌ Cleveland Museum search failed:', error);
     }
   }
 
