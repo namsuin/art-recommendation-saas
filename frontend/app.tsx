@@ -9,9 +9,12 @@ import MultiImageUpload from './components/MultiImageUpload';
 import { ImageAnalysisDisplay } from './components/ImageAnalysisDisplay';
 import { AdminDashboard } from './components/AdminDashboard';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { LanguageProvider, useLanguage } from './contexts/LanguageContext';
+import { LanguageToggle } from './components/LanguageToggle';
 import './styles/global.css';
 
 const AppContent: React.FC = () => {
+  const { t } = useLanguage();
   // AuthProvider에서 제공하는 useAuth 훅 사용
   const { 
     user, 
@@ -192,77 +195,141 @@ const AppContent: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen" style={{background: 'var(--gradient-hero)'}}>
-      <div className="decoration-blob blob-pink w-32 h-32 fixed top-10 right-10"></div>
-      <div className="decoration-blob blob-lavender w-24 h-24 fixed bottom-20 left-10"></div>
-      <div className="decoration-blob blob-peach w-20 h-20 fixed top-1/2 left-1/4"></div>
+    <div className="min-h-screen relative overflow-hidden">
+      {/* Floating Background Blobs */}
+      <div className="floating-blob blob-purple"></div>
+      <div className="floating-blob blob-pink"></div>
+      <div className="floating-blob blob-blue"></div>
       
-      {/* Header - Clean & Minimal */}
-      <header className="nav-elegant sticky top-0 z-40">
-        <div className="container mx-auto px-4 py-3 md:py-4">
+      {/* Header - ArtVibe AI Style */}
+      <header className="relative z-40 py-6">
+        <div className="container mx-auto px-4">
           <div className="flex items-center justify-between">
-            <div className="flex-1"></div>
-            <h1 className="text-xl md:text-3xl font-bold heading-elegant heading-gradient text-center flex-1">
-              ✨ My Art Taste
-            </h1>
-            <div className="flex-1 flex justify-end">
-              <button
-                onClick={() => {
-                  if (user) {
-                    setProfileModalOpen(true);
-                  } else {
+            {/* Logo */}
+            <div className="flex items-center gap-3">
+              <svg className="w-10 h-10" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#8B5CF6" />
+                    <stop offset="50%" stopColor="#EC4899" />
+                    <stop offset="100%" stopColor="#F472B6" />
+                  </linearGradient>
+                  <linearGradient id="innerGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#A78BFA" />
+                    <stop offset="100%" stopColor="#F9A8D4" />
+                  </linearGradient>
+                </defs>
+                {/* Outer frame */}
+                <rect x="2" y="2" width="36" height="36" rx="8" stroke="url(#logoGradient)" strokeWidth="2" fill="none" />
+                {/* Inner abstract art shape */}
+                <path d="M12 20C12 16 16 12 20 12C24 12 28 16 28 20C28 22 26 24 24 26C22 28 20 28 20 28C20 28 18 28 16 26C14 24 12 22 12 20Z" fill="url(#innerGradient)" opacity="0.8" />
+                {/* Accent dots */}
+                <circle cx="15" cy="15" r="2" fill="url(#logoGradient)" />
+                <circle cx="25" cy="25" r="1.5" fill="url(#logoGradient)" />
+                <circle cx="25" cy="15" r="1" fill="#EC4899" />
+              </svg>
+              <span className="text-xl font-bold heading-gradient">Trouv ART</span>
+            </div>
+            
+            {/* User Menu */}
+            <div className="flex items-center gap-3">
+              <LanguageToggle />
+              {user ? (
+                <button
+                  onClick={() => setProfileModalOpen(true)}
+                  className="btn-gradient btn-secondary-soft flex items-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  <span className="hidden sm:inline">{t('myAccount')}</span>
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
                     setAuthMode('login');
                     setAuthModalOpen(true);
-                  }
-                }}
-                className="btn-soft btn-secondary-soft px-3 md:px-4 py-2 text-sm hover-lift flex items-center gap-2"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-                <span className="hidden sm:inline">내 계정</span>
-              </button>
+                  }}
+                  className="btn-gradient"
+                >
+                  {t('login')}
+                </button>
+              )}
             </div>
           </div>
         </div>
       </header>
 
-      {/* Main Content - Mobile First */}
-      <main className="container mx-auto px-4 py-4 md:py-8 pb-20 md:pb-8">
-        <div className="max-w-4xl mx-auto space-y-4 md:space-y-8">
-          {/* Mode Selector - Mobile Optimized */}
-          <div className="card-modern fade-in">
-            <div className="grid grid-cols-2 md:flex md:items-center md:justify-center gap-2 md:gap-3">
-              <button
-                onClick={() => setViewMode('single')}
-                className={`btn-soft px-3 md:px-6 py-3 font-medium transition-all duration-300 transform active:scale-95 hover-lift ${
-                  viewMode === 'single' 
-                    ? 'btn-primary-soft' 
-                    : 'btn-secondary-soft'
-                }`}
-              >
-                <span className="block md:hidden">🖼️ 1장</span>
-                <span className="hidden md:block">1장 이미지 분석</span>
-              </button>
-              <button
-                onClick={() => setViewMode('multi')}
-                className={`btn-soft px-3 md:px-6 py-3 font-medium transition-all duration-300 transform active:scale-95 hover-lift ${
-                  viewMode === 'multi' 
-                    ? 'btn-primary-soft' 
-                    : 'btn-secondary-soft'
-                }`}
-              >
-                <span className="block md:hidden">🎨 여러장</span>
-                <span className="hidden md:block">여러장 이미지 분석</span>
-              </button>
+      {/* Hero Section */}
+      <section className="container mx-auto px-4 py-8 text-center">
+        <h1 className="text-4xl md:text-5xl font-bold mb-4">
+          <span className="heading-gradient">{t('heroTitle1')}</span><br/>
+          <span className="text-gray-700">{t('heroTitle2')}</span>
+        </h1>
+        <p className="text-lg text-gray-600 mb-8">
+          {t('heroSubtitle')}
+        </p>
+      </section>
+
+      {/* Main Content */}
+      <main className="container mx-auto px-4 pb-20 md:pb-8">
+        <div className="max-w-5xl mx-auto space-y-6">
+          {/* Feature Cards - 설명 영역 */}
+          <div className="grid md:grid-cols-3 gap-6 mb-8">
+            <div className="feature-card text-center">
+              <div className="icon-button icon-button-pink mx-auto mb-4">
+                <span>❤️</span>
+              </div>
+              <h3 className="text-lg font-semibold mb-2">{t('uploadMethod')}</h3>
+              <p className="text-sm text-gray-600">{t('uploadMethodDesc')}</p>
+            </div>
+            
+            <div className="feature-card text-center">
+              <div className="icon-button icon-button-blue mx-auto mb-4">
+                <span>⚡</span>
+              </div>
+              <h3 className="text-lg font-semibold mb-2">{t('imageUpload')}</h3>
+              <p className="text-sm text-gray-600">{t('imageUploadDesc')}</p>
+            </div>
+            
+            <div className="feature-card text-center">
+              <div className="icon-button icon-button-purple mx-auto mb-4">
+                <span>⭐</span>
+              </div>
+              <h3 className="text-lg font-semibold mb-2">{t('aiAnalysis')}</h3>
+              <p className="text-sm text-gray-600">{t('aiAnalysisDesc')}</p>
             </div>
           </div>
 
-          {/* Single Image Upload - Mobile Optimized */}
-          {viewMode === 'single' && (
-            <div className="card-modern fade-in">
-              <h2 className="text-lg md:text-xl font-bold heading-elegant heading-gradient mb-4">이미지 업로드</h2>
-              <div className="upload-area-aesthetic">
+          {/* Upload Section */}
+          <div className="glass-card">
+            <div className="flex items-center justify-center mb-6">
+              <div className="flex gap-2 p-1 bg-gray-100 rounded-xl">
+                <button
+                  onClick={() => setViewMode('single')}
+                  className={`px-6 py-2 rounded-lg font-medium transition-all ${
+                    viewMode === 'single'
+                      ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  {t('singleUpload')}
+                </button>
+                <button
+                  onClick={() => setViewMode('multi')}
+                  className={`px-6 py-2 rounded-lg font-medium transition-all ${
+                    viewMode === 'multi'
+                      ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  {t('multiUpload')}
+                </button>
+              </div>
+            </div>
+
+            {viewMode === 'single' && (
+              <div className="upload-zone">
                 <ImageUploadWithAuth 
                   user={user}
                   onImageUpload={handleImageUpload}
@@ -272,41 +339,41 @@ const AppContent: React.FC = () => {
                   }}
                 />
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
-          {/* Multi Image Upload - Mobile Optimized */}
+          {/* Multi Image Upload */}
           {viewMode === 'multi' && (
-            <div className="fade-in">
-              {(() => {
-                const finalUserId = user?.id && user.id.trim() !== '' ? user.id : null;
-                // userId 전달 처리
-                return (
-                  <MultiImageUpload
-                    userId={finalUserId}
-                    onAnalysisComplete={(results) => {
-                      // 다중 이미지 분석 완료
-                      // 결과 처리 로직 추가 가능
-                    }}
-                  />
-                );
-              })()}
+            <div className="glass-card">
+              <MultiImageUpload
+                userId={user?.id || null}
+                onAnalysisComplete={(results) => {
+                  // 다중 이미지 분석 완료
+                }}
+              />
             </div>
           )}
 
 
 
           {viewMode === 'single' && uploadedImage && (
-            <div className="card-modern fade-in hover-lift">
-              <h2 className="text-lg md:text-xl font-bold heading-elegant heading-gradient mb-4">업로드된 이미지</h2>
-              <div className="relative overflow-hidden rounded-2xl instagram-border">
+            <div className="glass-card">
+              <h2 className="text-xl font-bold heading-gradient mb-4">{t('uploadedImage')}</h2>
+              <div className="relative overflow-hidden rounded-xl">
                 <img
                   src={uploadedImage}
                   alt="Uploaded"
-                  className="w-full h-auto object-cover"
-                  style={{ maxHeight: '400px' }}
+                  className="w-full h-auto object-cover rounded-xl"
+                  style={{ maxHeight: '500px' }}
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none"></div>
+                {isAnalyzing && (
+                  <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center rounded-xl">
+                    <div className="text-center">
+                      <div className="w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                      <p className="text-lg font-medium text-gradient-secondary">{t('analyzing')}</p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -337,20 +404,22 @@ const AppContent: React.FC = () => {
                 <div className="absolute inset-2 rounded-full bg-white"></div>
                 <div className="absolute inset-4 rounded-full" style={{background: 'var(--gradient-lavender)', animation: 'spin 2s linear infinite'}}></div>
               </div>
-              <p className="heading-elegant font-medium">AI가 이미지를 분석하고 있습니다...</p>
+              <p className="heading-elegant font-medium">{t('analyzingImage')}...</p>
             </div>
           )}
 
           {viewMode === 'single' && recommendations.length > 0 && (
             <div className="card-modern fade-in">
-              <h2 className="text-lg md:text-xl font-bold heading-elegant heading-gradient mb-6">추천 작품</h2>
+              <h2 className="text-lg md:text-xl font-bold heading-elegant heading-gradient mb-6">{t('recommendations')}</h2>
               
               {/* 외부 플랫폼 갤러리 추천 (무료 10개 제한) */}
               <div className="mb-8">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-6">
-                  <h3 className="text-base md:text-lg heading-elegant font-semibold">갤러리 추천 (외부 플랫폼)</h3>
+                  <h3 className="text-base md:text-lg heading-elegant font-semibold">
+                    {t('galleryRecommendations')} ({t('externalPlatforms')})
+                  </h3>
                   <span className="tag-pill tag-rose">
-                    무료 10개 / 추가는 유료
+                    {t('freeLimit')} / {t('premiumRequired')}
                   </span>
                 </div>
                 <div className="grid-pinterest">
@@ -506,7 +575,7 @@ const AppContent: React.FC = () => {
                             }}
                             className="btn-soft btn-secondary-soft w-full mt-2 py-2 px-3 text-sm font-medium hover-lift"
                           >
-                            원본 보기
+                            {t('viewOriginal')}
                           </button>
                         )}
                       </div>
@@ -634,7 +703,7 @@ const AppContent: React.FC = () => {
                                 }}
                                 className="btn-soft w-full mt-2 py-2 px-3 text-sm font-medium hover-lift" style={{background: 'var(--gradient-sage)', color: 'var(--sage-green)'}}
                               >
-                                원본 보기
+                                {t('viewOriginal')}
                               </button>
                             )}
                           </div>
@@ -692,9 +761,12 @@ const AppContent: React.FC = () => {
               }).length > 10 && (
                 <div className="text-center">
                   <div className="card-modern p-4" style={{background: 'var(--gradient-lavender)', border: '1px solid var(--soft-lavender)'}}>
-                    <h4 className="font-semibold heading-elegant heading-gradient mb-2">더 많은 추천 작품 보기</h4>
+                    <h4 className="font-semibold heading-elegant heading-gradient mb-2">{t('moreRecommendations')}</h4>
                     <p className="text-sm mb-3" style={{color: 'var(--text-secondary)'}}>
-                      추가 {recommendations.length - 10}개의 작품을 확인하려면 프리미엄 플랜이 필요합니다.
+                      {language === 'kr' 
+                        ? `추가 ${recommendations.length - 10}개의 작품을 확인하려면 프리미엄 플랜이 필요합니다.`
+                        : `To see additional ${recommendations.length - 10} artworks, premium plan is required.`
+                      }
                     </p>
                     <button
                       onClick={() => {
@@ -702,7 +774,7 @@ const AppContent: React.FC = () => {
                       }}
                       className="btn-soft btn-primary-soft px-4 py-2 text-sm font-medium hover-lift"
                     >
-                      프리미엄으로 업그레이드 💎
+                      {t('upgradeToPremium')} 💎
                     </button>
                   </div>
                 </div>
@@ -742,7 +814,7 @@ const AppContent: React.FC = () => {
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
-            <span className="text-xs mt-1">1장 분석</span>
+            <span className="text-xs mt-1">{t('singleAnalysis')}</span>
           </button>
           
           <button
@@ -752,7 +824,7 @@ const AppContent: React.FC = () => {
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
             </svg>
-            <span className="text-xs mt-1">여러장 분석</span>
+            <span className="text-xs mt-1">{t('multiAnalysis')}</span>
           </button>
         </div>
       </nav>
@@ -761,12 +833,14 @@ const AppContent: React.FC = () => {
   );
 };
 
-// AuthProvider로 감싸는 실제 App 컴포넌트
+// AuthProvider와 LanguageProvider로 감싸는 실제 App 컴포넌트
 const App: React.FC = () => {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <LanguageProvider>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </LanguageProvider>
   );
 };
 

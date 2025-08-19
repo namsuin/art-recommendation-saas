@@ -6,19 +6,19 @@ export class LocalClipService {
   private isInitialized: boolean = false;
 
   constructor() {
-    console.log('🔄 Local CLIP service disabled for deployment compatibility');
+    // Local CLIP service disabled for deployment compatibility
   }
 
   async initialize(): Promise<void> {
     if (this.isInitialized) return;
     
-    console.log('⚠️ Local CLIP service disabled - using fallback analysis');
+    // Local CLIP service disabled - using fallback analysis
     this.isInitialized = true;
     this.isEnabled = false;
   }
 
   async analyzeImage(imageBuffer: Buffer): Promise<LocalClipResult | null> {
-    console.warn('Local CLIP service is disabled - returning null');
+    // Local CLIP service is disabled - returning null
     return null;
   }
 

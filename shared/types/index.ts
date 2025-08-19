@@ -1,9 +1,41 @@
 // API Response Types
-export interface ApiResponse<T = unknown> {
-  status: 'success' | 'error';
+export interface ApiResponse<T = any> {
+  success: boolean;
+  status?: 'success' | 'error';
   data?: T;
-  error?: string;
+  error?: string | {
+    code: string;
+    message: string;
+    details?: any[];
+  };
   message?: string;
+  timestamp?: string;
+  meta?: {
+    requestId?: string;
+    timestamp?: number;
+    version?: string;
+    pagination?: PaginationMeta;
+  };
+  metadata?: {
+    timestamp?: string;
+    requestId?: string;
+    statusCode?: number;
+    [key: string]: any;
+  };
+  warnings?: string[];
+}
+
+export interface PaginationMeta {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrev: boolean;
+}
+
+export interface PaginatedResponse<T> extends ApiResponse<T[]> {
+  pagination: PaginationMeta;
 }
 
 // Artwork Types
@@ -144,10 +176,26 @@ export interface AIAnalysisResult {
 }
 
 export interface AIServiceConfig {
-  google_vision?: boolean;
-  clarifai?: boolean;
-  replicate_clip?: boolean;
-  local_clip?: boolean;
+  google_vision?: boolean | {
+    enabled: boolean;
+    weight: number;
+    features: string[];
+  };
+  clarifai?: boolean | {
+    enabled: boolean;
+    weight: number;
+    model_id: string;
+  };
+  replicate_clip?: boolean | {
+    enabled: boolean;
+    weight: number;
+    model_version: string;
+  };
+  local_clip?: boolean | {
+    enabled: boolean;
+    weight: number;
+    model_path: string;
+  };
   style_transfer?: boolean;
 }
 
@@ -186,29 +234,6 @@ export interface DatabaseTasteGroup {
   is_default: boolean;
 }
 
-// AI Service Configuration
-export interface AIServiceConfig {
-  google_vision: {
-    enabled: boolean;
-    weight: number;
-    features: string[];
-  };
-  clarifai: {
-    enabled: boolean;
-    weight: number;
-    model_id: string;
-  };
-  replicate: {
-    enabled: boolean;
-    weight: number;
-    model_version: string;
-  };
-  local_clip: {
-    enabled: boolean;
-    weight: number;
-    model_path: string;
-  };
-}
 
 // Error Types
 export interface AIServiceError {
@@ -237,4 +262,58 @@ export interface UsageAnalytics {
   api_calls: number;
   storage_used: number;
   recommendations_generated: number;
+}
+
+// Artist Application Types  
+export interface ArtistApplication {
+  id: string;
+  user_id: string;
+  user_email: string;
+  artist_name: string;
+  portfolio_url?: string;
+  artist_statement: string;
+  art_type: string[];
+  experience_years: number;
+  status: 'pending' | 'approved' | 'rejected';
+  created_at?: string;
+  updated_at?: string;
+  reviewed_by?: string;
+  review_notes?: string;
+}
+
+// Common Types
+export interface SearchQuery {
+  query?: string;
+  keywords?: string[];
+  limit?: number;
+  offset?: number;
+  filters?: Record<string, any>;
+}
+
+export interface SearchResult<T = any> {
+  items: T[];
+  total: number;
+  page?: number;
+  limit?: number;
+}
+
+// Session Types
+export interface Session {
+  id: string;
+  user_id: string;
+  token: string;
+  expires_at: string;
+  created_at: string;
+}
+
+// Artwork Platform Types
+export interface PlatformArtwork extends Artwork {
+  platform?: string;
+  source?: string;
+  search_source?: string;
+  source_url?: string;
+  project_type?: string;
+  university?: string;
+  category?: string;
+  student_work?: boolean;
 }

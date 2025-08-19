@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import { useLanguage } from '../contexts/LanguageContext';
 import { AnalysisResults } from '../utils/artworkUtils';
 import { ImageUploadZone } from './ImageUploadZone';
 import { ImagePreviewGrid } from './ImagePreviewGrid';
@@ -18,12 +19,13 @@ interface MultiImageUploadProps {
 }
 
 const PRICING_TIERS = {
-  free: { maxImages: 3, price: 0, name: '무료' },
-  standard: { maxImages: 10, price: 5, name: '스탠다드' },
-  premium: { maxImages: 50, price: 10, name: '프리미엄' }
+  free: { maxImages: 3, price: 0, name: { kr: '무료', en: 'Free' } },
+  standard: { maxImages: 10, price: 5, name: { kr: '스탠다드', en: 'Standard' } },
+  premium: { maxImages: 50, price: 10, name: { kr: '프리미엄', en: 'Premium' } }
 };
 
 export default function MultiImageUpload({ userId, onAnalysisComplete }: MultiImageUploadProps) {
+  const { t, language } = useLanguage();
   const [images, setImages] = useState<ImagePreview[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);

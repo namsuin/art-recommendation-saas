@@ -13,16 +13,16 @@ export class ReplicateService {
         auth: apiToken,
       });
       this.isEnabled = true;
-      console.log('✅ Replicate API initialized');
+      // Replicate API initialized
     } else {
-      console.warn('⚠️ Replicate API token not found');
+      // Replicate API token not found
       this.isEnabled = false;
     }
   }
 
   async analyzeWithCLIP(imageBuffer: Buffer): Promise<ReplicateResult | null> {
     if (!this.isEnabled) {
-      console.warn('Replicate service is not enabled');
+      // Replicate service is not enabled
       return null;
     }
 

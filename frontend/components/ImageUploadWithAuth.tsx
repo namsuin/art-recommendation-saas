@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface User {
   id: string;
@@ -17,6 +18,7 @@ export const ImageUploadWithAuth: React.FC<ImageUploadWithAuthProps> = ({
   onAuthRequired 
 }) => {
   const [dragOver, setDragOver] = useState(false);
+  const { t } = useLanguage();
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -43,21 +45,21 @@ export const ImageUploadWithAuth: React.FC<ImageUploadWithAuthProps> = ({
   return (
     <div className="space-y-4">
       {!user && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="glass-card p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-blue-800">
-                <strong>게스트 모드:</strong> 기본 분석만 가능합니다.
+              <p className="text-sm font-semibold text-purple-700">
+                {t('guestMode')}
               </p>
-              <p className="text-xs text-blue-600 mt-1">
-                회원가입하면 더 정확한 추천과 히스토리 저장이 가능합니다.
+              <p className="text-xs text-gray-600 mt-1">
+                {t('guestModeDesc')}
               </p>
             </div>
             <button
               onClick={onAuthRequired}
-              className="ml-4 bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm"
+              className="ml-4 btn-gradient px-4 py-2 text-sm"
             >
-              로그인
+              {t('login')}
             </button>
           </div>
         </div>
@@ -81,13 +83,10 @@ export const ImageUploadWithAuth: React.FC<ImageUploadWithAuthProps> = ({
             </svg>
           </div>
           <div>
-            <p className="text-lg">이미지를 드래그하거나 클릭하여 업로드</p>
-            <p className="text-sm text-gray-500">JPG, PNG 파일 지원 (최대 10MB)</p>
-            {user && (
-              <p className="text-xs text-green-600 mt-1">
-                ✓ 로그인됨: 분석 결과가 저장됩니다
-              </p>
-            )}
+            <p className="text-lg font-medium">{t('dragDropTitle')}</p>
+            <p className="text-sm text-gray-500 mt-2">
+              {t('supportedFormats')} • {t('maxFileSize')}
+            </p>
           </div>
           <input
             type="file"
@@ -98,9 +97,9 @@ export const ImageUploadWithAuth: React.FC<ImageUploadWithAuthProps> = ({
           />
           <label
             htmlFor="file-input"
-            className="inline-block bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg cursor-pointer"
+            className="btn-gradient px-6 py-2 inline-block cursor-pointer"
           >
-            파일 선택
+            {t('browseFiles')}
           </label>
         </div>
       </div>

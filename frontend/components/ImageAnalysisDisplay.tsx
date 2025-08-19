@@ -1,4 +1,5 @@
 import React from 'react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface AnalysisResult {
   keywords: string[];
@@ -19,6 +20,7 @@ interface ImageAnalysisDisplayProps {
 }
 
 export const ImageAnalysisDisplay: React.FC<ImageAnalysisDisplayProps> = ({ analysis, isAnalyzing }) => {
+  const { t, language } = useLanguage();
   // 이미지 분석 디스플레이 렌더링
   
   if (isAnalyzing) {
@@ -27,8 +29,10 @@ export const ImageAnalysisDisplay: React.FC<ImageAnalysisDisplayProps> = ({ anal
         <div className="flex items-center space-x-3">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
           <div>
-            <h3 className="text-lg font-semibold text-gray-800">AI가 이미지를 분석하고 있습니다...</h3>
-            <p className="text-sm text-gray-600">Google Vision, Clarifai 등 여러 AI 모델이 작동 중입니다</p>
+            <h3 className="text-lg font-semibold text-gray-800">{t('analyzing')}</h3>
+            <p className="text-sm text-gray-600">
+              {language === 'kr' ? 'Google Vision, Clarifai 등 여러 AI 모델이 작동 중입니다' : 'Multiple AI models including Google Vision and Clarifai are working'}
+            </p>
           </div>
         </div>
       </div>
@@ -41,7 +45,7 @@ export const ImageAnalysisDisplay: React.FC<ImageAnalysisDisplayProps> = ({ anal
     <div className="bg-white rounded-lg shadow-md p-6 mb-6">
       <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
         <span className="text-2xl mr-2">🔍</span>
-        AI 이미지 분석 결과
+        {t('imageAnalysis')}
       </h3>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -49,7 +53,7 @@ export const ImageAnalysisDisplay: React.FC<ImageAnalysisDisplayProps> = ({ anal
         <div className="space-y-2">
           <h4 className="font-semibold text-gray-700 flex items-center">
             <span className="text-lg mr-2">🏷️</span>
-            감지된 키워드
+            {t('detectedObjects')}
           </h4>
           <div className="flex flex-wrap gap-2">
             {analysis.keywords.map((keyword, idx) => (
@@ -65,7 +69,7 @@ export const ImageAnalysisDisplay: React.FC<ImageAnalysisDisplayProps> = ({ anal
           <div className="space-y-2">
             <h4 className="font-semibold text-gray-700 flex items-center">
               <span className="text-lg mr-2">🎨</span>
-              주요 색상
+              {t('dominantColors')}
             </h4>
             <div className="flex flex-wrap gap-2">
               {analysis.colors.map((color, idx) => (
@@ -85,11 +89,11 @@ export const ImageAnalysisDisplay: React.FC<ImageAnalysisDisplayProps> = ({ anal
         <div className="space-y-2">
           <h4 className="font-semibold text-gray-700 flex items-center">
             <span className="text-lg mr-2">🎭</span>
-            스타일 & 분위기
+            {language === 'kr' ? '스타일 & 분위기' : 'Style & Mood'}
           </h4>
           <div className="text-sm text-gray-600">
-            <p><span className="font-medium">스타일:</span> {analysis.style}</p>
-            <p><span className="font-medium">분위기:</span> {analysis.mood}</p>
+            <p><span className="font-medium">{t('artStyle')}:</span> {analysis.style}</p>
+            <p><span className="font-medium">{t('mood')}:</span> {analysis.mood}</p>
           </div>
         </div>
 
@@ -97,7 +101,7 @@ export const ImageAnalysisDisplay: React.FC<ImageAnalysisDisplayProps> = ({ anal
         <div className="space-y-2">
           <h4 className="font-semibold text-gray-700 flex items-center">
             <span className="text-lg mr-2">📊</span>
-            분석 신뢰도
+            {t('accuracy')}
           </h4>
           <div className="w-full bg-gray-200 rounded-full h-2.5">
             <div 
@@ -112,7 +116,9 @@ export const ImageAnalysisDisplay: React.FC<ImageAnalysisDisplayProps> = ({ anal
       {/* AI 서비스별 상세 정보 */}
       {analysis.aiServices && (
         <div className="mt-6 pt-6 border-t border-gray-200">
-          <h4 className="font-semibold text-gray-700 mb-3">AI 모델별 분석 결과</h4>
+          <h4 className="font-semibold text-gray-700 mb-3">
+            {language === 'kr' ? 'AI 모델별 분석 결과' : 'Analysis Results by AI Model'}
+          </h4>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
             {/* Google Vision */}
             {analysis.aiServices.google_vision && (

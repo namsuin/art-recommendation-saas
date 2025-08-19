@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -15,6 +16,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   onAuthSuccess,
   onSwitchMode,
 }) => {
+  const { t, language } = useLanguage();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
@@ -103,7 +105,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold">
-            {mode === 'login' ? '로그인' : '회원가입'}
+            {mode === 'login' ? t('signIn') : t('signUp')}
           </h2>
           <button
             onClick={onClose}
@@ -122,7 +124,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         {/* 회원가입 시 역할 선택 */}
         {mode === 'signup' && (
           <div className="mb-6">
-            <h3 className="text-sm font-semibold text-gray-700 mb-3">계정 유형을 선택하세요</h3>
+            <h3 className="text-sm font-semibold text-gray-700 mb-3">{t('selectRole')}</h3>
             <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
@@ -135,8 +137,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               >
                 <div className="text-center">
                   <div className="text-2xl mb-2">👤</div>
-                  <div className="font-semibold text-sm">일반 사용자</div>
-                  <div className="text-xs text-gray-600 mt-1">작품 감상 및 분석</div>
+                  <div className="font-semibold text-sm">{t('roleUser')}</div>
+                  <div className="text-xs text-gray-600 mt-1">{t('roleUserDesc')}</div>
                 </div>
               </button>
 
@@ -151,8 +153,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               >
                 <div className="text-center">
                   <div className="text-2xl mb-2">🎨</div>
-                  <div className="font-semibold text-sm">예술가</div>
-                  <div className="text-xs text-gray-600 mt-1">작품 등록 및 판매</div>
+                  <div className="font-semibold text-sm">{t('roleArtist')}</div>
+                  <div className="text-xs text-gray-600 mt-1">{t('roleArtistDesc')}</div>
                 </div>
               </button>
             </div>
@@ -162,7 +164,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              이메일
+              {t('email')}
             </label>
             <input
               type="email"
@@ -176,7 +178,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              비밀번호
+              {t('password')}
             </label>
             <input
               type="password"
@@ -185,7 +187,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               required
               minLength={6}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="최소 6자 이상"
+              placeholder={language === 'kr' ? '최소 6자 이상' : 'At least 6 characters'}
             />
           </div>
 
@@ -193,7 +195,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  표시 이름 (선택)
+                  {t('displayName')} {language === 'kr' ? '(선택)' : '(Optional)'}
                 </label>
                 <input
                   type="text"
@@ -327,21 +329,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 : 'bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300'
             }`}
           >
-            {isLoading ? '처리 중...' : (
-              mode === 'login' ? '로그인' : 
-              selectedRole === 'artist' ? '예술가로 가입하기' : '가입하기'
+            {isLoading ? t('loading') : (
+              mode === 'login' ? t('signIn') : t('signUp')
             )}
           </button>
         </form>
 
         <div className="mt-4 text-center">
           <p className="text-sm text-gray-600">
-            {mode === 'login' ? '계정이 없으신가요?' : '이미 계정이 있으신가요?'}
+            {mode === 'login' ? t('noAccount') : t('haveAccount')}
             <button
               onClick={onSwitchMode}
               className="ml-1 text-blue-500 hover:text-blue-600 font-medium"
             >
-              {mode === 'login' ? '회원가입' : '로그인'}
+              {mode === 'login' ? t('signUp') : t('signIn')}
             </button>
           </p>
         </div>
