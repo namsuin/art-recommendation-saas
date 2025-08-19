@@ -19,3 +19,8 @@ services:
     startCommand: bun run start
     healthCheckPath: /api/health
     autoDeploy: true
+    customDomains:
+      - domain: trouv.art
+        wildcard: false
+      - domain: www.trouv.art
+        wildcard: false
