@@ -88,6 +88,11 @@ export const translations = {
     
     // Museum Sources
     clevelandMuseum: 'Cleveland Museum of Art',
+    smithsonianInstitution: 'Smithsonian Institution',
+    smithsonianAmericanArt: 'Smithsonian American Art Museum',
+    nationalPortraitGallery: 'National Portrait Gallery',
+    cooperHewitt: 'Cooper Hewitt Design Museum',
+    hirshhorn: 'Hirshhorn Museum',
     museumCollection: 'Museum Collection',
     publicDomain: 'Public Domain',
     
@@ -191,6 +196,11 @@ export const translations = {
     
     // Museum Sources
     clevelandMuseum: 'Cleveland Museum of Art',
+    smithsonianInstitution: '스미스소니언 박물관',
+    smithsonianAmericanArt: '스미스소니언 미국 미술관',
+    nationalPortraitGallery: '국립 초상화 갤러리',
+    cooperHewitt: '쿠퍼 휴잇 디자인 박물관',
+    hirshhorn: '허쉬혼 박물관',
     museumCollection: '미술관 소장품',
     publicDomain: '퍼블릭 도메인',
     
