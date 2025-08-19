@@ -10,6 +10,7 @@ import { ArtsyIntegration } from './artsy-integration';
 import { SocialMediaIntegration } from './social-media-integration';
 import { clevelandMuseum } from './cleveland-museum';
 import { smithsonianMuseum } from './smithsonian-museum';
+import { ngaMuseum } from './nga-museum';
 import { ErrorHandler } from '../utils/error-handler';
 
 export class RecommendationService {
@@ -66,10 +67,13 @@ export class RecommendationService {
       // 3. Smithsonian Museums 검색
       await this.searchSmithsonian(topKeywords, externalRecommendations);
       
-      // 4. Artsy 검색
+      // 4. National Gallery of Art 검색
+      await this.searchNGA(topKeywords, externalRecommendations);
+      
+      // 5. Artsy 검색
       await this.searchArtsy(topKeywords, externalRecommendations);
       
-      // 5. 소셜 미디어 검색
+      // 6. 소셜 미디어 검색
       await this.searchSocialMedia(topKeywords, externalRecommendations);
 
       // 유사도 순으로 정렬
@@ -170,6 +174,22 @@ export class RecommendationService {
       logger.info(`🏛️ Smithsonian: Found ${smithsonianResults.length} artworks`);
     } catch (error) {
       logger.error('❌ Smithsonian search failed:', error);
+    }
+  }
+
+  /**
+   * National Gallery of Art 검색
+   */
+  private async searchNGA(
+    keywords: string[], 
+    results: RecommendationItem[]
+  ): Promise<void> {
+    try {
+      const ngaResults = await ngaMuseum.searchByStyleKeywords(keywords);
+      results.push(...ngaResults);
+      logger.info(`🎨 National Gallery: Found ${ngaResults.length} artworks`);
+    } catch (error) {
+      logger.error('❌ National Gallery search failed:', error);
     }
   }
 

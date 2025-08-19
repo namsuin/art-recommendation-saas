@@ -93,8 +93,10 @@ export const translations = {
     nationalPortraitGallery: 'National Portrait Gallery',
     cooperHewitt: 'Cooper Hewitt Design Museum',
     hirshhorn: 'Hirshhorn Museum',
+    nationalGalleryOfArt: 'National Gallery of Art',
     museumCollection: 'Museum Collection',
     publicDomain: 'Public Domain',
+    openAccess: 'Open Access',
     
     // Common
     logout: 'Logout',
@@ -201,8 +203,10 @@ export const translations = {
     nationalPortraitGallery: '국립 초상화 갤러리',
     cooperHewitt: '쿠퍼 휴잇 디자인 박물관',
     hirshhorn: '허쉬혼 박물관',
+    nationalGalleryOfArt: '미국 국립미술관',
     museumCollection: '미술관 소장품',
     publicDomain: '퍼블릭 도메인',
+    openAccess: '오픈 액세스',
     
     // Common
     logout: '로그아웃',
