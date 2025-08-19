@@ -326,7 +326,25 @@ export class NGAMuseumService {
   async searchByStyleKeywords(keywords: string[]): Promise<any[]> {
     try {
       const results = await this.searchByKeywords(keywords, 30);
-      return results.artworks.map(artwork => this.formatForDisplay(artwork));
+      return results.artworks.map(artwork => {
+        const formatted = this.formatForDisplay(artwork);
+        // Calculate similarity based on keyword matches and title/artist
+        const artworkKeywords = formatted.keywords || [];
+        const searchableText = [
+          formatted.title,
+          formatted.artist,
+          formatted.description,
+          ...artworkKeywords
+        ].filter(Boolean).join(' ').toLowerCase();
+        
+        const matchCount = keywords.filter(keyword => 
+          searchableText.includes(keyword.toLowerCase())
+        ).length;
+        
+        // National Gallery gets higher base similarity due to quality
+        formatted.similarity = matchCount > 0 ? Math.min(0.95, (matchCount / keywords.length) + 0.2) : 0.55;
+        return formatted;
+      });
     } catch (error) {
       logger.error('Failed to search NGA by style keywords:', error);
       return [];

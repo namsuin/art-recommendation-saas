@@ -76,14 +76,20 @@ export class RecommendationService {
       // 6. 소셜 미디어 검색
       await this.searchSocialMedia(topKeywords, externalRecommendations);
 
+      // 유사도 70% 이상만 필터링
+      const filteredRecommendations = externalRecommendations.filter(item => {
+        const similarity = item.similarity_score?.total || item.similarity || 0;
+        return similarity >= 0.7;
+      });
+
       // 유사도 순으로 정렬
-      externalRecommendations.sort((a, b) => 
+      filteredRecommendations.sort((a, b) => 
         (b.similarity_score?.total || b.similarity || 0) - 
         (a.similarity_score?.total || a.similarity || 0)
       );
 
-      logger.info(`📊 External recommendations found: ${externalRecommendations.length}`);
-      return externalRecommendations;
+      logger.info(`📊 External recommendations: ${externalRecommendations.length} found, ${filteredRecommendations.length} after filtering (≥70%)`);
+      return filteredRecommendations;
 
     } catch (error) {
       logger.error('🚫 External search failed:', error);

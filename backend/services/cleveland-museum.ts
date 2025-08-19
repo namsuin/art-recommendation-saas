@@ -256,7 +256,19 @@ export class ClevelandMuseumService {
   async searchByStyleKeywords(keywords: string[]): Promise<any[]> {
     try {
       const results = await this.searchByKeywords(keywords, 30);
-      return results.artworks.map(artwork => this.formatForDisplay(artwork));
+      return results.artworks.map(artwork => {
+        const formatted = this.formatForDisplay(artwork);
+        // Calculate similarity based on keyword matches
+        const artworkKeywords = formatted.keywords || [];
+        const matchCount = keywords.filter(keyword => 
+          artworkKeywords.some(ak => 
+            ak.toLowerCase().includes(keyword.toLowerCase()) ||
+            keyword.toLowerCase().includes(ak.toLowerCase())
+          )
+        ).length;
+        formatted.similarity = matchCount > 0 ? matchCount / keywords.length : 0.5; // Default 50% for Cleveland Museum
+        return formatted;
+      });
     } catch (error) {
       logger.error('Failed to search Cleveland Museum by style keywords:', error);
       return [];
