@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CheckCircle, XCircle, Eye, Edit, Trash2, Search, Filter, User, Calendar, Tag, Image as ImageIcon, MessageSquare, X, Save, Edit2 } from 'lucide-react';
+import { CheckCircle, XCircle, Eye, Edit, Trash2, Search, Filter, User, Calendar, Tag, Image as ImageIcon, MessageSquare, X, Save, Edit2, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface Artwork {
   id: string;
@@ -49,17 +49,23 @@ export default function AdminArtworkDashboard({ userId }: { userId: string }) {
   const [actionTarget, setActionTarget] = useState<string>('');
   const [editingArtwork, setEditingArtwork] = useState<Artwork | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalArtworks, setTotalArtworks] = useState(0);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [currentPage, itemsPerPage]);
 
   const fetchData = async () => {
     setLoading(true);
     try {
       // API를 통해 작품 데이터 가져오기
       const adminToken = localStorage.getItem('admin-token');
-      const response = await fetch('/api/admin/artworks', {
+      const response = await fetch(`/api/admin/artworks?page=${currentPage}&limit=${itemsPerPage}`, {
         headers: {
           'Authorization': `Bearer ${adminToken}`
         }
@@ -69,6 +75,12 @@ export default function AdminArtworkDashboard({ userId }: { userId: string }) {
         const result = await response.json();
         if (result.success && result.artworks) {
           setArtworks(result.artworks);
+          
+          // Update pagination info if available
+          if (result.pagination) {
+            setTotalPages(result.pagination.totalPages);
+            setTotalArtworks(result.pagination.total);
+          }
         }
       } else {
         console.warn('Failed to fetch artworks');
@@ -241,7 +253,7 @@ export default function AdminArtworkDashboard({ userId }: { userId: string }) {
         <div className="grid grid-cols-4 gap-4 mb-6">
           <div className="bg-gray-50 rounded-lg p-4">
             <div className="text-sm text-gray-600">전체 작품</div>
-            <div className="text-2xl font-bold">{artworks.length}</div>
+            <div className="text-2xl font-bold">{totalArtworks.toLocaleString()}</div>
           </div>
           <div className="bg-yellow-50 rounded-lg p-4">
             <div className="text-sm text-gray-600">승인대기</div>
@@ -373,6 +385,105 @@ export default function AdminArtworkDashboard({ userId }: { userId: string }) {
               ))}
             </tbody>
           </table>
+        </div>
+        
+        {/* Pagination Controls */}
+        <div className="px-6 py-4 border-t border-gray-200">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <span className="text-sm text-gray-700">
+                {totalArtworks > 0 ? (
+                  <>
+                    {((currentPage - 1) * itemsPerPage + 1).toLocaleString()} - {Math.min(currentPage * itemsPerPage, totalArtworks).toLocaleString()} / 전체 {totalArtworks.toLocaleString()}개
+                  </>
+                ) : (
+                  '작품이 없습니다'
+                )}
+              </span>
+              
+              <select
+                value={itemsPerPage}
+                onChange={(e) => {
+                  setItemsPerPage(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="px-3 py-1 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value={10}>10개씩</option>
+                <option value={20}>20개씩</option>
+                <option value={50}>50개씩</option>
+                <option value={100}>100개씩</option>
+              </select>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className={`p-2 rounded-lg ${
+                  currentPage === 1 
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                    : 'bg-white text-gray-700 hover:bg-gray-100'
+                } border`}
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              
+              {/* Page Numbers */}
+              <div className="flex items-center space-x-1">
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
+                  
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => setCurrentPage(pageNum)}
+                      className={`px-3 py-1 rounded-lg ${
+                        currentPage === pageNum
+                          ? 'bg-blue-500 text-white'
+                          : 'bg-white text-gray-700 hover:bg-gray-100'
+                      } border`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+                
+                {totalPages > 5 && currentPage < totalPages - 2 && (
+                  <>
+                    <span className="px-2 text-gray-500">...</span>
+                    <button
+                      onClick={() => setCurrentPage(totalPages)}
+                      className="px-3 py-1 rounded-lg bg-white text-gray-700 hover:bg-gray-100 border"
+                    >
+                      {totalPages}
+                    </button>
+                  </>
+                )}
+              </div>
+              
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+                className={`p-2 rounded-lg ${
+                  currentPage === totalPages 
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                    : 'bg-white text-gray-700 hover:bg-gray-100'
+                } border`}
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 

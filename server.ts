@@ -27,6 +27,7 @@ import { AuthAPI } from "./backend/api/auth";
 import { ArtworkManagementAPI } from "./backend/api/artwork-management";
 import { mockArtistApplications } from "./backend/services/mock-artist-applications";
 import { mockDB } from "./backend/services/mock-database";
+import { artsperArtworks, artsperSummary } from './backend/artsper-dashboard-data';
 
 // Initialize services lazily
 let aiService: AIAnalysisService | null = null;
@@ -543,8 +544,12 @@ const server = Bun.serve({
       // Get artist applications (Admin only)
       if (url.pathname === "/api/admin/artist-applications" && method === "GET") {
         try {
-          // Mock 데이터 사용
-          const { data, error } = await mockArtistApplications.getAll();
+          // Mock 데이터 사용 - getAll 메서드가 없으면 빈 배열 반환
+          const applications = mockArtistApplications?.getAll ? 
+            await mockArtistApplications.getAll() : 
+            { data: [], error: null };
+          
+          const { data, error } = applications;
 
           if (error) {
             serverLogger.error('Failed to fetch artist applications:', error);
@@ -997,90 +1002,14 @@ const server = Bun.serve({
       // Admin artworks endpoint - 직접 등록한 작품 정보
       if (url.pathname === "/api/admin/dashboard/artworks" && method === "GET") {
         try {
-          const mockArtworks = {
+          // Use Artsper artworks data
+          const response = {
             success: true,
-            artworks: [
-              {
-                id: "artwork-reg-1",
-                title: "Morning Sunrise",
-                artist: "Professional Artist",
-                artist_email: "artist1@example.com",
-                registration_date: new Date(Date.now() - 86400000).toISOString(),
-                status: "approved",
-                approval_date: new Date(Date.now() - 43200000).toISOString(),
-                image_url: "https://via.placeholder.com/400x300?text=Morning+Sunrise",
-                description: "Beautiful sunrise landscape painting with warm colors",
-                price: 850.00,
-                category: "Landscape",
-                medium: "Oil on Canvas",
-                dimensions: "60x80cm",
-                views: 234,
-                likes: 18
-              },
-              {
-                id: "artwork-reg-2", 
-                title: "Abstract Dreams",
-                artist: "Professional Artist",
-                artist_email: "artist1@example.com",
-                registration_date: new Date(Date.now() - 259200000).toISOString(), // 3 days ago
-                status: "approved",
-                approval_date: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
-                image_url: "https://via.placeholder.com/400x300?text=Abstract+Dreams",
-                description: "Modern abstract composition with vibrant colors",
-                price: 1200.00,
-                category: "Abstract",
-                medium: "Acrylic on Canvas",
-                dimensions: "80x100cm",
-                views: 156,
-                likes: 12
-              },
-              {
-                id: "artwork-reg-3",
-                title: "Urban Sketch",
-                artist: "City Artist",
-                artist_email: "cityartist@example.com",
-                registration_date: new Date(Date.now() - 432000000).toISOString(), // 5 days ago  
-                status: "pending",
-                approval_date: null,
-                image_url: "https://via.placeholder.com/400x300?text=Urban+Sketch",
-                description: "Street scene captured in charcoal and pencil",
-                price: 450.00,
-                category: "Drawing",
-                medium: "Charcoal on Paper",
-                dimensions: "40x50cm",
-                views: 89,
-                likes: 7
-              },
-              {
-                id: "artwork-reg-4",
-                title: "Digital Fusion",
-                artist: "Tech Artist", 
-                artist_email: "techartist@example.com",
-                registration_date: new Date(Date.now() - 604800000).toISOString(), // 7 days ago
-                status: "rejected",
-                approval_date: new Date(Date.now() - 518400000).toISOString(), // 6 days ago
-                rejection_reason: "Does not meet quality standards",
-                image_url: "https://via.placeholder.com/400x300?text=Digital+Fusion",
-                description: "Digital art combining traditional and modern elements",
-                price: 300.00,
-                category: "Digital",
-                medium: "Digital Art",
-                dimensions: "Digital",
-                views: 45,
-                likes: 3
-              }
-            ],
-            summary: {
-              total_artworks: 4,
-              approved: 2,
-              pending: 1,
-              rejected: 1,
-              total_value: 2800.00,
-              average_price: 700.00
-            }
+            artworks: artsperArtworks,
+            summary: artsperSummary
           };
           
-          return new Response(JSON.stringify(mockArtworks), {
+          return new Response(JSON.stringify(response), {
             headers: { "Content-Type": "application/json", ...corsHeaders }
           });
         } catch (error) {
@@ -1380,14 +1309,20 @@ const server = Bun.serve({
         }
       }
       
-      // Get all artworks
+      // Get all artworks with pagination
       if (url.pathname === "/api/admin/artworks" && method === "GET") {
         try {
+          // Parse query parameters for pagination
+          const searchParams = new URL(url).searchParams;
+          const page = parseInt(searchParams.get('page') || '1');
+          const limit = parseInt(searchParams.get('limit') || '20');
+          const offset = (page - 1) * limit;
+          
           const { artworkRegistry } = await import('./backend/services/artwork-registry');
           const registeredArtworks = artworkRegistry.getAllArtworks();
           
-          // Transform to dashboard format
-          const artworks = registeredArtworks.map(artwork => ({
+          // Transform registry artworks to dashboard format
+          const registryArtworks = registeredArtworks.map(artwork => ({
             id: artwork.id,
             title: artwork.title,
             artist_name: artwork.artist,
@@ -1404,9 +1339,42 @@ const server = Bun.serve({
             available: artwork.available
           }));
           
+          // Transform Artsper artworks to match the expected format
+          const artsperArtworksFormatted = artsperArtworks.map(artwork => ({
+            id: artwork.id,
+            title: artwork.title,
+            artist_name: artwork.artist,
+            artist_bio: '',
+            description: artwork.description,
+            image_url: artwork.image_url,
+            category: artwork.category,
+            medium: artwork.medium,
+            year: '',
+            price: artwork.price ? artwork.price.toString() : '',
+            tags: '',
+            status: artwork.status,
+            created_at: artwork.registration_date,
+            available: true
+          }));
+          
+          // Combine both sources
+          const allArtworks = [...registryArtworks, ...artsperArtworksFormatted];
+          
+          // Apply pagination
+          const paginatedArtworks = allArtworks.slice(offset, offset + limit);
+          const totalPages = Math.ceil(allArtworks.length / limit);
+          
+          serverLogger.info(`Returning page ${page}/${totalPages} with ${paginatedArtworks.length} artworks (total: ${allArtworks.length})`);
+          
           return new Response(JSON.stringify({
             success: true,
-            artworks
+            artworks: paginatedArtworks,
+            pagination: {
+              total: allArtworks.length,
+              page: page,
+              limit: limit,
+              totalPages: totalPages
+            }
           }), {
             headers: { "Content-Type": "application/json", ...corsHeaders }
           });

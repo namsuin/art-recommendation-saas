@@ -1,0 +1,905 @@
+{
+  "total": 34537,
+  "showcase": [
+    {
+      "id": "artsper_2336839",
+      "title": "Painting Of New York City Street After Rain With Figures Cars",
+      "artist": "Unknown Artist",
+      "price": "$35099.00",
+      "image_url": "https://media.artsper.com/artwork/2336839_1_s.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/painting/2336839/painting-of-new-york-city-street-after-rain-with-figures-cars"
+    },
+    {
+      "id": "artsper_2268024",
+      "title": "Wizard By The Water",
+      "artist": "the Water",
+      "price": "$2000.00",
+      "image_url": "https://media.artsper.com/artwork/2268024_1_s.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/painting/2268024/wizard-by-the-water"
+    },
+    {
+      "id": "artsper_2317964",
+      "title": "Love",
+      "artist": "Unknown Artist",
+      "price": "$1576.00",
+      "image_url": "https://media.artsper.com/artwork/2317964_1_s.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/sculpture/2317964/love"
+    },
+    {
+      "id": "artsper_2258146",
+      "title": "The Colors Of Spring X",
+      "artist": "Unknown Artist",
+      "price": "$1200.00",
+      "image_url": "https://media.artsper.com/artwork/2258146_1_s.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/photography/2258146/the-colors-of-spring-x"
+    },
+    {
+      "id": "artsper_2260927",
+      "title": "Red Interior With Smoke",
+      "artist": "Unknown Artist",
+      "price": "$1185.00",
+      "image_url": "https://media.artsper.com/artwork/2260927_1_s.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/print/2260927/red-interior-with-smoke"
+    },
+    {
+      "id": "artsper_2308668",
+      "title": "Sin Titulo",
+      "artist": "Unknown Artist",
+      "price": "$667.00",
+      "image_url": "https://media.artsper.com/artwork/2308668_1_s.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/drawing/2308668/sin-titulo"
+    },
+    {
+      "id": "artsper_2236729",
+      "title": "Dec 21 Dec 28 2020 Person Of The Year",
+      "artist": "Unknown Artist",
+      "price": "$7456.00",
+      "image_url": "https://media.artsper.com/artwork/2236729_1_s.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/design/2236729/dec-21-dec-28-2020-person-of-the-year"
+    },
+    {
+      "id": "artsper_2313456",
+      "title": "Guardian",
+      "artist": "Unknown Artist",
+      "price": "$1818.00",
+      "image_url": "https://media.artsper.com/artwork/2313456_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/print/2313456/guardian"
+    },
+    {
+      "id": "artsper_2301461",
+      "title": "Life",
+      "artist": "Unknown Artist",
+      "price": "$5757.00",
+      "image_url": "https://media.artsper.com/artwork/2301461_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/painting/2301461/life"
+    },
+    {
+      "id": "artsper_2298257",
+      "title": "Calendulas",
+      "artist": "Unknown Artist",
+      "price": "$5999.00",
+      "image_url": "https://media.artsper.com/artwork/2298257_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/painting/2298257/calendulas"
+    },
+    {
+      "id": "artsper_2298002",
+      "title": "Les Imprimes 4 Aquatinte Originale",
+      "artist": "Unknown Artist",
+      "price": "$582.00",
+      "image_url": "https://media.artsper.com/artwork/2298002_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/print/2298002/les-imprimes-4-aquatinte-originale"
+    },
+    {
+      "id": "artsper_2298000",
+      "title": "Sans Titre",
+      "artist": "Unknown Artist",
+      "price": "$303.00",
+      "image_url": "https://media.artsper.com/artwork/2298000_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/painting/2298000/sans-titre"
+    },
+    {
+      "id": "artsper_2297660",
+      "title": "Power Of Beauty No 2",
+      "artist": "Unknown Artist",
+      "price": "$3697.00",
+      "image_url": "https://media.artsper.com/artwork/2297660_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/painting/2297660/power-of-beauty-no-2"
+    },
+    {
+      "id": "artsper_2297206",
+      "title": "3001 Odysse",
+      "artist": "Unknown Artist",
+      "price": "$121.00",
+      "image_url": "https://media.artsper.com/artwork/2297206_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/print/2297206/3001-odysse"
+    },
+    {
+      "id": "artsper_2293415",
+      "title": "Ceracera Gold Pablo Savon X Alexone Dizac",
+      "artist": "Unknown Artist",
+      "price": "$1757.00",
+      "image_url": "https://media.artsper.com/artwork/2293415_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/sculpture/2293415/ceracera-gold-pablo-savon-x-alexone-dizac"
+    },
+    {
+      "id": "artsper_2292514",
+      "title": "Watch Out",
+      "artist": "Unknown Artist",
+      "price": "$721.00",
+      "image_url": "https://media.artsper.com/artwork/2292514_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/print/2292514/watch-out"
+    },
+    {
+      "id": "artsper_2292181",
+      "title": "Portrait De Femme",
+      "artist": "Unknown Artist",
+      "price": "$727.00",
+      "image_url": "https://media.artsper.com/artwork/2292181_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/painting/2292181/portrait-de-femme"
+    },
+    {
+      "id": "artsper_2292170",
+      "title": "Rostro India Unique",
+      "artist": "Unknown Artist",
+      "price": "$739.00",
+      "image_url": "https://media.artsper.com/artwork/2292170_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/painting/2292170/rostro-india-unique"
+    },
+    {
+      "id": "artsper_2292150",
+      "title": "Arbres Etranges Serie 12",
+      "artist": "Unknown Artist",
+      "price": "$1939.00",
+      "image_url": "https://media.artsper.com/artwork/2292150_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/painting/2292150/arbres-etranges-serie-12"
+    },
+    {
+      "id": "artsper_2291700",
+      "title": "Inner Peace",
+      "artist": "Unknown Artist",
+      "price": "$1850.00",
+      "image_url": "https://media.artsper.com/artwork/2291700_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/painting/2291700/inner-peace"
+    },
+    {
+      "id": "artsper_2291236",
+      "title": "First Contact 2 21st Century Contemporary Figurative Motherhood Acrylic Dip",
+      "artist": "Unknown Artist",
+      "price": "$1500.00",
+      "image_url": "https://media.artsper.com/artwork/2291236_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/painting/2291236/first-contact-2-21st-century-contemporary-figurative-motherhood-acrylic-dip"
+    },
+    {
+      "id": "artsper_2287790",
+      "title": "Jojo La Croqueuse Dhommes",
+      "artist": "Unknown Artist",
+      "price": "$727.00",
+      "image_url": "https://media.artsper.com/artwork/2287790_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/painting/2287790/jojo-la-croqueuse-dhommes"
+    },
+    {
+      "id": "artsper_2283860",
+      "title": "The Cathedral Ii",
+      "artist": "Unknown Artist",
+      "price": "$1030.00",
+      "image_url": "https://media.artsper.com/artwork/2283860_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/painting/2283860/the-cathedral-ii"
+    },
+    {
+      "id": "artsper_2282928",
+      "title": "Mickey Spread Art What Party",
+      "artist": "Unknown Artist",
+      "price": "$594.00",
+      "image_url": "https://media.artsper.com/artwork/2282928_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/painting/2282928/mickey-spread-art-what-party"
+    },
+    {
+      "id": "artsper_2282274",
+      "title": "Water",
+      "artist": "Unknown Artist",
+      "price": "$1500.00",
+      "image_url": "https://media.artsper.com/artwork/2282274_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/painting/2282274/water"
+    },
+    {
+      "id": "artsper_2275743",
+      "title": "Jack In The Box",
+      "artist": "Unknown Artist",
+      "price": "$970.00",
+      "image_url": "https://media.artsper.com/artwork/2275743_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/painting/2275743/jack-in-the-box"
+    },
+    {
+      "id": "artsper_2274918",
+      "title": "Mountains",
+      "artist": "Unknown Artist",
+      "price": "$1000.00",
+      "image_url": "https://media.artsper.com/artwork/2274918_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/painting/2274918/mountains"
+    },
+    {
+      "id": "artsper_2274669",
+      "title": "Spirit Of The Forest",
+      "artist": "Unknown Artist",
+      "price": "$1500.00",
+      "image_url": "https://media.artsper.com/artwork/2274669_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/painting/2274669/spirit-of-the-forest"
+    },
+    {
+      "id": "artsper_2274302",
+      "title": "Un Battement Daile",
+      "artist": "Unknown Artist",
+      "price": "$1200.00",
+      "image_url": "https://media.artsper.com/artwork/2274302_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/painting/2274302/un-battement-daile"
+    },
+    {
+      "id": "artsper_2270504",
+      "title": "Gold 3",
+      "artist": "Unknown Artist",
+      "price": "$2969.00",
+      "image_url": "https://media.artsper.com/artwork/2270504_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/sculpture/2270504/gold-3"
+    },
+    {
+      "id": "artsper_2267514",
+      "title": "Solitude 1 21st Century Contemporary Neo Expressionism Mixed Media Africa",
+      "artist": "Unknown Artist",
+      "price": "$2100.00",
+      "image_url": "https://media.artsper.com/artwork/2267514_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/painting/2267514/solitude-1-21st-century-contemporary-neo-expressionism-mixed-media-africa"
+    },
+    {
+      "id": "artsper_2251963",
+      "title": "Polka Dots Rabbit Tribute To Yayoi Kusama",
+      "artist": "Unknown Artist",
+      "price": "$303.00",
+      "image_url": "https://media.artsper.com/artwork/2251963_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/sculpture/2251963/polka-dots-rabbit-tribute-to-yayoi-kusama"
+    },
+    {
+      "id": "artsper_2251677",
+      "title": "Untitled Ii",
+      "artist": "Unknown Artist",
+      "price": "$2250.00",
+      "image_url": "https://media.artsper.com/artwork/2251677_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/painting/2251677/untitled-ii"
+    },
+    {
+      "id": "artsper_2251636",
+      "title": "The Fool And The Wizard Diptych",
+      "artist": "Unknown Artist",
+      "price": "$740.00",
+      "image_url": "https://media.artsper.com/artwork/2251636_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/painting/2251636/the-fool-and-the-wizard-diptych"
+    },
+    {
+      "id": "artsper_2228887",
+      "title": "Untitled",
+      "artist": "Unknown Artist",
+      "price": "$673.00",
+      "image_url": "https://media.artsper.com/artwork/2228887_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/drawing/2228887/untitled"
+    },
+    {
+      "id": "artsper_2227254",
+      "title": "In The Silence",
+      "artist": "Unknown Artist",
+      "price": "$12017.00",
+      "image_url": "https://media.artsper.com/artwork/2227254_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/painting/2227254/in-the-silence"
+    },
+    {
+      "id": "artsper_2217730",
+      "title": "Revised",
+      "artist": "Unknown Artist",
+      "price": "$818.00",
+      "image_url": "https://media.artsper.com/artwork/2217730_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/sculpture/2217730/revised"
+    },
+    {
+      "id": "artsper_2214322",
+      "title": "Natacha",
+      "artist": "Unknown Artist",
+      "price": "$412.00",
+      "image_url": "https://media.artsper.com/artwork/2214322_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/painting/2214322/natacha"
+    },
+    {
+      "id": "artsper_2212896",
+      "title": "La Petite Fille",
+      "artist": "Unknown Artist",
+      "price": "$42420.00",
+      "image_url": "https://media.artsper.com/artwork/2212896_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/sculpture/2212896/la-petite-fille"
+    },
+    {
+      "id": "artsper_2201934",
+      "title": "Palms In Ischia",
+      "artist": "Unknown Artist",
+      "price": "$970.00",
+      "image_url": "https://media.artsper.com/artwork/2201934_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/print/2201934/palms-in-ischia"
+    },
+    {
+      "id": "artsper_2187690",
+      "title": "Wheat Field Reapers",
+      "artist": "Unknown Artist",
+      "price": "$727.00",
+      "image_url": "https://media.artsper.com/artwork/2187690_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/painting/2187690/wheat-field-reapers"
+    },
+    {
+      "id": "artsper_2180748",
+      "title": "On Brule Les Scarabees",
+      "artist": "Unknown Artist",
+      "price": "$42420.00",
+      "image_url": "https://media.artsper.com/artwork/2180748_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/painting/2180748/on-brule-les-scarabees"
+    },
+    {
+      "id": "artsper_2179233",
+      "title": "Arco Iris Triptico Serie Geschichte",
+      "artist": "Unknown Artist",
+      "price": "$727.00",
+      "image_url": "https://media.artsper.com/artwork/2179233_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/painting/2179233/arco-iris-triptico-serie-geschichte"
+    },
+    {
+      "id": "artsper_2157519",
+      "title": "Drawing For Sewing For A Prayer",
+      "artist": "Unknown Artist",
+      "price": "$1091.00",
+      "image_url": "https://media.artsper.com/artwork/2157519_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/painting/2157519/drawing-for-sewing-for-a-prayer"
+    },
+    {
+      "id": "artsper_2156371",
+      "title": "Midnight",
+      "artist": "Unknown Artist",
+      "price": "$8564.00",
+      "image_url": "https://media.artsper.com/artwork/2156371_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/sculpture/2156371/midnight"
+    },
+    {
+      "id": "artsper_2147115",
+      "title": "Now From Past And From Future",
+      "artist": "Unknown Artist",
+      "price": "$2424.00",
+      "image_url": "https://media.artsper.com/artwork/2147115_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/painting/2147115/now-from-past-and-from-future"
+    },
+    {
+      "id": "artsper_2143410",
+      "title": "Three Screams",
+      "artist": "Unknown Artist",
+      "price": "$2054.00",
+      "image_url": "https://media.artsper.com/artwork/2143410_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/painting/2143410/three-screams"
+    },
+    {
+      "id": "artsper_2143062",
+      "title": "Face Iii",
+      "artist": "Unknown Artist",
+      "price": "$24997.00",
+      "image_url": "https://media.artsper.com/artwork/2143062_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/painting/2143062/face-iii"
+    },
+    {
+      "id": "artsper_2010480",
+      "title": "Lorage",
+      "artist": "Unknown Artist",
+      "price": "$1030.00",
+      "image_url": "https://media.artsper.com/artwork/2010480_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/painting/2010480/lorage"
+    },
+    {
+      "id": "artsper_1957077",
+      "title": "Hypnosis",
+      "artist": "Unknown Artist",
+      "price": "$2788.00",
+      "image_url": "https://media.artsper.com/artwork/1957077_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/painting/1957077/hypnosis"
+    },
+    {
+      "id": "artsper_1902984",
+      "title": "Sunset Boat",
+      "artist": "Unknown Artist",
+      "price": "$848.00",
+      "image_url": "https://media.artsper.com/artwork/1902984_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/painting/1902984/sunset-boat"
+    },
+    {
+      "id": "artsper_1884684",
+      "title": "Ancient Architects",
+      "artist": "Unknown Artist",
+      "price": "$2495.00",
+      "image_url": "https://media.artsper.com/artwork/1884684_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/painting/1884684/ancient-architects"
+    },
+    {
+      "id": "artsper_1875501",
+      "title": "Morning Sunshine On Moc Chau Plateau",
+      "artist": "Unknown Artist",
+      "price": "$3000.00",
+      "image_url": "https://media.artsper.com/artwork/1875501_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/painting/1875501/morning-sunshine-on-moc-chau-plateau"
+    },
+    {
+      "id": "artsper_1815276",
+      "title": "Chroma Vii",
+      "artist": "Unknown Artist",
+      "price": "$575.00",
+      "image_url": "https://media.artsper.com/artwork/1815276_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/drawing/1815276/chroma-vii"
+    },
+    {
+      "id": "artsper_1672665",
+      "title": "Sillons",
+      "artist": "Unknown Artist",
+      "price": "$11756.00",
+      "image_url": "https://media.artsper.com/artwork/1672665_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/sculpture/1672665/sillons"
+    },
+    {
+      "id": "artsper_1542516",
+      "title": "Cmon Everybody",
+      "artist": "Unknown Artist",
+      "price": "$4969.00",
+      "image_url": "https://media.artsper.com/artwork/1542516_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/painting/1542516/cmon-everybody"
+    },
+    {
+      "id": "artsper_1485876",
+      "title": "Evidence",
+      "artist": "Unknown Artist",
+      "price": "$218.00",
+      "image_url": "https://media.artsper.com/artwork/1485876_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/print/1485876/evidence"
+    },
+    {
+      "id": "artsper_1453038",
+      "title": "Bleu Geometrique",
+      "artist": "Unknown Artist",
+      "price": "$970.00",
+      "image_url": "https://media.artsper.com/artwork/1453038_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/photography/1453038/bleu-geometrique"
+    },
+    {
+      "id": "artsper_1361247",
+      "title": "Hellebore No 30",
+      "artist": "Unknown Artist",
+      "price": "$150.00",
+      "image_url": "https://media.artsper.com/artwork/1361247_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/drawing/1361247/hellebore-no-30"
+    },
+    {
+      "id": "artsper_1266867",
+      "title": "Kaori",
+      "artist": "Unknown Artist",
+      "price": "$1454.00",
+      "image_url": "https://media.artsper.com/artwork/1266867_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/painting/1266867/kaori"
+    },
+    {
+      "id": "artsper_1213212",
+      "title": "Multiple De Fond Et De Matiere",
+      "artist": "Unknown Artist",
+      "price": "$133.00",
+      "image_url": "https://media.artsper.com/artwork/1213212_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/painting/1213212/multiple-de-fond-et-de-matiere"
+    },
+    {
+      "id": "artsper_1197879",
+      "title": "Hanoi Style",
+      "artist": "Unknown Artist",
+      "price": "$7500.00",
+      "image_url": "https://media.artsper.com/artwork/1197879_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/painting/1197879/hanoi-style"
+    },
+    {
+      "id": "artsper_1166982",
+      "title": "Into The Faiinn 6",
+      "artist": "Unknown Artist",
+      "price": "$1123.00",
+      "image_url": "https://media.artsper.com/artwork/1166982_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/painting/1166982/into-the-faiinn-6"
+    },
+    {
+      "id": "artsper_1145775",
+      "title": "Tonkar 434 3",
+      "artist": "Unknown Artist",
+      "price": "$606.00",
+      "image_url": "https://media.artsper.com/artwork/1145775_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/print/1145775/tonkar-434-3"
+    },
+    {
+      "id": "artsper_1124409",
+      "title": "Land 3",
+      "artist": "Unknown Artist",
+      "price": "$230.00",
+      "image_url": "https://media.artsper.com/artwork/1124409_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/print/1124409/land-3"
+    },
+    {
+      "id": "artsper_1106838",
+      "title": "Rubato 10",
+      "artist": "Unknown Artist",
+      "price": "$1825.00",
+      "image_url": "https://media.artsper.com/artwork/1106838_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/print/1106838/rubato-10"
+    },
+    {
+      "id": "artsper_957012",
+      "title": "1978 Ha Indoo Eternity Door Mmca Collection Museum Modern Contemporary Art Seoul South Korea",
+      "artist": "Unknown Artist",
+      "price": "$842.00",
+      "image_url": "https://media.artsper.com/artwork/957012_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/print/957012/1978-ha-indoo-eternity-door-mmca-collection-museum-modern-contemporary-art-seoul-south-korea"
+    },
+    {
+      "id": "artsper_936816",
+      "title": "Femme De La Ville Iii",
+      "artist": "Unknown Artist",
+      "price": "$667.00",
+      "image_url": "https://media.artsper.com/artwork/936816_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/painting/936816/femme-de-la-ville-iii"
+    },
+    {
+      "id": "artsper_896166",
+      "title": "Desolation 1972 Desolation",
+      "artist": "Unknown Artist",
+      "price": "$715.00",
+      "image_url": "https://media.artsper.com/artwork/896166_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/print/896166/desolation-1972-desolation"
+    },
+    {
+      "id": "artsper_894804",
+      "title": "Architecture 1985 Allons Bon Well",
+      "artist": "Unknown Artist",
+      "price": "$957.00",
+      "image_url": "https://media.artsper.com/artwork/894804_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/print/894804/architecture-1985-allons-bon-well"
+    },
+    {
+      "id": "artsper_877368",
+      "title": "Cherry Kate",
+      "artist": "Unknown Artist",
+      "price": "$1454.00",
+      "image_url": "https://media.artsper.com/artwork/877368_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/print/877368/cherry-kate"
+    },
+    {
+      "id": "artsper_846759",
+      "title": "The Route Of Jason",
+      "artist": "Unknown Artist",
+      "price": "$788.00",
+      "image_url": "https://media.artsper.com/artwork/846759_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/painting/846759/the-route-of-jason"
+    },
+    {
+      "id": "artsper_844275",
+      "title": "Bulls",
+      "artist": "Unknown Artist",
+      "price": "$788.00",
+      "image_url": "https://media.artsper.com/artwork/844275_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/print/844275/bulls"
+    },
+    {
+      "id": "artsper_835011",
+      "title": "Sans Titre",
+      "artist": "Unknown Artist",
+      "price": "$2060.00",
+      "image_url": "https://media.artsper.com/artwork/835011_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/painting/835011/sans-titre"
+    },
+    {
+      "id": "artsper_758460",
+      "title": "Ecoute Ii",
+      "artist": "Unknown Artist",
+      "price": "$242.00",
+      "image_url": "https://media.artsper.com/artwork/758460_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/drawing/758460/ecoute-ii"
+    },
+    {
+      "id": "artsper_706176",
+      "title": "Dream Creature",
+      "artist": "Unknown Artist",
+      "price": "$6787.00",
+      "image_url": "https://media.artsper.com/artwork/706176_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/painting/706176/dream-creature"
+    },
+    {
+      "id": "artsper_685209",
+      "title": "Corrida",
+      "artist": "Unknown Artist",
+      "price": "$909.00",
+      "image_url": "https://media.artsper.com/artwork/685209_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/print/685209/corrida"
+    },
+    {
+      "id": "artsper_608055",
+      "title": "19m2 Triptyque",
+      "artist": "Unknown Artist",
+      "price": "$848.00",
+      "image_url": "https://media.artsper.com/artwork/608055_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/print/608055/19m2-triptyque"
+    },
+    {
+      "id": "artsper_490267",
+      "title": "Red Poppies",
+      "artist": "Unknown Artist",
+      "price": "$750.00",
+      "image_url": "https://media.artsper.com/artwork/490267_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/print/490267/red-poppies"
+    },
+    {
+      "id": "artsper_475168",
+      "title": "Le Soleil Grille",
+      "artist": "Unknown Artist",
+      "price": "$970.00",
+      "image_url": "https://media.artsper.com/artwork/475168_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/print/475168/le-soleil-grille"
+    },
+    {
+      "id": "artsper_456253",
+      "title": "La Procession Des Guerriers",
+      "artist": "Unknown Artist",
+      "price": "$302.00",
+      "image_url": "https://media.artsper.com/artwork/456253_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/print/456253/la-procession-des-guerriers"
+    },
+    {
+      "id": "artsper_419337",
+      "title": "Pegase Captif 1889 Captive Pegasus 1889",
+      "artist": "Unknown Artist",
+      "price": "$788.00",
+      "image_url": "https://media.artsper.com/artwork/419337_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/print/419337/pegase-captif-1889-captive-pegasus-1889"
+    },
+    {
+      "id": "artsper_382025",
+      "title": "Harmonies Urbaines Grises Abstrait Vernis Pigments Masquages Sur Plaque De Bois 280x61x61x61cm",
+      "artist": "Unknown Artist",
+      "price": "$12120.00",
+      "image_url": "https://media.artsper.com/artwork/382025_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/sculpture/382025/harmonies-urbaines-grises-abstrait-vernis-pigments-masquages-sur-plaque-de-bois-280x61x61x61cm"
+    },
+    {
+      "id": "artsper_377292",
+      "title": "Perros De Piedra I A",
+      "artist": "Unknown Artist",
+      "price": "$970.00",
+      "image_url": "https://media.artsper.com/artwork/377292_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/print/377292/perros-de-piedra-i-a"
+    },
+    {
+      "id": "artsper_2344225",
+      "title": "The Cote Dazur",
+      "artist": "Unknown Artist",
+      "price": "$1939.00",
+      "image_url": "https://media.artsper.com/artwork/2344225_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/painting/2344225/the-cote-dazur"
+    },
+    {
+      "id": "artsper_2342550",
+      "title": "Les Jumelles A La Plage Serie Mer Et Ocean",
+      "artist": "Unknown Artist",
+      "price": "$68.00",
+      "image_url": "https://media.artsper.com/artwork/2342550_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/painting/2342550/les-jumelles-a-la-plage-serie-mer-et-ocean"
+    },
+    {
+      "id": "artsper_2342021",
+      "title": "Circo America",
+      "artist": "Unknown Artist",
+      "price": "$23028.00",
+      "image_url": "https://media.artsper.com/artwork/2342021_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/drawing/2342021/circo-america"
+    },
+    {
+      "id": "artsper_2341383",
+      "title": "Untitled",
+      "artist": "Unknown Artist",
+      "price": "$10000.00",
+      "image_url": "https://media.artsper.com/artwork/2341383_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/painting/2341383/untitled"
+    },
+    {
+      "id": "artsper_2341081",
+      "title": "Perpendicular Mutation Of Biological Mode",
+      "artist": "Unknown Artist",
+      "price": "$994.00",
+      "image_url": "https://media.artsper.com/artwork/2341081_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/drawing/2341081/perpendicular-mutation-of-biological-mode"
+    },
+    {
+      "id": "artsper_2338813",
+      "title": "Salon De Jardin Vacances",
+      "artist": "Unknown Artist",
+      "price": "$909.00",
+      "image_url": "https://media.artsper.com/artwork/2338813_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/drawing/2338813/salon-de-jardin-vacances"
+    },
+    {
+      "id": "artsper_2337868",
+      "title": "Les Deux Oiseaux Du Paradis",
+      "artist": "Unknown Artist",
+      "price": "$4280.00",
+      "image_url": "https://media.artsper.com/artwork/2337868_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/painting/2337868/les-deux-oiseaux-du-paradis"
+    },
+    {
+      "id": "artsper_2335307",
+      "title": "La Fabrique Des Souvenirs Baignade A La Fontaine De Jouvence",
+      "artist": "Unknown Artist",
+      "price": "$5050.00",
+      "image_url": "https://media.artsper.com/artwork/2335307_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/painting/2335307/la-fabrique-des-souvenirs-baignade-a-la-fontaine-de-jouvence"
+    },
+    {
+      "id": "artsper_2332518",
+      "title": "Des Racines Au Nectar",
+      "artist": "Unknown Artist",
+      "price": "$1212.00",
+      "image_url": "https://media.artsper.com/artwork/2332518_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/drawing/2332518/des-racines-au-nectar"
+    },
+    {
+      "id": "artsper_2328217",
+      "title": "Sky Silver",
+      "artist": "Unknown Artist",
+      "price": "$3636.00",
+      "image_url": "https://media.artsper.com/artwork/2328217_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/painting/2328217/sky-silver"
+    },
+    {
+      "id": "artsper_2326024",
+      "title": "Mid Century Still Life Oil On Canvas Of Chrysanthemums In Copper Vase By Rudolph Colao",
+      "artist": "Unknown Artist",
+      "price": "$1115.00",
+      "image_url": "https://media.artsper.com/artwork/2326024_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/painting/2326024/mid-century-still-life-oil-on-canvas-of-chrysanthemums-in-copper-vase-by-rudolph-colao"
+    },
+    {
+      "id": "artsper_2323851",
+      "title": "Still Life Of Roses In A Vase Mid Century French Oil On Canvas By Henri Reboa",
+      "artist": "Unknown Artist",
+      "price": "$1939.00",
+      "image_url": "https://media.artsper.com/artwork/2323851_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/painting/2323851/still-life-of-roses-in-a-vase-mid-century-french-oil-on-canvas-by-henri-reboa"
+    },
+    {
+      "id": "artsper_2322695",
+      "title": "Cage",
+      "artist": "Unknown Artist",
+      "price": "$2303.00",
+      "image_url": "https://media.artsper.com/artwork/2322695_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/drawing/2322695/cage"
+    },
+    {
+      "id": "artsper_2321016",
+      "title": "Melody Of Five",
+      "artist": "Unknown Artist",
+      "price": "$285.00",
+      "image_url": "https://media.artsper.com/artwork/2321016_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/print/2321016/melody-of-five"
+    },
+    {
+      "id": "artsper_2319281",
+      "title": "104 Blues On Greens",
+      "artist": "Unknown Artist",
+      "price": "$5818.00",
+      "image_url": "https://media.artsper.com/artwork/2319281_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/painting/2319281/104-blues-on-greens"
+    },
+    {
+      "id": "artsper_2316725",
+      "title": "Sortie De Masques",
+      "artist": "Unknown Artist",
+      "price": "$10908.00",
+      "image_url": "https://media.artsper.com/artwork/2316725_1_grid.jpg",
+      "category": "contemporary",
+      "url": "https://www.artsper.com/kr/contemporary-artworks/painting/2316725/sortie-de-masques"
+    }
+  ]
+}
