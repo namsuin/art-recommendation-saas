@@ -9,18 +9,33 @@ export class GoogleVisionService {
   constructor() {
     try {
       const keyFilename = process.env.GOOGLE_CLOUD_KEY_FILE;
+      const serviceAccountKey = process.env.GOOGLE_VISION_SERVICE_ACCOUNT_KEY;
       const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID;
       const clientId = process.env.GOOGLE_CLIENT_ID;
       const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
 
-      if (keyFilename && projectId) {
-        logger.info('🔑 Initializing Google Vision with service account key');
+      // Try service account key from environment variable (for Render)
+      if (serviceAccountKey) {
+        try {
+          const credentials = JSON.parse(serviceAccountKey);
+          logger.info('🔑 Initializing Google Vision with service account from env var');
+          this.client = new ImageAnnotatorClient({
+            credentials,
+            projectId: credentials.project_id || projectId,
+          });
+          this.isEnabled = true;
+          logger.info('✅ Google Vision AI initialized with service account (env var)');
+        } catch (parseError) {
+          logger.error('❌ Failed to parse GOOGLE_VISION_SERVICE_ACCOUNT_KEY:', parseError);
+        }
+      } else if (keyFilename && projectId) {
+        logger.info('🔑 Initializing Google Vision with service account key file');
         this.client = new ImageAnnotatorClient({
           keyFilename,
           projectId,
         });
         this.isEnabled = true;
-        logger.info('✅ Google Vision AI initialized with service account');
+        logger.info('✅ Google Vision AI initialized with service account (file)');
       } else if (projectId && clientId && clientSecret) {
         logger.info('🔑 Initializing Google Vision with OAuth credentials');
         this.client = new ImageAnnotatorClient({
