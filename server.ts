@@ -75,6 +75,20 @@ const server = Bun.serve({
       // API ENDPOINTS
       // ======================
       
+      // Debug endpoint for environment variables (temporary)
+      if (url.pathname === "/api/debug/env" && method === "GET") {
+        return new Response(JSON.stringify({
+          hasGoogleVision: !!process.env.GOOGLE_VISION_SERVICE_ACCOUNT_KEY,
+          hasGoogleCloudKeyFile: !!process.env.GOOGLE_CLOUD_KEY_FILE,
+          hasClarifai: !!process.env.CLARIFAI_API_KEY,
+          hasSupabase: !!process.env.SUPABASE_URL,
+          nodeEnv: process.env.NODE_ENV,
+          port: process.env.PORT
+        }), {
+          headers: { "Content-Type": "application/json", ...corsHeaders }
+        });
+      }
+      
       // Health check
       if (url.pathname === "/api/health") {
         return new Response(JSON.stringify({
