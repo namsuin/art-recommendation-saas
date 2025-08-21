@@ -19,16 +19,33 @@ export class GoogleVisionService {
         try {
           const credentials = JSON.parse(serviceAccountKey);
           logger.info('🔑 Initializing Google Vision with service account from env var');
+          logger.info('📋 Credential type:', credentials.type);
+          
+          // Write credentials to a temporary file for Google Cloud SDK
+          const fs = require('fs');
+          const path = require('path');
+          const tmpDir = process.env.TMPDIR || '/tmp';
+          const tmpFile = path.join(tmpDir, 'google-vision-key.json');
+          
+          fs.writeFileSync(tmpFile, serviceAccountKey);
+          logger.info('📝 Wrote credentials to temporary file:', tmpFile);
+          
+          // Initialize with the temporary file
           this.client = new ImageAnnotatorClient({
-            credentials,
+            keyFilename: tmpFile,
             projectId: credentials.project_id || projectId,
           });
+          
           this.isEnabled = true;
-          logger.info('✅ Google Vision AI initialized with service account (env var)');
+          logger.info('✅ Google Vision AI initialized with service account (env var via temp file)');
+          return; // Exit constructor after successful initialization
         } catch (parseError) {
-          logger.error('❌ Failed to parse GOOGLE_VISION_SERVICE_ACCOUNT_KEY:', parseError);
+          logger.error('❌ Failed to initialize Google Vision with env var:', parseError);
+          // Continue to try other methods
         }
-      } else if (keyFilename && projectId) {
+      }
+      
+      if (keyFilename && projectId) {
         logger.info('🔑 Initializing Google Vision with service account key file');
         this.client = new ImageAnnotatorClient({
           keyFilename,
