@@ -50,14 +50,18 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 .DS_Store
 Thumbs.db
 
-# Credentials
+# Credentials and Sensitive Files
 google-vision-key.json
+google-vision-*.json
+google-vision-*.txt
 cedar-gift-*.json
 *-service-account.json
+*-credentials.json
 *.key
 *.pem
 *.cert
 *.crt
+GOOGLE_VISION_SERVICE_ACCOUNT_KEY.json
 
 # Backup files
 *.backup
