@@ -1,4 +1,5 @@
 import { ExpandedArtSearchService } from '../services/expanded-art-search';
+import { logger } from '../../shared/logger';
 
 export async function handleArtsoniaSearch(request: Request): Promise<Response> {
   try {

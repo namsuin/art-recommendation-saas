@@ -1,5 +1,6 @@
 import React from 'react';
 import { Upload, AlertCircle } from 'lucide-react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface ImageUploadZoneProps {
   onDrop: (acceptedFiles: File[]) => void;
@@ -16,6 +17,7 @@ export const ImageUploadZone: React.FC<ImageUploadZoneProps> = ({
   disabled = false,
   error
 }) => {
+  const { language } = useLanguage();
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     onDrop(files);
@@ -74,19 +76,25 @@ export const ImageUploadZone: React.FC<ImageUploadZoneProps> = ({
               text-lg font-medium
               ${disabled ? 'text-gray-500' : 'text-gray-900'}
             `}>
-              이미지를 여기에 드래그하거나 클릭하여 업로드
+              {language === 'en' 
+                ? 'Drag images here or click to upload' 
+                : '이미지를 여기에 드래그하거나 클릭하여 업로드'}
             </h3>
             
             <p className={`
               text-sm
               ${disabled ? 'text-gray-400' : 'text-gray-500'}
             `}>
-              JPG, PNG 파일만 지원 (최대 {maxImages}개)
+              {language === 'en' 
+                ? `Only JPG, PNG files supported (max ${maxImages} files)` 
+                : `JPG, PNG 파일만 지원 (최대 ${maxImages}개)`}
             </p>
             
             {remainingSlots > 0 && (
               <p className="text-xs text-blue-600">
-                {remainingSlots}개 더 추가 가능
+                {language === 'en' 
+                  ? `${remainingSlots} more can be added` 
+                  : `${remainingSlots}개 더 추가 가능`}
               </p>
             )}
           </div>
@@ -98,7 +106,7 @@ export const ImageUploadZone: React.FC<ImageUploadZoneProps> = ({
               : 'bg-blue-600 text-white hover:bg-blue-700 cursor-pointer'
             }
           `}>
-            파일 선택
+            {language === 'en' ? 'Select Files' : '파일 선택'}
             <input
               type="file"
               className="hidden"

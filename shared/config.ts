@@ -26,13 +26,6 @@ export const config = {
     clarifai: {
       apiKey: process.env.CLARIFAI_API_KEY || '',
     },
-    replicate: {
-      apiToken: process.env.REPLICATE_API_TOKEN || '',
-    },
-    stripe: {
-      secretKey: process.env.STRIPE_SECRET_KEY || '',
-      webhookSecret: process.env.STRIPE_WEBHOOK_SECRET || '',
-    },
     smithsonian: {
       apiKey: process.env.SMITHSONIAN_API_KEY || 'DEMO_KEY',
     },
@@ -56,7 +49,6 @@ export const config = {
   features: {
     enableMockData: process.env.ENABLE_MOCK_DATA === 'true',
     enableAIAnalysis: process.env.DISABLE_AI === 'true' ? false : true,
-    enablePayments: !!process.env.STRIPE_SECRET_KEY,
     enableSocialIntegration: process.env.ENABLE_SOCIAL === 'true',
   },
 
@@ -98,9 +90,6 @@ export function validateConfig(): { valid: boolean; warnings: string[] } {
     warnings.push('Google Vision API not configured');
   }
 
-  if (!config.services.replicate.apiToken) {
-    warnings.push('Replicate API not configured');
-  }
 
   if (config.security.jwtSecret === 'default-jwt-secret' && config.server.isProduction) {
     warnings.push('Using default JWT secret in production!');

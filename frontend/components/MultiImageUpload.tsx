@@ -78,13 +78,19 @@ export default function MultiImageUpload({ userId, onAnalysisComplete }: MultiIm
 
     // 4장 이상은 아직 지원하지 않음
     if (images.length > 3) {
-      setError('🚧 현재 4장 이상의 다중 이미지 분석은 개발 중입니다. 곧 지원 예정이니 조금만 기다려 주세요! 현재는 최대 3장까지만 분석 가능합니다.');
+      const message = language === 'en' 
+        ? '🚧 Multi-image analysis for 4+ images is currently in development. Please wait a bit! Currently, analysis is available for up to 3 images only.'
+        : '🚧 현재 4장 이상의 다중 이미지 분석은 개발 중입니다. 곧 지원 예정이니 조금만 기다려 주세요! 현재는 최대 3장까지만 분석 가능합니다.';
+      setError(message);
       return;
     }
 
     // 게스트 모드 제한 확인
     if (!userId && images.length > 3) {
-      setError('게스트는 최대 3장까지만 분석할 수 있습니다. 로그인 후 더 많은 이미지를 분석하세요.');
+      const message = language === 'en'
+        ? 'Guests can analyze up to 3 images only. Please log in to analyze more images.'
+        : '게스트는 최대 3장까지만 분석할 수 있습니다. 로그인 후 더 많은 이미지를 분석하세요.';
+      setError(message);
       return;
     }
     
@@ -108,6 +114,9 @@ export default function MultiImageUpload({ userId, onAnalysisComplete }: MultiIm
       if (userId) {
         formData.append('userId', userId);
       }
+      
+      // 언어 정보 추가
+      formData.append('language', language);
       
       images.forEach((image, index) => {
         formData.append(`image${index}`, image.file);
@@ -147,7 +156,8 @@ export default function MultiImageUpload({ userId, onAnalysisComplete }: MultiIm
           setShowPaymentModal(true);
           return;
         }
-        throw new Error(result.error || '분석에 실패했습니다.');
+        const errorMsg = result.error || (language === 'en' ? 'Analysis failed.' : '분석에 실패했습니다.');
+        throw new Error(errorMsg);
       }
 
       setAnalysisResults(result);
@@ -160,7 +170,8 @@ export default function MultiImageUpload({ userId, onAnalysisComplete }: MultiIm
       }
       setAnalysisProgress({ current: 0, total: 0 });
       setCurrentAnalyzingImage(null);
-      setError(err instanceof Error ? err.message : '분석 중 오류가 발생했습니다.');
+      const errorMsg = err instanceof Error ? err.message : (language === 'en' ? 'An error occurred during analysis.' : '분석 중 오류가 발생했습니다.');
+      setError(errorMsg);
     } finally {
       setIsAnalyzing(false);
     }
@@ -175,7 +186,9 @@ export default function MultiImageUpload({ userId, onAnalysisComplete }: MultiIm
   return (
     <div className="max-w-4xl mx-auto p-6">
       <div className="bg-white rounded-lg shadow-lg p-8">
-        <h2 className="text-2xl font-bold mb-6">다중 이미지 분석</h2>
+        <h2 className="text-2xl font-bold mb-6">
+          {language === 'en' ? 'Multi-Image Analysis' : '다중 이미지 분석'}
+        </h2>
         
         {/* 게스트 모드 안내 */}
         {!userId && (
@@ -183,10 +196,12 @@ export default function MultiImageUpload({ userId, onAnalysisComplete }: MultiIm
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-green-800">
-                  <strong>🎉 게스트 모드:</strong> 로그인 없이도 최대 3장까지 무료로 분석할 수 있습니다!
+                  <strong>🎉 {language === 'en' ? 'Guest Mode:' : '게스트 모드:'}</strong> {language === 'en' ? 'You can analyze up to 3 images for free without logging in!' : '로그인 없이도 최대 3장까지 무료로 분석할 수 있습니다!'}
                 </p>
                 <p className="text-xs text-green-600 mt-1">
-                  💡 4장 이상 분석하려면 로그인 후 결제가 필요합니다. 로그인하면 분석 결과도 저장됩니다.
+                  💡 {language === 'en' 
+                    ? 'To analyze 4+ images, you need to log in and pay. Login also saves your analysis results.' 
+                    : '4장 이상 분석하려면 로그인 후 결제가 필요합니다. 로그인하면 분석 결과도 저장됩니다.'}
                 </p>
               </div>
             </div>
@@ -195,25 +210,27 @@ export default function MultiImageUpload({ userId, onAnalysisComplete }: MultiIm
         
         {/* 가격 정보 */}
         <div className="mb-6 p-4 bg-blue-50 rounded-lg">
-          <h3 className="font-semibold mb-2">가격 안내</h3>
+          <h3 className="font-semibold mb-2">
+            {language === 'en' ? 'Pricing Guide' : '가격 안내'}
+          </h3>
           <div className="grid grid-cols-3 gap-4 text-sm">
             <div className={`p-2 rounded ${currentTier === 'free' ? 'bg-blue-100 font-semibold' : ''}`}>
-              <div>무료</div>
-              <div className="text-gray-600">최대 3장</div>
-              {!userId && <div className="text-xs text-green-600 mt-1">게스트 가능</div>}
-              <div className="text-xs text-green-600 mt-1">✅ 지원됨</div>
+              <div>{language === 'en' ? 'Free' : '무료'}</div>
+              <div className="text-gray-600">{language === 'en' ? 'Up to 3 images' : '최대 3장'}</div>
+              {!userId && <div className="text-xs text-green-600 mt-1">{language === 'en' ? 'Guest Available' : '게스트 가능'}</div>}
+              <div className="text-xs text-green-600 mt-1">✅ {language === 'en' ? 'Supported' : '지원됨'}</div>
             </div>
             <div className={`p-2 rounded opacity-60 ${currentTier === 'standard' ? 'bg-gray-100 font-semibold' : ''}`}>
               <div className="text-gray-500">$5</div>
-              <div className="text-gray-500">4-10장</div>
-              <div className="text-xs text-orange-600 mt-1">🚧 준비 중</div>
-              <div className="text-xs text-gray-500 mt-1">곧 지원 예정</div>
+              <div className="text-gray-500">{language === 'en' ? '4-10 images' : '4-10장'}</div>
+              <div className="text-xs text-orange-600 mt-1">🚧 {language === 'en' ? 'In Development' : '준비 중'}</div>
+              <div className="text-xs text-gray-500 mt-1">{language === 'en' ? 'Coming Soon' : '곧 지원 예정'}</div>
             </div>
             <div className={`p-2 rounded opacity-60 ${currentTier === 'premium' ? 'bg-gray-100 font-semibold' : ''}`}>
               <div className="text-gray-500">$10</div>
-              <div className="text-gray-500">11장 이상</div>
-              <div className="text-xs text-orange-600 mt-1">🚧 준비 중</div>
-              <div className="text-xs text-gray-500 mt-1">곧 지원 예정</div>
+              <div className="text-gray-500">{language === 'en' ? '11+ images' : '11장 이상'}</div>
+              <div className="text-xs text-orange-600 mt-1">🚧 {language === 'en' ? 'In Development' : '준비 중'}</div>
+              <div className="text-xs text-gray-500 mt-1">{language === 'en' ? 'Coming Soon' : '곧 지원 예정'}</div>
             </div>
           </div>
           

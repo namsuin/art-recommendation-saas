@@ -72,14 +72,36 @@ export class AIAnalysisService {
   async analyzeImageAndRecommend(
     imageBuffer: Buffer, 
     userId?: string,
-    tasteGroupId?: string,
-    limit: number = 10
+    languageOrTasteGroupId?: string,
+    limitOrLanguage?: number | string,
+    actualLimit?: number
   ): Promise<{
     analysis: ImageAnalysis;
     recommendations: Recommendation[];
     processingTime: number;
   }> {
     const startTime = Date.now();
+    
+    // Handle parameter compatibility
+    let language: string = 'kr';
+    let tasteGroupId: string | undefined;
+    let limit: number = 10;
+    
+    // Determine parameters based on types
+    if (typeof languageOrTasteGroupId === 'string' && languageOrTasteGroupId.length === 2) {
+      // It's a language code
+      language = languageOrTasteGroupId;
+      if (typeof limitOrLanguage === 'number') {
+        limit = limitOrLanguage;
+      } else if (typeof limitOrLanguage === 'string') {
+        tasteGroupId = limitOrLanguage;
+        limit = actualLimit || 10;
+      }
+    } else {
+      // It's a tasteGroupId (old API)
+      tasteGroupId = languageOrTasteGroupId;
+      limit = typeof limitOrLanguage === 'number' ? limitOrLanguage : 10;
+    }
 
     try {
       // 1. Analyze the uploaded image with Google Vision
@@ -87,7 +109,7 @@ export class AIAnalysisService {
       aiLogger.debug('🔧 AI Ensemble status', { status: this.aiEnsemble ? 'initialized' : 'not initialized' });
       
       // Use AI Ensemble directly for image analysis
-      const analysis = await this.aiEnsemble.analyzeImage(imageBuffer);
+      const analysis = await this.aiEnsemble.analyzeImage(imageBuffer, language);
       
       aiLogger.info(`📊 Analysis complete. Found ${analysis.keywords.length} keywords`);
       aiLogger.info(`🎯 Style: ${analysis.style}, Confidence: ${analysis.confidence}`);
@@ -97,10 +119,10 @@ export class AIAnalysisService {
       
       if (analysis.embeddings.length > 0) {
         aiLogger.info('🔍 Searching for similar artworks...');
-        recommendations = await this.findSimilarArtworks(analysis, limit);
+        recommendations = await this.findSimilarArtworks(analysis, limit, language);
       } else {
         aiLogger.info('🔍 Using keyword-based search fallback...');
-        recommendations = await this.findSimilarByKeywords(analysis.keywords, limit);
+        recommendations = await this.findSimilarByKeywords(analysis.keywords, limit, language);
       }
 
       // 3. Store user upload if userId provided
@@ -140,11 +162,12 @@ export class AIAnalysisService {
 
   private async findSimilarArtworks(
     analysis: ImageAnalysis, 
-    limit: number
+    limit: number,
+    language: string = 'kr'
   ): Promise<Recommendation[]> {
     if (!supabase) {
       aiLogger.warn('Supabase not configured, using keyword fallback');
-      return this.findSimilarByKeywords(analysis.keywords, limit);
+      return this.findSimilarByKeywords(analysis.keywords, limit, language);
     }
 
     try {
@@ -157,12 +180,12 @@ export class AIAnalysisService {
 
       if (error) {
         aiLogger.error('Vector search error:', error);
-        return this.findSimilarByKeywords(analysis.keywords, limit);
+        return this.findSimilarByKeywords(analysis.keywords, limit, language);
       }
 
       if (!data || data.length === 0) {
         aiLogger.info('No vector matches found, falling back to keyword search');
-        return this.findSimilarByKeywords(analysis.keywords, limit);
+        return this.findSimilarByKeywords(analysis.keywords, limit, language);
       }
 
       // Get artwork details for the similar items
@@ -183,7 +206,7 @@ export class AIAnalysisService {
         const similarityData = data.find((item: VectorSimilarityItem) => item.id === artwork.id);
         const similarity = similarityData?.similarity || 0;
         
-        const reasons = this.generateReasons(analysis, artwork);
+        const reasons = this.generateReasons(analysis, artwork, language);
 
         return {
           artwork: {
@@ -205,19 +228,21 @@ export class AIAnalysisService {
 
     } catch (error) {
       aiLogger.error('Similarity search failed:', error);
-      return this.findSimilarByKeywords(analysis.keywords, limit);
+      return this.findSimilarByKeywords(analysis.keywords, limit, language);
     }
   }
 
   private async findSimilarByKeywords(
     keywords: string[], 
-    limit: number
+    limit: number,
+    language: string = 'kr'
   ): Promise<Recommendation[]> {
     if (keywords.length === 0) {
       return this.getFallbackRecommendations(limit);
     }
 
     aiLogger.info(`🔍 Searching for artworks with keywords: ${keywords.join(', ')}`);
+    console.log(`🎯 [findSimilarByKeywords] Input keywords: [${keywords.join(', ')}], limit: ${limit}, language: ${language}`);
 
     try {
       // 1. FIRST: Check registered artworks from admin (highest priority)
@@ -228,10 +253,10 @@ export class AIAnalysisService {
         
         registeredRecommendations = registeredMatches.map(artwork => {
           const reasons = [
-            `🌟 Curated artwork from our collection`,
-            `Matches: ${keywords.slice(0, 3).join(', ')}`,
-            artwork.style ? `Style: ${artwork.style}` : '',
-            `Artist: ${artwork.artist}`
+            language === 'en' ? `🌟 Curated artwork from our collection` : `🌟 우리 컬렉션의 선별된 작품`,
+            language === 'en' ? `Matches: ${keywords.slice(0, 3).join(', ')}` : `일치 항목: ${keywords.slice(0, 3).join(', ')}`,
+            artwork.style ? (language === 'en' ? `Style: ${artwork.style}` : `스타일: ${artwork.style}`) : '',
+            language === 'en' ? `Artist: ${artwork.artist}` : `작가: ${artwork.artist}`
           ].filter(Boolean);
 
           return {
@@ -265,21 +290,143 @@ export class AIAnalysisService {
         aiLogger.error('Failed to get registered artworks:', error);
       }
 
-      // If we have enough registered artworks, return mostly those
-      if (registeredRecommendations.length >= limit * 0.6) {
-        const remainingLimit = limit - registeredRecommendations.length;
+      // 2. Check Artsper dashboard artworks (second priority)
+      let artsperRecommendations: Recommendation[] = [];
+      try {
+        // Import artsper artworks from the JSON file
+        const artsperDataPath = Bun.resolveSync('./artsper-dashboard-full.json', process.cwd());
+        const artsperFile = Bun.file(artsperDataPath);
         
-        // Get a few external recommendations for diversity
-        const [metResults] = await Promise.all([
-          this.metMuseumAPI.searchByKeywords(keywords, remainingLimit)
-        ]);
-        
-        const metRecommendations = this.convertMetMuseumToRecommendations(metResults, keywords);
-        
-        return [...registeredRecommendations, ...metRecommendations].slice(0, limit);
+        if (await artsperFile.exists()) {
+          const artsperData = await artsperFile.json();
+          const artsperArtworks = artsperData.artworks || [];
+          
+          // Filter and score Artsper artworks based on keywords
+          const matchingArtsper = artsperArtworks
+            .filter((artwork: any) => {
+              if (!artwork.title || !artwork.artist) return false;
+              
+              const titleLower = artwork.title.toLowerCase();
+              const artistLower = artwork.artist.toLowerCase();
+              
+              // Check if any keyword matches title or artist
+              return keywords.some(keyword => {
+                const keywordLower = keyword.toLowerCase();
+                return titleLower.includes(keywordLower) || 
+                       artistLower.includes(keywordLower) ||
+                       (artwork.category && artwork.category.toLowerCase().includes(keywordLower)) ||
+                       (artwork.style && artwork.style.toLowerCase().includes(keywordLower));
+              });
+            })
+            .slice(0, Math.ceil(limit * 0.5)) // Take up to 50% of limit from Artsper
+            .map((artwork: any) => {
+              // Calculate match score
+              let matchScore = 0;
+              const titleLower = artwork.title.toLowerCase();
+              const artistLower = artwork.artist.toLowerCase();
+              
+              keywords.forEach(keyword => {
+                const keywordLower = keyword.toLowerCase();
+                if (titleLower.includes(keywordLower)) matchScore += 2;
+                if (artistLower.includes(keywordLower)) matchScore += 1.5;
+                if (artwork.category && artwork.category.toLowerCase().includes(keywordLower)) matchScore += 1;
+                if (artwork.style && artwork.style.toLowerCase().includes(keywordLower)) matchScore += 1;
+              });
+              
+              const reasons = [
+                language === 'en' ? `🎨 Premium artwork from Artsper Gallery` : `🎨 아트스퍼 갤러리의 프리미엄 작품`,
+                language === 'en' ? `Artist: ${artwork.artist}` : `작가: ${artwork.artist}`,
+                artwork.category ? (language === 'en' ? `Category: ${artwork.category}` : `카테고리: ${artwork.category}`) : '',
+                language === 'en' ? `Matches: ${keywords.slice(0, 2).join(', ')}` : `일치 항목: ${keywords.slice(0, 2).join(', ')}`
+              ].filter(Boolean);
+
+              // Convert Artsper small image to medium size for better display
+              const improvedImageUrl = artwork.image_url?.replace('_1_s.jpg', '_1_m.jpg') || artwork.image_url;
+              
+              return {
+                artwork: {
+                  id: artwork.id,
+                  title: artwork.title,
+                  artist: artwork.artist,
+                  image_url: improvedImageUrl,
+                  thumbnail_url: artwork.image_url, // Keep original small as fallback
+                  description: artwork.description || '',
+                  keywords: keywords,
+                  available: true,
+                  created_at: artwork.registration_date || new Date().toISOString(),
+                  updated_at: artwork.registration_date || new Date().toISOString(),
+                  metadata: {
+                    source: 'Artsper Gallery',
+                    category: artwork.category,
+                    price: artwork.price,
+                    dimensions: artwork.dimensions,
+                    match_score: matchScore
+                  }
+                },
+                similarity: Math.min(0.9, 0.4 + (matchScore / keywords.length) * 0.15),
+                reasons,
+                confidence: 0.85
+              };
+            })
+            .sort((a: any, b: any) => b.similarity - a.similarity);
+          
+          artsperRecommendations = matchingArtsper;
+          aiLogger.info(`🎨 Found ${artsperRecommendations.length} matching Artsper artworks`);
+        }
+      } catch (error) {
+        aiLogger.error('Failed to get Artsper artworks:', error);
       }
 
-      // 2. Search all art sources in parallel for diverse results
+      // Combine registered and Artsper recommendations with deduplication
+      const seenArtworks = new Map<string, Recommendation>();
+      const artistCounts = new Map<string, number>();
+      const maxPerArtist = 2; // Maximum 2 artworks per artist
+      
+      // Add registered recommendations first (higher priority)
+      for (const rec of registeredRecommendations) {
+        const key = `${rec.artwork.title.toLowerCase()}_${rec.artwork.artist.toLowerCase()}`;
+        const artistKey = rec.artwork.artist.toLowerCase();
+        const currentCount = artistCounts.get(artistKey) || 0;
+        
+        if (!seenArtworks.has(key) && currentCount < maxPerArtist) {
+          seenArtworks.set(key, rec);
+          artistCounts.set(artistKey, currentCount + 1);
+        }
+      }
+      
+      // Add Artsper recommendations if not already seen and within artist limit
+      for (const rec of artsperRecommendations) {
+        const key = `${rec.artwork.title.toLowerCase()}_${rec.artwork.artist.toLowerCase()}`;
+        const artistKey = rec.artwork.artist.toLowerCase();
+        const currentCount = artistCounts.get(artistKey) || 0;
+        
+        if (!seenArtworks.has(key) && currentCount < maxPerArtist) {
+          seenArtworks.set(key, rec);
+          artistCounts.set(artistKey, currentCount + 1);
+        }
+      }
+      
+      const localRecommendations = Array.from(seenArtworks.values());
+      
+      // If we have enough local artworks, return mostly those with some external for diversity
+      if (localRecommendations.length >= limit * 0.7) {
+        const remainingLimit = limit - localRecommendations.length;
+        
+        // Get a few external recommendations for diversity if needed
+        if (remainingLimit > 0) {
+          const [metResults] = await Promise.all([
+            this.metMuseumAPI.searchByKeywords(keywords, remainingLimit)
+          ]);
+          
+          const metRecommendations = this.convertMetMuseumToRecommendations(metResults, keywords);
+          
+          return [...localRecommendations, ...metRecommendations].slice(0, limit);
+        }
+        
+        return localRecommendations.slice(0, limit);
+      }
+
+      // 3. Search all art sources in parallel for diverse results
       aiLogger.info('🔍 Searching multiple art sources in parallel...');
       const [metResults, wikiArtResults, harvardResults, europeanaResults] = await Promise.all([
         this.metMuseumAPI.searchByKeywords(keywords, Math.ceil(limit * 0.3)), // 30% Met Museum
@@ -298,9 +445,9 @@ export class AIAnalysisService {
         const similarity = this.calculateKeywordSimilarity(keywords, artwork.keywords);
         
         const reasons = [
-          `Real artwork from The Metropolitan Museum of Art`,
-          `Matches your image's ${keywords.slice(0, 2).join(', ')} themes`,
-          `${artwork.metadata.period || artwork.metadata.culture || 'Historical piece'}`
+          language === 'en' ? `Real artwork from The Metropolitan Museum of Art` : `메트로폴리탄 미술관의 실제 작품`,
+          language === 'en' ? `Matches your image's ${keywords.slice(0, 2).join(', ')} themes` : `이미지의 ${keywords.slice(0, 2).join(', ')} 테마와 일치`,
+          language === 'en' ? `${artwork.metadata.period || artwork.metadata.culture || 'Historical piece'}` : `${artwork.metadata.period || artwork.metadata.culture || '역사적 작품'}`
         ].filter(Boolean);
 
         return {
@@ -322,9 +469,9 @@ export class AIAnalysisService {
         const similarity = this.calculateKeywordSimilarity(keywords, [artwork.style, artwork.genre, artwork.media].filter(Boolean));
         
         const reasons = [
-          `${artwork.style || 'Classic'} style artwork`,
-          `By ${artwork.artistName}`,
-          `From WikiArt collection (${artwork.year || 'Historical'})`
+          language === 'en' ? `${artwork.style || 'Classic'} style artwork` : `${artwork.style || '클래식'} 스타일 작품`,
+          language === 'en' ? `By ${artwork.artistName}` : `작가: ${artwork.artistName}`,
+          language === 'en' ? `From WikiArt collection (${artwork.year || 'Historical'})` : `위키아트 컬렉션 (${artwork.year || '역사적'})`
         ].filter(Boolean);
 
         return {
@@ -360,9 +507,9 @@ export class AIAnalysisService {
         
         const artist = artwork.people?.find(p => p.role === 'Artist')?.name || 'Unknown Artist';
         const reasons = [
-          `Academic collection from Harvard Art Museums`,
-          `${artwork.classification || 'Fine art'} piece`,
-          `${artwork.culture || artwork.period || 'Historical'} heritage`
+          language === 'en' ? `Academic collection from Harvard Art Museums` : `하버드 미술관의 학술 컬렉션`,
+          language === 'en' ? `${artwork.classification || 'Fine art'} piece` : `${artwork.classification || '미술'} 작품`,
+          language === 'en' ? `${artwork.culture || artwork.period || 'Historical'} heritage` : `${artwork.culture || artwork.period || '역사적'} 문화유산`
         ].filter(Boolean);
 
         return {
@@ -403,9 +550,9 @@ export class AIAnalysisService {
         const description = item.dcDescription?.[0] || '';
         
         const reasons = [
-          `European cultural heritage from ${item.country?.[0] || 'Europe'}`,
-          `Provided by ${item.dataProvider?.[0] || 'European institution'}`,
-          `${item.dcType?.[0] || 'Cultural artifact'}`
+          language === 'en' ? `European cultural heritage from ${item.country?.[0] || 'Europe'}` : `${item.country?.[0] || '유럽'}의 유럽 문화유산`,
+          language === 'en' ? `Provided by ${item.dataProvider?.[0] || 'European institution'}` : `${item.dataProvider?.[0] || '유럽 기관'}에서 제공`,
+          language === 'en' ? `${item.dcType?.[0] || 'Cultural artifact'}` : `${item.dcType?.[0] || '문화 유물'}`
         ].filter(Boolean);
 
         return {
@@ -438,18 +585,32 @@ export class AIAnalysisService {
 
       // 6. Local database search removed - only use real museum APIs
       // 데모 데이터 제거로 인해 Local Database 검색 비활성화
-      let localRecommendations: Recommendation[] = [];
       aiLogger.info(`📚 Local database search disabled (demo data removed)`);
 
-      // 7. Combine all recommendations from all sources
-      const allRecommendations = [
-        ...registeredRecommendations, // Registered artworks first (highest priority)
+      // 7. Keep Artsper recommendations with external URLs
+      // Using external URLs to avoid storage capacity issues
+
+      // 8. Combine all recommendations from all sources with deduplication
+      const allSourceRecommendations = [
         ...metRecommendations,
         ...wikiArtRecommendations,
         ...harvardRecommendations,
-        ...europeanaRecommendations,
-        ...localRecommendations
+        ...europeanaRecommendations
       ];
+      
+      // Add external recommendations to existing seenArtworks map with artist limit
+      for (const rec of allSourceRecommendations) {
+        const key = `${rec.artwork.title.toLowerCase()}_${rec.artwork.artist.toLowerCase()}`;
+        const artistKey = rec.artwork.artist.toLowerCase();
+        const currentCount = artistCounts.get(artistKey) || 0;
+        
+        if (!seenArtworks.has(key) && currentCount < maxPerArtist) {
+          seenArtworks.set(key, rec);
+          artistCounts.set(artistKey, currentCount + 1);
+        }
+      }
+      
+      const allRecommendations = Array.from(seenArtworks.values());
       
       // Filter out any Bluethumb artworks and invalid images
       const filteredRecommendations = await this.filterValidRecommendations(allRecommendations);
@@ -464,12 +625,13 @@ export class AIAnalysisService {
         .slice(0, limit);
 
       aiLogger.info(`✅ Returning ${sortedRecommendations.length} total recommendations from ${[
+        registeredRecommendations.length > 0 ? 'Registered Artworks' : '',
+        artsperRecommendations.length > 0 ? 'Artsper Gallery' : '',
         metResults.length > 0 ? 'Met Museum' : '',
         wikiArtResults.length > 0 ? 'WikiArt' : '',
         harvardResults.length > 0 ? 'Harvard' : '',
-        europeanaResults.length > 0 ? 'Europeana' : '',
-        localRecommendations.length > 0 ? 'Local DB' : ''
-      ].filter(Boolean).join(', ')} (Bluethumb filtered)`);
+        europeanaResults.length > 0 ? 'Europeana' : ''
+      ].filter(Boolean).join(', ')} (Duplicates filtered, max ${maxPerArtist} per artist)`);
       return sortedRecommendations;
 
     } catch (error) {
@@ -555,36 +717,49 @@ export class AIAnalysisService {
     });
   }
 
-  private generateReasons(analysis: ImageAnalysis, artwork: MetMuseumArtwork | Record<string, unknown>): string[] {
+  private generateReasons(analysis: ImageAnalysis, artwork: MetMuseumArtwork | Record<string, unknown>, language: string = 'kr'): string[] {
     const reasons = [];
     
     if (analysis.style && analysis.style !== 'unknown') {
-      reasons.push(`Similar ${analysis.style} style`);
+      const styleMsg = language === 'en' 
+        ? `Similar ${analysis.style} style`
+        : `${analysis.style} 스타일 유사성`;
+      reasons.push(styleMsg);
     }
     
     if (analysis.mood && analysis.mood !== 'neutral') {
-      reasons.push(`Matches ${analysis.mood} mood`);
+      const moodMsg = language === 'en'
+        ? `Matches ${analysis.mood} mood`
+        : `${analysis.mood} 분위기 일치`;
+      reasons.push(moodMsg);
     }
     
     // Check for common keywords
-    const commonKeywords = artwork.keywords.filter((kw: string) => 
+    const commonKeywords = artwork.keywords?.filter((kw: string) => 
       analysis.keywords.some(userKw => userKw.includes(kw) || kw.includes(userKw))
-    );
+    ) || [];
     
     if (commonKeywords.length > 0) {
-      reasons.push(`Shared themes: ${commonKeywords.slice(0, 2).join(', ')}`);
+      const themesMsg = language === 'en'
+        ? `Shared themes: ${commonKeywords.slice(0, 2).join(', ')}`
+        : `공통 주제: ${commonKeywords.slice(0, 2).join(', ')}`;
+      reasons.push(themesMsg);
     }
     
     // Check for color similarity
-    const commonColors = artwork.keywords.filter((kw: string) => 
+    const commonColors = artwork.keywords?.filter((kw: string) => 
       analysis.colors.some(color => kw.includes(color))
-    );
+    ) || [];
     
     if (commonColors.length > 0) {
-      reasons.push(`Similar color palette`);
+      const colorMsg = language === 'en'
+        ? 'Similar color palette'
+        : '유사한 색상 팔레트';
+      reasons.push(colorMsg);
     }
 
-    return reasons.length > 0 ? reasons : ['Recommended for you'];
+    const defaultMsg = language === 'en' ? 'Recommended for you' : '추천 작품';
+    return reasons.length > 0 ? reasons : [defaultMsg];
   }
 
   private async storeUserUpload(
@@ -720,18 +895,37 @@ export class AIAnalysisService {
       return true;
     }
     
+    // For Artsper images, trust the URL format without validation (CORS issues)
+    if (imageUrl.includes('media.artsper.com') || imageUrl.includes('artsper.com')) {
+      return true;
+    }
+    
+    // Basic URL format validation
+    if (!imageUrl.startsWith('http')) {
+      return false;
+    }
+    
     try {
       const response = await fetch(imageUrl, { 
         method: 'HEAD',
-        timeout: 5000 // 5 second timeout
+        timeout: 3000 // Reduced timeout to 3 seconds
       });
       
-      const isValid = response.ok && response.headers.get('content-type')?.startsWith('image/');
+      const isValid = response.ok;
       if (!isValid) {
         aiLogger.info(`⚠️ Invalid image URL: ${imageUrl} (Status: ${response.status})`);
       }
       return isValid;
     } catch (error) {
+      // For museum APIs, trust URLs that look legitimate (many block HEAD requests)
+      if (imageUrl.includes('metmuseum.org') || 
+          imageUrl.includes('nga.gov') || 
+          imageUrl.includes('harvard.edu') ||
+          imageUrl.includes('wikimedia.org') ||
+          imageUrl.includes('wikiart.org')) {
+        return true;
+      }
+      
       aiLogger.info(`⚠️ Image URL validation failed: ${imageUrl} (${error})`);
       return false;
     }
@@ -781,15 +975,16 @@ export class AIAnalysisService {
   /**
    * Get recommendations based on search keywords (for multi-image analysis)
    */
-  async getRecommendations(searchQuery: string, limit: number = 10): Promise<{ recommendations: Recommendation[] }> {
+  async getRecommendations(searchQuery: string, limit: number = 10, language: string = 'kr'): Promise<{ recommendations: Recommendation[] }> {
     aiLogger.info(`🔍 Getting recommendations for query: "${searchQuery}"`);
     
     try {
       // Convert search query into keywords array
       const keywords = searchQuery.toLowerCase().split(' ').filter(word => word.length > 2);
+      console.log(`🔍 [getRecommendations] Query: "${searchQuery}" → Keywords: [${keywords.join(', ')}]`);
       
       // Use existing keyword-based search
-      const recommendations = await this.findSimilarByKeywords(keywords, limit);
+      const recommendations = await this.findSimilarByKeywords(keywords, limit, language);
       
       aiLogger.info(`✅ Found ${recommendations.length} recommendations for multi-image analysis`);
       

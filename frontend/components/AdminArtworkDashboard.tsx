@@ -58,14 +58,15 @@ export default function AdminArtworkDashboard({ userId }: { userId: string }) {
 
   useEffect(() => {
     fetchData();
-  }, [currentPage, itemsPerPage]);
+  }, [currentPage, itemsPerPage, searchTerm]);
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      // API를 통해 작품 데이터 가져오기
+      // API를 통해 작품 데이터 가져오기 (검색어 포함)
       const adminToken = localStorage.getItem('admin-token');
-      const response = await fetch(`/api/admin/artworks?page=${currentPage}&limit=${itemsPerPage}`, {
+      const searchParam = searchTerm ? `&search=${encodeURIComponent(searchTerm)}` : '';
+      const response = await fetch(`/api/admin/artworks?page=${currentPage}&limit=${itemsPerPage}${searchParam}`, {
         headers: {
           'Authorization': `Bearer ${adminToken}`
         }
@@ -203,10 +204,7 @@ export default function AdminArtworkDashboard({ userId }: { userId: string }) {
 
   const filteredArtworks = artworks.filter(artwork => {
     const matchesStatus = filterStatus === 'all' || artwork.status === filterStatus;
-    const matchesSearch = searchTerm === '' || 
-      artwork.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      artwork.artist_name.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesStatus && matchesSearch;
+    return matchesStatus;
   });
 
   if (loading) {
@@ -232,7 +230,10 @@ export default function AdminArtworkDashboard({ userId }: { userId: string }) {
                 type="text"
                 placeholder="작품명 또는 작가명 검색..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setCurrentPage(1); // 검색어 변경 시 첫 페이지로 이동
+                }}
                 className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>

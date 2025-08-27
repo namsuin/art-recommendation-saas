@@ -29,6 +29,10 @@ export class StyleTransferService implements AIServiceInterface {
     this.apiKey = process.env.RUNPOD_API_KEY;
   }
 
+  isServiceEnabled(): boolean {
+    return !!this.apiKey && !!process.env.RUNPOD_API_KEY;
+  }
+
   isConfigured(): boolean {
     return !!this.apiKey;
   }

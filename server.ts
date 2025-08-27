@@ -75,19 +75,6 @@ const server = Bun.serve({
       // API ENDPOINTS
       // ======================
       
-      // Debug endpoint for environment variables (temporary)
-      if (url.pathname === "/api/debug/env" && method === "GET") {
-        return new Response(JSON.stringify({
-          hasGoogleVision: !!process.env.GOOGLE_VISION_SERVICE_ACCOUNT_KEY,
-          hasGoogleCloudKeyFile: !!process.env.GOOGLE_CLOUD_KEY_FILE,
-          hasClarifai: !!process.env.CLARIFAI_API_KEY,
-          hasSupabase: !!process.env.SUPABASE_URL,
-          nodeEnv: process.env.NODE_ENV,
-          port: process.env.PORT
-        }), {
-          headers: { "Content-Type": "application/json", ...corsHeaders }
-        });
-      }
       
       // Health check
       if (url.pathname === "/api/health") {
@@ -148,6 +135,75 @@ const server = Bun.serve({
           }), {
             status: 500,
             headers: { "Content-Type": "application/json", ...corsHeaders }
+          });
+        }
+      }
+
+      // Image proxy endpoint to handle CORS issues with external images
+      if (url.pathname === "/api/image-proxy" && (method === "GET" || method === "HEAD")) {
+        const imageUrl = url.searchParams.get('url');
+        
+        if (!imageUrl) {
+          return new Response('Missing image URL parameter', { 
+            status: 400,
+            headers: corsHeaders 
+          });
+        }
+
+        try {
+          // Validate URL to prevent SSRF attacks
+          const targetUrl = new URL(imageUrl);
+          const allowedHosts = [
+            'media.artsper.com',
+            'images.metmuseum.org', 
+            'collectionapi.metmuseum.org',
+            'upload.wikimedia.org',
+            'www.wikiart.org',
+            'nrs.harvard.edu',
+            'iiif.harvardartmuseums.org',
+            'api.europeana.eu',
+            'europeana1914-1918.s3.amazonaws.com'
+          ];
+          
+          if (!allowedHosts.some(host => targetUrl.hostname.includes(host))) {
+            return new Response('Unauthorized image source', { 
+              status: 403,
+              headers: corsHeaders 
+            });
+          }
+
+          serverLogger.info(`🖼️ Proxying image: ${imageUrl}`);
+          
+          const imageResponse = await fetch(imageUrl, {
+            headers: {
+              'User-Agent': 'Art-Recommendation-SaaS/1.0',
+              'Referer': 'https://art-recommendation-saas.onrender.com/',
+            }
+          });
+
+          if (!imageResponse.ok) {
+            return new Response('Failed to fetch image', { 
+              status: imageResponse.status,
+              headers: corsHeaders 
+            });
+          }
+
+          const contentType = imageResponse.headers.get('Content-Type') || 'image/jpeg';
+          const imageBuffer = await imageResponse.arrayBuffer();
+
+          return new Response(imageBuffer, {
+            headers: {
+              ...corsHeaders,
+              'Content-Type': contentType,
+              'Cache-Control': 'public, max-age=3600', // Cache for 1 hour
+            }
+          });
+
+        } catch (error) {
+          serverLogger.error('Image proxy error:', error);
+          return new Response('Failed to proxy image', { 
+            status: 500,
+            headers: corsHeaders 
           });
         }
       }
@@ -1326,11 +1382,12 @@ const server = Bun.serve({
       // Get all artworks with pagination
       if (url.pathname === "/api/admin/artworks" && method === "GET") {
         try {
-          // Parse query parameters for pagination
+          // Parse query parameters for pagination and search
           const searchParams = new URL(url).searchParams;
           const page = parseInt(searchParams.get('page') || '1');
           const limit = parseInt(searchParams.get('limit') || '20');
           const offset = (page - 1) * limit;
+          const searchTerm = searchParams.get('search')?.toLowerCase() || '';
           
           const { artworkRegistry } = await import('./backend/services/artwork-registry');
           const registeredArtworks = artworkRegistry.getAllArtworks();
@@ -1353,6 +1410,15 @@ const server = Bun.serve({
             available: artwork.available
           }));
           
+          // Load Artsper artworks from JSON file
+          let artsperArtworks = [];
+          try {
+            const artsperData = await Bun.file('./artsper-dashboard-full.json').json();
+            artsperArtworks = artsperData.artworks || [];
+          } catch (error) {
+            serverLogger.warn('Could not load artsper-dashboard-full.json');
+          }
+          
           // Transform Artsper artworks to match the expected format
           const artsperArtworksFormatted = artsperArtworks.map(artwork => ({
             id: artwork.id,
@@ -1366,19 +1432,29 @@ const server = Bun.serve({
             year: '',
             price: artwork.price ? artwork.price.toString() : '',
             tags: '',
-            status: artwork.status,
-            created_at: artwork.registration_date,
+            status: artwork.status || 'approved',
+            created_at: artwork.registration_date || new Date().toISOString(),
             available: true
           }));
           
           // Combine both sources
-          const allArtworks = [...registryArtworks, ...artsperArtworksFormatted];
+          let allArtworks = [...registryArtworks, ...artsperArtworksFormatted];
           
-          // Apply pagination
+          // Apply search filter if searchTerm is provided
+          if (searchTerm) {
+            allArtworks = allArtworks.filter(artwork => 
+              artwork.title.toLowerCase().includes(searchTerm) ||
+              artwork.artist_name.toLowerCase().includes(searchTerm) ||
+              artwork.description.toLowerCase().includes(searchTerm) ||
+              artwork.category.toLowerCase().includes(searchTerm)
+            );
+          }
+          
+          // Apply pagination to filtered results
           const paginatedArtworks = allArtworks.slice(offset, offset + limit);
           const totalPages = Math.ceil(allArtworks.length / limit);
           
-          serverLogger.info(`Returning page ${page}/${totalPages} with ${paginatedArtworks.length} artworks (total: ${allArtworks.length})`);
+          serverLogger.info(`Search: "${searchTerm}" | Page ${page}/${totalPages} with ${paginatedArtworks.length} artworks (total filtered: ${allArtworks.length})`);
           
           return new Response(JSON.stringify({
             success: true,
@@ -1687,6 +1763,7 @@ const server = Bun.serve({
         try {
           const formData = await req.formData();
           const userId = formData.get("userId") as string | null;
+          const language = formData.get("language") as string || "kr";
           
           // Collect all image files
           const imageFiles: File[] = [];
@@ -1697,9 +1774,12 @@ const server = Bun.serve({
           }
         
         if (imageFiles.length === 0) {
+          const errorMessage = language === "en" 
+            ? "At least one image file is required."
+            : "최소 1개 이상의 이미지 파일이 필요합니다.";
           return new Response(JSON.stringify({
             success: false,
-            error: "최소 1개 이상의 이미지 파일이 필요합니다."
+            error: errorMessage
           }), {
             status: 400,
             headers: { "Content-Type": "application/json", ...corsHeaders }
@@ -1711,9 +1791,12 @@ const server = Bun.serve({
           const paymentToken = formData.get("paymentToken") as string | null;
           
           if (!paymentToken) {
+            const errorMessage = language === "en"
+              ? "Payment is required for analyzing 4 or more images."
+              : "4장 이상의 이미지 분석을 위해서는 결제가 필요합니다.";
             return new Response(JSON.stringify({
               success: false,
-              error: "4장 이상의 이미지 분석을 위해서는 결제가 필요합니다.",
+              error: errorMessage,
               payment_required: true,
               image_count: imageFiles.length
             }), {
@@ -1738,8 +1821,8 @@ const server = Bun.serve({
             const result = await getAIService().analyzeImageAndRecommend(
               imageBuffer,
               userId || undefined,
-              undefined,
-              0 // Don't get recommendations for individual images
+              language, // Pass language parameter
+              5 // Get some recommendations to improve analysis depth
             );
             
             individualAnalyses.push({
@@ -1762,68 +1845,91 @@ const server = Bun.serve({
         }
         
         // Combine analyses to find common patterns
+        serverLogger.info(`🔍 [DEBUG] Individual analyses completed. Total: ${individualAnalyses.length}`);
+        individualAnalyses.forEach((item, index) => {
+          serverLogger.info(`🔍 [DEBUG] Analysis ${index}: ${item.image_name}, analysis present: ${!!item.analysis}`);
+        });
+        
         const validAnalyses = individualAnalyses.filter(item => item.analysis);
+        serverLogger.info(`🔍 Multi-image processing: ${individualAnalyses.length} total analyses, ${validAnalyses.length} valid analyses`);
         
         if (validAnalyses.length === 0) {
+          const errorMessage = language === "en"
+            ? "Image analysis failed."
+            : "이미지 분석에 실패했습니다.";
           return new Response(JSON.stringify({
             success: false,
-            error: "이미지 분석에 실패했습니다."
+            error: errorMessage
           }), {
             status: 500,
             headers: { "Content-Type": "application/json", ...corsHeaders }
           });
         }
         
-        // Extract common keywords, colors, styles, moods
+        // Enhanced pattern analysis with weighted scoring
         const allKeywords = validAnalyses.flatMap(item => item.analysis.keywords || []);
         const allColors = validAnalyses.flatMap(item => item.analysis.colors || []);
         const allStyles = validAnalyses.map(item => item.analysis.style).filter(Boolean);
         const allMoods = validAnalyses.map(item => item.analysis.mood).filter(Boolean);
         
-        // Count frequency
-        const keywordCounts = new Map();
-        allKeywords.forEach(keyword => {
-          keywordCounts.set(keyword, (keywordCounts.get(keyword) || 0) + 1);
+        // Advanced keyword analysis with importance weighting
+        const keywordAnalysis = new Map();
+        validAnalyses.forEach((item, imageIndex) => {
+          const keywords = item.analysis.keywords || [];
+          const confidence = item.analysis.confidence || 0.5;
+          
+          keywords.forEach((keyword, position) => {
+            if (!keywordAnalysis.has(keyword)) {
+              keywordAnalysis.set(keyword, {
+                count: 0,
+                totalWeight: 0,
+                confidence: 0,
+                positions: [],
+                images: new Set()
+              });
+            }
+            
+            const data = keywordAnalysis.get(keyword);
+            // Higher weight for keywords that appear earlier (more important)
+            const positionWeight = Math.max(0.1, 1 - (position / keywords.length));
+            const weightedScore = confidence * positionWeight;
+            
+            data.count++;
+            data.totalWeight += weightedScore;
+            data.confidence += confidence;
+            data.positions.push(position);
+            data.images.add(imageIndex);
+          });
         });
         
-        const colorCounts = new Map();
-        allColors.forEach(color => {
-          colorCounts.set(color, (colorCounts.get(color) || 0) + 1);
+        // Advanced color analysis with frequency and consistency
+        const colorAnalysis = new Map();
+        validAnalyses.forEach((item, imageIndex) => {
+          const colors = item.analysis.colors || [];
+          const confidence = item.analysis.confidence || 0.5;
+          
+          colors.forEach((color, position) => {
+            if (!colorAnalysis.has(color)) {
+              colorAnalysis.set(color, {
+                count: 0,
+                totalWeight: 0,
+                confidence: 0,
+                images: new Set()
+              });
+            }
+            
+            const data = colorAnalysis.get(color);
+            const positionWeight = Math.max(0.1, 1 - (position / colors.length));
+            const weightedScore = confidence * positionWeight;
+            
+            data.count++;
+            data.totalWeight += weightedScore;
+            data.confidence += confidence;
+            data.images.add(imageIndex);
+          });
         });
         
-        // Get truly common elements (appearing in all images)
-        const totalImages = validAnalyses.length;
-        const trulyCommonKeywords = Array.from(keywordCounts.entries())
-          .filter(([keyword, count]) => count === totalImages)
-          .map(([keyword]) => keyword);
-        
-        const trulyCommonColors = Array.from(colorCounts.entries())
-          .filter(([color, count]) => count === totalImages)
-          .map(([color]) => color);
-        
-        // Get most frequent elements (high frequency but not necessarily in all images)
-        const frequentKeywords = Array.from(keywordCounts.entries())
-          .sort((a, b) => b[1] - a[1])
-          .slice(0, 15)
-          .map(([keyword]) => keyword);
-        
-        const frequentColors = Array.from(colorCounts.entries())
-          .sort((a, b) => b[1] - a[1])
-          .slice(0, 8)
-          .map(([color]) => color);
-        
-        // Combine truly common + frequent (prioritize truly common)
-        const commonKeywords = [
-          ...trulyCommonKeywords,
-          ...frequentKeywords.filter(k => !trulyCommonKeywords.includes(k))
-        ].slice(0, 20);
-        
-        const commonColors = [
-          ...trulyCommonColors,
-          ...frequentColors.filter(c => !trulyCommonColors.includes(c))
-        ].slice(0, 10);
-        
-        // Get dominant style and mood
+        // Calculate style consistency
         const styleCounts = new Map();
         allStyles.forEach(style => {
           styleCounts.set(style, (styleCounts.get(style) || 0) + 1);
@@ -1831,6 +1937,55 @@ const server = Bun.serve({
         const dominantStyle = Array.from(styleCounts.entries())
           .sort((a, b) => b[1] - a[1])[0]?.[0] || 'mixed';
         
+        const styleConsistency = styleCounts.size > 0 
+          ? (styleCounts.get(dominantStyle) || 0) / validAnalyses.length 
+          : 0;
+        
+        // Get sophisticated common patterns
+        const totalImages = validAnalyses.length;
+        const threshold = Math.max(2, Math.ceil(totalImages * 0.6)); // At least 60% of images
+        
+        // Truly common keywords (appearing in majority of images)
+        const trulyCommonKeywords = Array.from(keywordAnalysis.entries())
+          .filter(([keyword, data]) => data.images.size >= totalImages)
+          .sort((a, b) => b[1].totalWeight - a[1].totalWeight)
+          .slice(0, 10)
+          .map(([keyword]) => keyword);
+        
+        // High-value frequent keywords (high weighted score)
+        const frequentKeywords = Array.from(keywordAnalysis.entries())
+          .filter(([keyword, data]) => data.images.size >= threshold && !trulyCommonKeywords.includes(keyword))
+          .sort((a, b) => b[1].totalWeight - a[1].totalWeight)
+          .slice(0, 15)
+          .map(([keyword]) => keyword);
+        
+        // Truly common colors
+        const trulyCommonColors = Array.from(colorAnalysis.entries())
+          .filter(([color, data]) => data.images.size >= totalImages)
+          .sort((a, b) => b[1].totalWeight - a[1].totalWeight)
+          .slice(0, 5)
+          .map(([color]) => color);
+        
+        // High-value frequent colors
+        const frequentColors = Array.from(colorAnalysis.entries())
+          .filter(([color, data]) => data.images.size >= threshold && !trulyCommonColors.includes(color))
+          .sort((a, b) => b[1].totalWeight - a[1].totalWeight)
+          .slice(0, 8)
+          .map(([color]) => color);
+        
+        // Create final weighted keyword list
+        const commonKeywords = [
+          ...trulyCommonKeywords,
+          ...frequentKeywords
+        ].slice(0, 20);
+        
+        // Create final weighted color list
+        const commonColors = [
+          ...trulyCommonColors,
+          ...frequentColors
+        ].slice(0, 10);
+        
+        // Get dominant mood (style already calculated above)
         const moodCounts = new Map();
         allMoods.forEach(mood => {
           moodCounts.set(mood, (moodCounts.get(mood) || 0) + 1);
@@ -1842,16 +1997,174 @@ const server = Bun.serve({
         const avgConfidence = validAnalyses.reduce((sum, item) => 
           sum + (item.analysis.confidence || 0), 0) / validAnalyses.length;
         
-        // Get recommendations based on common patterns
-        let recommendations = [];
-        if (commonKeywords.length >= 3) {
-          try {
-            const searchQuery = commonKeywords.slice(0, 5).join(' ');
-            const recommendResult = await getAIService().getRecommendations(searchQuery);
-            recommendations = recommendResult.recommendations || [];
-          } catch (error) {
-            serverLogger.error('Failed to get recommendations:', error);
+        // Enhanced similarity analysis between images
+        const similarities = [];
+        if (validAnalyses.length > 1) {
+          for (let i = 0; i < validAnalyses.length; i++) {
+            for (let j = i + 1; j < validAnalyses.length; j++) {
+              const analysis1 = validAnalyses[i].analysis;
+              const analysis2 = validAnalyses[j].analysis;
+              
+              // Calculate keyword similarity
+              const keywords1 = new Set(analysis1.keywords || []);
+              const keywords2 = new Set(analysis2.keywords || []);
+              const keywordIntersection = new Set([...keywords1].filter(k => keywords2.has(k)));
+              const keywordUnion = new Set([...keywords1, ...keywords2]);
+              const keywordSimilarity = keywordUnion.size > 0 ? keywordIntersection.size / keywordUnion.size : 0;
+              
+              // Calculate color similarity
+              const colors1 = new Set(analysis1.colors || []);
+              const colors2 = new Set(analysis2.colors || []);
+              const colorIntersection = new Set([...colors1].filter(c => colors2.has(c)));
+              const colorUnion = new Set([...colors1, ...colors2]);
+              const colorSimilarity = colorUnion.size > 0 ? colorIntersection.size / colorUnion.size : 0;
+              
+              // Calculate style similarity
+              const styleSimilarity = analysis1.style === analysis2.style ? 1 : 0;
+              
+              // Overall similarity with weights
+              const overallSimilarity = (
+                keywordSimilarity * 0.5 + 
+                colorSimilarity * 0.3 + 
+                styleSimilarity * 0.2
+              );
+              
+              similarities.push({
+                image1: validAnalyses[i].image_name,
+                image2: validAnalyses[j].image_name,
+                similarity: overallSimilarity,
+                title: `${validAnalyses[i].image_name} ↔ ${validAnalyses[j].image_name}`
+              });
+            }
           }
+        }
+        
+        // Sort similarities and get top matches
+        const topMatches = similarities
+          .sort((a, b) => b.similarity - a.similarity)
+          .slice(0, 5)
+          .map(match => ({
+            title: match.title,
+            similarity: `${Math.round(match.similarity * 100)}%`
+          }));
+        
+        const averageSimilarity = similarities.length > 0 
+          ? similarities.reduce((sum, match) => sum + match.similarity, 0) / similarities.length 
+          : 0;
+        
+        // Enhanced recommendations based on weighted patterns
+        let recommendations = [];
+        serverLogger.info(`📊 Multi-image analysis: ${validAnalyses.length} images, ${commonKeywords.length} common keywords: [${commonKeywords.slice(0, 5).join(', ')}]`);
+        
+        if (commonKeywords.length >= 1) { // Even lower threshold - single keyword
+          try {
+            // 🎯 FIRST PRIORITY: Check registered artworks from admin dashboard
+            let registeredMatches = [];
+            try {
+              const { artworkRegistry } = await import('./backend/services/artwork-registry');
+              const combinedKeywords = [...commonKeywords, ...commonColors];
+              serverLogger.info(`🎨 [Multiple Upload] Checking registered artworks with keywords: [${combinedKeywords.join(', ')}]`);
+              
+              const matches = await artworkRegistry.getMatchingArtworks(combinedKeywords, 5);
+              
+              registeredMatches = matches.map(artwork => ({
+                artwork: {
+                  id: artwork.id,
+                  title: artwork.title,
+                  artist: artwork.artist,
+                  image_url: artwork.image_url,
+                  thumbnail_url: artwork.image_url,
+                  description: artwork.description || '',
+                  keywords: artwork.keywords,
+                  colors: artwork.colors,
+                  style: artwork.style,
+                  year: artwork.year,
+                  medium: artwork.medium,
+                  platform: 'Admin Dashboard',
+                  source: 'Registered Artwork',
+                  search_source: 'internal'
+                },
+                similarity: artwork.match_score || 0,
+                reasoning: [
+                  language === 'en' ? `🌟 Curated artwork from admin dashboard` : `🌟 관리자 대시보드의 선별된 작품`,
+                  language === 'en' ? `Matches: ${commonKeywords.slice(0, 3).join(', ')}` : `일치 항목: ${commonKeywords.slice(0, 3).join(', ')}`,
+                  artwork.style ? (language === 'en' ? `Style: ${artwork.style}` : `스타일: ${artwork.style}`) : '',
+                  language === 'en' ? `Artist: ${artwork.artist}` : `작가: ${artwork.artist}`
+                ].filter(Boolean)
+              }));
+              
+              serverLogger.info(`✨ Found ${registeredMatches.length} registered artworks from admin dashboard`);
+            } catch (error) {
+              serverLogger.error('Failed to get registered artworks:', error);
+            }
+
+            // Add registered artworks first (highest priority)
+            recommendations = [...registeredMatches];
+            
+            // Create a more sophisticated search query for external sources
+            const primaryKeywords = commonKeywords.slice(0, 3);
+            const styleKeywords = dominantStyle !== 'mixed' ? [dominantStyle] : [];
+            const colorKeywords = commonColors.slice(0, 2);
+            
+            // Combine keywords with priorities
+            const enhancedQuery = [
+              ...primaryKeywords,
+              ...styleKeywords,
+              ...colorKeywords.map(color => `${color} color`)
+            ].join(' ');
+            
+            serverLogger.info(`🔍 Enhanced multi-image search query: "${enhancedQuery}"`);
+            const recommendResult = await getAIService().getRecommendations(enhancedQuery, 15, language);
+            const externalRecommendations = recommendResult.recommendations || [];
+            
+            // Add external recommendations after registered ones
+            recommendations = [...recommendations, ...externalRecommendations];
+            
+            // Additional filtering based on style consistency
+            if (styleConsistency > 0.7 && dominantStyle !== 'mixed') {
+              recommendations = recommendations.filter(rec => {
+                const artwork = rec.artwork;
+                const artworkStyle = artwork.metadata?.style || artwork.style || '';
+                return !artworkStyle || artworkStyle.toLowerCase().includes(dominantStyle.toLowerCase());
+              });
+            }
+            
+            serverLogger.info(`📊 Generated ${recommendations.length} enhanced recommendations for multi-image analysis`);
+          } catch (error) {
+            serverLogger.error('Failed to get enhanced recommendations:', error);
+            // Fallback to simple query
+            try {
+              const fallbackQuery = commonKeywords.slice(0, 3).join(' ');
+              const fallbackResult = await getAIService().getRecommendations(fallbackQuery, 10, language);
+              recommendations = fallbackResult.recommendations || [];
+            } catch (fallbackError) {
+              serverLogger.error('Fallback recommendation failed:', fallbackError);
+            }
+          }
+        } else {
+          // If no common keywords, use individual image keywords
+          serverLogger.info('❓ No common keywords found, using individual image analysis');
+          const allIndividualKeywords = validAnalyses.flatMap(item => item.analysis.keywords || []).slice(0, 10);
+          
+          if (allIndividualKeywords.length > 0) {
+            try {
+              const individualQuery = allIndividualKeywords.slice(0, 5).join(' ');
+              serverLogger.info(`🔍 Individual keywords search query: "${individualQuery}"`);
+              const individualResult = await getAIService().getRecommendations(individualQuery, 12, language);
+              recommendations = individualResult.recommendations || [];
+              serverLogger.info(`📊 Generated ${recommendations.length} recommendations from individual keywords`);
+            } catch (error) {
+              serverLogger.error('Individual keywords recommendation failed:', error);
+            }
+          }
+        }
+        
+        // Final recommendations summary
+        serverLogger.info(`🎯 Final multi-image recommendations: ${recommendations.length} total`);
+        if (recommendations.length > 0) {
+          serverLogger.info(`📋 Sample recommendations: ${recommendations.slice(0, 3).map(r => r.artwork?.title || 'Unknown').join(', ')}`);
+        } else {
+          serverLogger.warn('⚠️ No recommendations generated for multi-image analysis');
         }
         
         // Store common analysis for later use
@@ -1884,7 +2197,10 @@ const server = Bun.serve({
             dominant_style: dominantStyle,
             dominant_mood: dominantMood,
             average_confidence: avgConfidence,
-            pattern_description: `이미지들의 공통 테마는 ${dominantMood} 분위기의 ${dominantStyle} 스타일이며, 주로 ${commonColors.slice(0, 3).join(', ')} 색상이 사용되었습니다.`
+            style_consistency: styleConsistency,
+            pattern_description: language === "en"
+              ? `The common theme of the images is ${dominantStyle} style with ${dominantMood} atmosphere, primarily using ${commonColors.slice(0, 3).join(', ')} colors. Images show ${Math.round(styleConsistency * 100)}% style consistency.`
+              : `이미지들의 공통 테마는 ${dominantMood} 분위기의 ${dominantStyle} 스타일이며, 주로 ${commonColors.slice(0, 3).join(', ')} 색상이 사용되었습니다. 이미지들의 스타일 일관성은 ${Math.round(styleConsistency * 100)}%입니다.`
           },
           // Frontend expects commonKeywords at root level
           commonKeywords: {
@@ -1904,7 +2220,23 @@ const server = Bun.serve({
             totalColorScore: Math.round(avgConfidence * 100),
             totalImages: totalImages
           },
-          recommendations: recommendations
+          // Enhanced similarity analysis
+          similarityAnalysis: {
+            averageSimilarity: averageSimilarity,
+            topMatches: topMatches,
+            totalComparisons: similarities.length,
+            consistencyScore: Math.round((averageSimilarity + styleConsistency) / 2 * 100)
+          },
+          recommendations: {
+            internal: recommendations.filter(r => r.artwork?.search_source === 'internal'), // Admin dashboard artworks
+            external: recommendations.filter(r => r.artwork?.search_source !== 'internal') // External API artworks
+          },
+          // Debug info
+          debug: process.env.NODE_ENV === 'development' ? {
+            totalRecommendations: recommendations.length,
+            hasRecommendations: recommendations.length > 0,
+            sampleTitles: recommendations.slice(0, 3).map(r => r.artwork?.title || 'Unknown')
+          } : undefined
           }), {
             headers: { "Content-Type": "application/json", ...corsHeaders }
           });
@@ -1912,7 +2244,7 @@ const server = Bun.serve({
           serverLogger.error('Multi-image analysis error:', error);
           return new Response(JSON.stringify({
             success: false,
-            error: error instanceof Error ? error.message : '다중 이미지 분석 중 오류가 발생했습니다.'
+            error: error instanceof Error ? error.message : (language === "en" ? 'An error occurred during multi-image analysis.' : '다중 이미지 분석 중 오류가 발생했습니다.')
           }), {
             status: 500,
             headers: { "Content-Type": "application/json", ...corsHeaders }

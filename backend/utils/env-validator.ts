@@ -9,11 +9,7 @@ interface EnvConfig {
   // Optional AI Services
   GOOGLE_CLOUD_PROJECT_ID?: string;
   GOOGLE_CLOUD_KEY_FILE?: string;
-  REPLICATE_API_TOKEN?: string;
   CLARIFAI_API_KEY?: string;
-  
-  // Optional
-  STRIPE_SECRET_KEY?: string;
   PORT?: string;
   NODE_ENV?: string;
 }
@@ -43,9 +39,6 @@ export function validateEnvironment(): {
     warnings.push('Google Vision AI not configured (GOOGLE_CLOUD_PROJECT_ID or GOOGLE_CLOUD_KEY_FILE missing)');
   }
   
-  if (!process.env.REPLICATE_API_TOKEN) {
-    warnings.push('Replicate API not configured (REPLICATE_API_TOKEN missing)');
-  }
   
   if (!process.env.CLARIFAI_API_KEY) {
     warnings.push('Clarifai API not configured (CLARIFAI_API_KEY missing)');
@@ -55,7 +48,6 @@ export function validateEnvironment(): {
   const hasAnyAI = !!(
     process.env.GOOGLE_CLOUD_PROJECT_ID || 
     process.env.GOOGLE_CLOUD_KEY_FILE ||
-    process.env.REPLICATE_API_TOKEN ||
     process.env.CLARIFAI_API_KEY
   );
   
@@ -94,8 +86,6 @@ export function printEnvironmentStatus(): void {
   logger.info('\n📋 Configured Services:');
   logger.info(`  - Supabase: ${process.env.SUPABASE_URL ? '✅' : '❌'}`);
   logger.info(`  - Google Vision: ${(process.env.GOOGLE_CLOUD_PROJECT_ID || process.env.GOOGLE_CLOUD_KEY_FILE) ? '✅' : '⚠️'}`);
-  logger.info(`  - Replicate: ${process.env.REPLICATE_API_TOKEN ? '✅' : '⚠️'}`);
   logger.info(`  - Clarifai: ${process.env.CLARIFAI_API_KEY ? '✅' : '⚠️'}`);
-  logger.info(`  - Stripe: ${process.env.STRIPE_SECRET_KEY ? '✅' : '⚠️'}`);
   logger.info('');
 }

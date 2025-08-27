@@ -8,6 +8,64 @@ export type UserRole = 'user' | 'artist' | 'admin';
 export type AnalysisStatus = 'pending' | 'processing' | 'completed' | 'failed';
 export type ArtworkStatus = 'pending' | 'approved' | 'rejected';
 
+// AI Service types
+export interface AIServiceConfig {
+  enabled: boolean;
+  timeout?: number;
+  maxRetries?: number;
+}
+
+export interface AIServiceError extends Error {
+  service: string;
+  details?: any;
+}
+
+export interface ImageAnalysis {
+  keywords: string[];
+  colors: string[];
+  style: string;
+  mood: string;
+  confidence: number;
+}
+
+// AI Service Result types
+export interface GoogleVisionResult {
+  detected: boolean;
+  labels?: string[];
+  colors?: string[];
+  confidence?: number;
+  error?: string;
+}
+
+export interface ClarifaiResult {
+  detected: boolean;
+  concepts?: string[];
+  confidence?: number;
+  error?: string;
+}
+
+export interface LocalClipResult {
+  detected: boolean;
+  features?: string[];
+  confidence?: number;
+  error?: string;
+}
+
+
+export interface AIAnalysisResult {
+  keywords: string[];
+  colors: string[];
+  style: string;
+  mood: string;
+  confidence: number;
+  processingTime?: number;
+  aiServices?: {
+    google_vision?: GoogleVisionResult;
+    clarifai?: ClarifaiResult;
+    local_clip?: LocalClipResult;
+  };
+}
+
 // User related types
 export interface User {
   id: string;

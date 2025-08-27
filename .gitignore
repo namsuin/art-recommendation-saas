@@ -102,3 +102,22 @@ temp/
 
 # Deployment scripts
 fix-logger-imports.sh
+
+# Large data files and temporary processing files
+artist-corrections-*.json
+continue-corrections-*.json
+final-*.json
+remaining-artworks.json
+*.gz
+archive/
+backups/
+temp-files/
+monitor-*.sh
+*-monitor.log
+*-progress.log
+
+# Script files
+check-*.js
+continue-*.js  
+find-*.js
+fix-*.js

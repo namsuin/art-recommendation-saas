@@ -411,33 +411,50 @@ body {
   background: rgba(236, 72, 153, 0.05);
 }
 
-/* Responsive Grid - Pinterest Style */
+/* Responsive Grid - Pinterest Style (Fixed 2 columns) */
 .grid-pinterest {
-  columns: 1;
-  column-gap: 1.5rem;
+  display: grid !important;
+  grid-template-columns: repeat(2, 1fr) !important;
+  gap: 2rem;
+  max-width: 100%;
+  width: 100%;
 }
 
-@media (min-width: 640px) {
-  .grid-pinterest {
-    columns: 2;
-  }
-}
-
+/* Large screens: maintain 2 columns with optimal spacing */
 @media (min-width: 1024px) {
   .grid-pinterest {
-    columns: 3;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2.5rem;
+    max-width: 800px;
+    margin: 0 auto;
   }
 }
 
-@media (min-width: 1280px) {
+/* Tablet landscape: 2 columns with reduced gap */
+@media (max-width: 1023px) and (min-width: 768px) {
   .grid-pinterest {
-    columns: 4;
+    gap: 2rem;
   }
 }
+
+/* Tablet portrait: 2 columns with smaller gap */
+@media (max-width: 767px) and (min-width: 640px) {
+  .grid-pinterest {
+    gap: 1.75rem;
+  }
+}
+
+/* Mobile: keep 2 columns but smaller */
+@media (max-width: 639px) {
+  .grid-pinterest {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 1rem;
+  }
+}
+
 
 .grid-item {
-  break-inside: avoid;
-  margin-bottom: 1.5rem;
+  /* Grid 레이아웃에서는 break-inside가 필요없음 */
 }
 
 /* Navigation - Modern & Clean */

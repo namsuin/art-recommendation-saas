@@ -45,7 +45,7 @@ class ArtworkRegistryService {
         year: 1889,
         medium: 'Oil on canvas',
         style: 'Post-Impressionism',
-        keywords: ['night', 'stars', 'sky', 'village', 'swirl', 'blue', 'yellow', 'landscape', 'moon', 'cypress'],
+        keywords: ['night', 'stars', 'sky', 'village', 'swirl', 'blue', 'yellow', 'landscape', 'moon', 'cypress', 'green'],
         colors: ['blue', 'yellow', 'black', 'white'],
         analysis: {
           labels: ['Night', 'Sky', 'Painting', 'Art'],
@@ -318,15 +318,24 @@ class ArtworkRegistryService {
    * Get artworks that match given keywords
    */
   async getMatchingArtworks(userKeywords: string[], limit: number = 5): Promise<RegisteredArtwork[]> {
+    logger.info(`🔍 [Artwork Registry] Searching for keywords: ${userKeywords.join(', ')}`);
+    logger.info(`📊 [Artwork Registry] Total artworks available: ${this.artworks.size}`);
+    
     const matches: Array<{ artwork: RegisteredArtwork; score: number }> = [];
 
     // Normalize user keywords
     const normalizedUserKeywords = userKeywords.map(k => k.toLowerCase());
+    logger.info(`🔤 [Artwork Registry] Normalized keywords: ${normalizedUserKeywords.join(', ')}`);
 
     // Calculate match scores for each approved and available artwork
     this.artworks.forEach(artwork => {
-      if (artwork.status !== 'approved' || !artwork.available) return;
+      if (artwork.status !== 'approved' || !artwork.available) {
+        logger.info(`⏭️ [Artwork Registry] Skipping ${artwork.title} - Status: ${artwork.status}, Available: ${artwork.available}`);
+        return;
+      }
 
+      logger.info(`🎨 [Artwork Registry] Checking "${artwork.title}" with keywords: [${artwork.keywords.join(', ')}] and colors: [${artwork.colors.join(', ')}]`);
+      
       let score = 0;
       
       // Check keyword matches
@@ -360,13 +369,25 @@ class ArtworkRegistryService {
       });
 
       if (score > 0) {
+        logger.info(`✅ [Artwork Registry] "${artwork.title}" scored ${score} points - MATCH!`);
         matches.push({ artwork: { ...artwork, match_score: score }, score });
+      } else {
+        logger.info(`❌ [Artwork Registry] "${artwork.title}" scored ${score} points - no match`);
       }
     });
 
+    logger.info(`📊 [Artwork Registry] Total matches found: ${matches.length}`);
+    
     // Sort by score and return top matches
     matches.sort((a, b) => b.score - a.score);
-    return matches.slice(0, limit).map(m => m.artwork);
+    const results = matches.slice(0, limit).map(m => m.artwork);
+    
+    logger.info(`🎯 [Artwork Registry] Returning ${results.length} top matches:`);
+    results.forEach(artwork => {
+      logger.info(`   - "${artwork.title}" by ${artwork.artist} (score: ${artwork.match_score})`);
+    });
+    
+    return results;
   }
 
   /**

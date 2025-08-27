@@ -14,7 +14,7 @@ import { LanguageToggle } from './components/LanguageToggle';
 import './styles/global.css';
 
 const AppContent: React.FC = () => {
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
   // AuthProvider에서 제공하는 useAuth 훅 사용
   const { 
     user, 
@@ -178,6 +178,23 @@ const AppContent: React.FC = () => {
       } catch (error) {
         console.error('Failed to record click:', error);
       }
+    }
+  };
+
+  // 기본 유사성 이유 생성 함수
+  const getDefaultSimilarityReason = (artwork: any, rec: any) => {
+    const similarity = rec.similarity || rec.similarity_score?.total || 0;
+    const category = artwork.category || artwork.medium || '작품';
+    const artist = artwork.artist || '작가';
+    
+    if (similarity > 0.8) {
+      return `${category} 스타일과 색감이 매우 유사한 작품입니다.`;
+    } else if (similarity > 0.6) {
+      return `구도와 분위기가 비슷한 ${artist}의 작품입니다.`;
+    } else if (similarity > 0.4) {
+      return `색상 조합과 주제가 연관성이 있는 작품입니다.`;
+    } else {
+      return `같은 카테고리의 추천 작품입니다.`;
     }
   };
 
@@ -422,7 +439,7 @@ const AppContent: React.FC = () => {
                     {t('freeLimit')} / {t('premiumRequired')}
                   </span>
                 </div>
-                <div className="grid-pinterest">
+                <div className="grid-pinterest" style={{display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '2rem', width: '100%'}}>
                   {recommendations
                     .filter((rec) => {
                       // 텀블벅, 그라폴리오, 대학 졸업작품, 학생 작품 필터링
@@ -477,7 +494,12 @@ const AppContent: React.FC = () => {
                     .slice(0, 10)
                     .map((rec, index) => {
                   const artwork = rec.artwork || rec;
-                  const imageUrl = artwork.image_url || artwork.thumbnail_url || artwork.primaryImage || 'https://via.placeholder.com/300x300/f0f0f0/666666?text=No+Image';
+                  let imageUrl = artwork.image_url || artwork.thumbnail_url || artwork.primaryImage || 'https://via.placeholder.com/300x300/f0f0f0/666666?text=No+Image';
+                  
+                  // Use proxy for external images to avoid CORS issues
+                  if (imageUrl && (imageUrl.includes('artsper.com') || imageUrl.includes('metmuseum.org') || imageUrl.includes('wikiart.org'))) {
+                    imageUrl = `/api/image-proxy?url=${encodeURIComponent(imageUrl)}`;
+                  }
                   const sourceUrl = artwork.source_url || artwork.objectURL || artwork.eventSite || '#';
                   const title = artwork.title || '제목 없음';
                   const artist = artwork.artist || artwork.artistDisplayName || '작가 미상';
@@ -489,30 +511,42 @@ const AppContent: React.FC = () => {
                       className="card-modern grid-item group cursor-pointer hover-lift"
                       onClick={() => handleRecommendationClick(rec)}
                     >
-                      <div className="relative overflow-hidden rounded-xl mb-4">
-                        <div className="aspect-w-16 aspect-h-12">
+                      <div className="relative overflow-hidden rounded-xl mb-4" style={{ paddingBottom: '100%' }}>
                           <img
                             src={imageUrl}
                             alt={title}
-                            className="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-110"
+                            className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                            referrerPolicy="no-referrer"
+                            crossOrigin="anonymous"
                             onError={(e) => {
                               const target = e.target as HTMLImageElement;
+                              if (process.env.NODE_ENV === 'development') {
+                                console.log('🖼️ Image load failed:', target.src, 'for artwork:', title);
+                              }
                               if (!target.dataset.retried) {
                                 target.dataset.retried = 'true';
-                                // 2차 폴백 시도
-                                target.src = artwork.thumbnail_url || artwork.primaryImageSmall || 'https://via.placeholder.com/300x300/e5e7eb/6b7280?text=Image+Unavailable';
+                                const fallbackUrl = artwork.thumbnail_url || artwork.primaryImageSmall || 'https://via.placeholder.com/300x300/e5e7eb/6b7280?text=Image+Unavailable';
+                                if (process.env.NODE_ENV === 'development') {
+                                  console.log('🔄 Trying fallback:', fallbackUrl);
+                                }
+                                target.src = fallbackUrl;
                               } else {
-                                // 최종 폴백
+                                if (process.env.NODE_ENV === 'development') {
+                                  console.log('❌ Final fallback for:', title);
+                                }
                                 target.src = 'https://via.placeholder.com/300x300/e5e7eb/6b7280?text=Image+Error';
                               }
                             }}
                             onLoad={(e) => {
                               const target = e.target as HTMLImageElement;
+                              if (process.env.NODE_ENV === 'development') {
+                                console.log('✅ Image loaded successfully:', target.src, 'for artwork:', title);
+                              }
                               target.style.opacity = '1';
                             }}
                             style={{ opacity: '0', transition: 'opacity 0.3s ease' }}
                           />
-                        </div>
+                        
                         {/* 로딩 상태 표시 */}
                         <div className="absolute inset-0 skeleton rounded-xl" style={{ zIndex: -1 }}></div>
                         
@@ -554,10 +588,45 @@ const AppContent: React.FC = () => {
                           </span>
                         </div>
                         
-                        {rec.reasons && rec.reasons.length > 0 && (
-                          <p className="text-xs line-clamp-1" style={{color: 'var(--text-secondary)', opacity: 0.7}}>
-                            {rec.reasons[0]}
-                          </p>
+                        {/* 유사성 설명 */}
+                        {rec.reasons && rec.reasons.length > 0 ? (
+                          <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg p-2 mt-2">
+                            <p className="text-xs font-medium text-purple-700 mb-1">{language === 'en' ? 'Similar Features:' : '유사한 특징:'}</p>
+                            <p className="text-xs line-clamp-2" style={{color: 'var(--text-secondary)'}}>
+                              {rec.reasons.join(', ')}
+                            </p>
+                          </div>
+                        ) : rec.similarity_score ? (
+                          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-2 mt-2">
+                            <p className="text-xs font-medium text-blue-700 mb-1">분석 결과:</p>
+                            <div className="text-xs space-y-1">
+                              {rec.similarity_score.color && (
+                                <div className="flex justify-between">
+                                  <span>색상 유사도:</span>
+                                  <span className="font-medium">{Math.round(rec.similarity_score.color * 100)}%</span>
+                                </div>
+                              )}
+                              {rec.similarity_score.composition && (
+                                <div className="flex justify-between">
+                                  <span>구도 유사도:</span>
+                                  <span className="font-medium">{Math.round(rec.similarity_score.composition * 100)}%</span>
+                                </div>
+                              )}
+                              {rec.similarity_score.style && (
+                                <div className="flex justify-between">
+                                  <span>스타일 유사도:</span>
+                                  <span className="font-medium">{Math.round(rec.similarity_score.style * 100)}%</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-2 mt-2">
+                            <p className="text-xs font-medium text-green-700 mb-1">추천 이유:</p>
+                            <p className="text-xs" style={{color: 'var(--text-secondary)'}}>
+                              {getDefaultSimilarityReason(artwork, rec)}
+                            </p>
+                          </div>
                         )}
                         
                         {artwork.price && (
@@ -601,7 +670,7 @@ const AppContent: React.FC = () => {
                       🎓 교육적 목적
                     </span>
                   </div>
-                  <div className="grid-pinterest">
+                  <div className="grid-pinterest" style={{display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '2rem', width: '100%'}}>
                     {recommendations
                       .filter((rec) => {
                         const artwork = rec.artwork || rec;
@@ -627,11 +696,11 @@ const AppContent: React.FC = () => {
                           style={{border: '2px solid var(--sage-green)', borderOpacity: 0.3}}
                           onClick={() => handleRecommendationClick(rec)}
                         >
-                          <div className="relative overflow-hidden rounded mb-3">
+                          <div className="relative overflow-hidden rounded mb-3" style={{ paddingBottom: '100%' }}>
                             <img
                               src={imageUrl}
                               alt={title}
-                              className="w-full h-48 object-cover rounded transition-transform duration-200 group-hover:scale-105"
+                              className="absolute inset-0 w-full h-full object-cover rounded transition-transform duration-200 group-hover:scale-105"
                               onError={(e) => {
                                 const target = e.target as HTMLImageElement;
                                 if (!target.dataset.retried) {
@@ -675,7 +744,7 @@ const AppContent: React.FC = () => {
                             
                             <div className="flex items-center justify-between">
                               <p className="text-xs" style={{color: 'var(--text-secondary)'}}>
-                                유사도: {Math.round((rec.similarity || rec.similarity_score?.total || 0) * 100)}%
+                                {language === 'en' ? 'Similarity:' : '유사도:'} {Math.round((rec.similarity || rec.similarity_score?.total || 0) * 100)}%
                               </p>
                               <span className="tag-pill tag-sage text-xs" title={source}>
                                 {source}

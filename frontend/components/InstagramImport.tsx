@@ -56,7 +56,9 @@ export function InstagramImport({ onImportComplete }: InstagramImportProps) {
 
   const handleSelectArtwork = (artwork: InstagramPost) => {
     // 작품 선택 시 추천 시스템으로 이동하거나 분석
-    console.log('Selected artwork:', artwork);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Selected artwork:', artwork);
+    }
     window.location.href = `/analyze?image=${encodeURIComponent(artwork.image_url)}`;
   };
 

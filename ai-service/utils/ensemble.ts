@@ -1,5 +1,4 @@
 import { GoogleVisionService } from '../integrations/google-vision';
-import { ReplicateService } from '../integrations/replicate';
 import { ClarifaiService } from '../integrations/clarifai';
 import { LocalClipService } from '../integrations/local-clip';
 import { StyleTransferService } from '../integrations/style-transfer';
@@ -9,14 +8,12 @@ import type {
   AIServiceError,
   GoogleVisionResult,
   ClarifaiResult,
-  ReplicateResult,
   LocalClipResult
 } from '../../shared/types';
 import { aiLogger } from '../../shared/logger';
 
 export class AIEnsembleService {
   private googleVision: GoogleVisionService;
-  private replicate: ReplicateService;
   private clarifai: ClarifaiService;
   private localClip: LocalClipService;
   private styleTransfer: StyleTransferService;
@@ -32,12 +29,6 @@ export class AIEnsembleService {
       this.googleVision = new GoogleVisionService(); // Will be disabled internally
     }
 
-    try {
-      this.replicate = new ReplicateService();
-    } catch (error) {
-      console.warn('⚠️ Replicate service failed to initialize:', error);
-      this.replicate = new ReplicateService(); // Will be disabled internally
-    }
 
     try {
       this.clarifai = new ClarifaiService();
@@ -72,11 +63,6 @@ export class AIEnsembleService {
         weight: 0.3, // Balanced weight with Google Vision
         model_id: 'general'
       },
-      replicate: {
-        enabled: true,
-        weight: 0.2,
-        model_version: 'clip-interrogator'
-      },
       local_clip: {
         enabled: false, // Disabled for deployment compatibility
         weight: 0.0,
@@ -93,7 +79,7 @@ export class AIEnsembleService {
     aiLogger.info('🎯 AI Ensemble Service initialized');
   }
 
-  async analyzeImage(imageBuffer: Buffer): Promise<ImageAnalysis> {
+  async analyzeImage(imageBuffer: Buffer, language: string = 'kr'): Promise<ImageAnalysis> {
     const startTime = Date.now();
     this.errors = []; // Reset errors
 
@@ -108,7 +94,7 @@ export class AIEnsembleService {
     if (this.config.google_vision.enabled && this.googleVision.isServiceEnabled()) {
       analysisPromises.push(
         this.runWithErrorHandling('google_vision', () => 
-          this.googleVision.analyzeImage(imageBuffer)
+          this.googleVision.analyzeImage(imageBuffer, language)
         )
       );
     }
@@ -116,18 +102,11 @@ export class AIEnsembleService {
     if (this.config.clarifai.enabled && this.clarifai.isServiceEnabled()) {
       analysisPromises.push(
         this.runWithErrorHandling('clarifai', () => 
-          this.clarifai.analyzeImage(imageBuffer)
+          this.clarifai.analyzeImage(imageBuffer, language)
         )
       );
     }
 
-    if (this.config.replicate.enabled && this.replicate.isServiceEnabled()) {
-      analysisPromises.push(
-        this.runWithErrorHandling('replicate', () => 
-          this.replicate.analyzeWithCLIP(imageBuffer)
-        )
-      );
-    }
 
     if (this.config.local_clip.enabled && this.localClip.isServiceEnabled()) {
       analysisPromises.push(
@@ -147,13 +126,12 @@ export class AIEnsembleService {
 
     // Wait for all analyses to complete
     const results = await Promise.all(analysisPromises);
-    const [googleResult, clarifaiResult, replicateResult, localClipResult, styleTransferResult] = results;
+    const [googleResult, clarifaiResult, localClipResult, styleTransferResult] = results;
 
     // Combine results using weighted ensemble
     const combinedAnalysis = this.combineResults({
       google_vision: googleResult as GoogleVisionResult,
       clarifai: clarifaiResult as ClarifaiResult,
-      replicate: replicateResult as ReplicateResult,
       local_clip: localClipResult as LocalClipResult,
       style_transfer: styleTransferResult as any
     });
@@ -187,7 +165,6 @@ export class AIEnsembleService {
   private combineResults(results: {
     google_vision?: GoogleVisionResult | null;
     clarifai?: ClarifaiResult | null;
-    replicate?: ReplicateResult | null;
     local_clip?: LocalClipResult | null;
     style_transfer?: any | null;
   }): ImageAnalysis {
@@ -214,19 +191,6 @@ export class AIEnsembleService {
       totalConfidence += 0.75; // Clarifai confidence
     }
 
-    // Process Replicate results
-    if (results.replicate) {
-      results.replicate.style_tags.forEach(tag => keywords.add(tag));
-      if (results.replicate.embeddings.length > 0) {
-        combinedEmbeddings = this.combineEmbeddings(
-          combinedEmbeddings, 
-          results.replicate.embeddings,
-          this.config.replicate.weight
-        );
-      }
-      validResults++;
-      totalConfidence += results.replicate.confidence;
-    }
 
     // Process Local CLIP results
     if (results.local_clip) {
@@ -306,7 +270,6 @@ export class AIEnsembleService {
       ai_sources: {
         google_vision: results.google_vision || undefined,
         clarifai: results.clarifai || undefined,
-        replicate_clip: results.replicate || undefined,
         local_clip: results.local_clip || undefined,
         style_transfer: results.style_transfer || undefined
       }
@@ -389,7 +352,6 @@ export class AIEnsembleService {
   async testAllServices(): Promise<{ [key: string]: boolean }> {
     const results = await Promise.all([
       this.googleVision.testService(),
-      this.replicate.testService(),
       this.clarifai.testService(),
       this.localClip.testService(),
       Promise.resolve(this.styleTransfer.isConfigured())
@@ -397,17 +359,15 @@ export class AIEnsembleService {
 
     return {
       google_vision: results[0],
-      replicate: results[1],
-      clarifai: results[2],
-      local_clip: results[3],
-      style_transfer: results[4]
+      clarifai: results[1],
+      local_clip: results[2],
+      style_transfer: results[3]
     };
   }
 
   getServiceStatus() {
     return {
       google_vision: this.googleVision.isServiceEnabled(),
-      replicate: this.replicate.isServiceEnabled(),
       clarifai: this.clarifai.isServiceEnabled(),
       local_clip: this.localClip.isServiceEnabled(),
       style_transfer: this.styleTransfer.isConfigured(),

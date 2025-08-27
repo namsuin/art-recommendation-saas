@@ -333,6 +333,8 @@
             const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'table'
             const [searchTerm, setSearchTerm] = useState('');
             const [filterStatus, setFilterStatus] = useState('all');
+            const [selectedArtworks, setSelectedArtworks] = useState(new Set()); // 선택된 작품 ID들
+            const [isSelectMode, setIsSelectMode] = useState(false); // 선택 모드 여부
 
             // Mock 관리자 ID (실제로는 인증 시스템에서 가져와야 함)
             const adminUserId = 'admin_user_1';
@@ -610,6 +612,77 @@
                     console.error('Artwork delete error:', error);
                     alert('서버 오류가 발생했습니다.');
                 }
+            };
+            
+            // 다중 선택 관련 함수들
+            const toggleSelectMode = () => {
+                setIsSelectMode(!isSelectMode);
+                setSelectedArtworks(new Set()); // 모드 변경 시 선택 초기화
+            };
+            
+            const toggleArtworkSelection = (artworkId) => {
+                const newSelected = new Set(selectedArtworks);
+                if (newSelected.has(artworkId)) {
+                    newSelected.delete(artworkId);
+                } else {
+                    newSelected.add(artworkId);
+                }
+                setSelectedArtworks(newSelected);
+            };
+            
+            const selectAllArtworks = () => {
+                const filtered = artworks.filter(artwork => {
+                    const matchesSearch = searchTerm === '' || 
+                        artwork.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                        artwork.artist_name.toLowerCase().includes(searchTerm.toLowerCase());
+                    const matchesStatus = filterStatus === 'all' || artwork.status === filterStatus;
+                    return matchesSearch && matchesStatus;
+                });
+                setSelectedArtworks(new Set(filtered.map(a => a.id)));
+            };
+            
+            const deselectAllArtworks = () => {
+                setSelectedArtworks(new Set());
+            };
+            
+            const handleBulkDelete = async () => {
+                if (selectedArtworks.size === 0) {
+                    alert('삭제할 작품을 선택해주세요.');
+                    return;
+                }
+                
+                if (!confirm(`선택한 ${selectedArtworks.size}개의 작품을 삭제하시겠습니까?`)) {
+                    return;
+                }
+                
+                const adminToken = localStorage.getItem('admin-token');
+                let successCount = 0;
+                let failCount = 0;
+                
+                for (const artworkId of selectedArtworks) {
+                    try {
+                        const response = await fetch(`/api/admin/artworks/${artworkId}`, {
+                            method: 'DELETE',
+                            headers: {
+                                'Authorization': `Bearer ${adminToken}`
+                            }
+                        });
+                        
+                        if (response.ok) {
+                            successCount++;
+                        } else {
+                            failCount++;
+                        }
+                    } catch (error) {
+                        console.error(`Error deleting artwork ${artworkId}:`, error);
+                        failCount++;
+                    }
+                }
+                
+                alert(`삭제 완료: 성공 ${successCount}개, 실패 ${failCount}개`);
+                setSelectedArtworks(new Set());
+                setIsSelectMode(false);
+                loadDashboardData();
             };
 
             const handleApproveArtwork = async (artworkId) => {
@@ -1113,15 +1186,58 @@
                                                 작품 관리
                                                 <span className="ml-2 text-sm text-gray-500">
                                                     (총 {artworks.length}개 작품)
+                                                    {isSelectMode && selectedArtworks.size > 0 && (
+                                                        <span className="ml-2 text-blue-600">
+                                                            ({selectedArtworks.size}개 선택됨)
+                                                        </span>
+                                                    )}
                                                 </span>
                                             </h3>
                                             <div className="flex gap-2">
-                                                <button
-                                                    onClick={() => setViewMode(viewMode === 'grid' ? 'table' : 'grid')}
-                                                    className="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50"
-                                                >
-                                                    {viewMode === 'grid' ? '📋 테이블 보기' : '🔲 그리드 보기'}
-                                                </button>
+                                                {isSelectMode ? (
+                                                    <>
+                                                        <button
+                                                            onClick={selectAllArtworks}
+                                                            className="px-3 py-2 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600"
+                                                        >
+                                                            ✅ 전체 선택
+                                                        </button>
+                                                        <button
+                                                            onClick={deselectAllArtworks}
+                                                            className="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50"
+                                                        >
+                                                            ⬜ 선택 해제
+                                                        </button>
+                                                        <button
+                                                            onClick={handleBulkDelete}
+                                                            className="px-3 py-2 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600"
+                                                            disabled={selectedArtworks.size === 0}
+                                                        >
+                                                            🗑️ 선택 삭제 ({selectedArtworks.size})
+                                                        </button>
+                                                        <button
+                                                            onClick={toggleSelectMode}
+                                                            className="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50"
+                                                        >
+                                                            ❌ 선택 모드 종료
+                                                        </button>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <button
+                                                            onClick={toggleSelectMode}
+                                                            className="px-3 py-2 bg-purple-500 text-white rounded-lg text-sm hover:bg-purple-600"
+                                                        >
+                                                            ☑️ 다중 선택
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setViewMode(viewMode === 'grid' ? 'table' : 'grid')}
+                                                            className="px-3 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50"
+                                                        >
+                                                            {viewMode === 'grid' ? '📋 테이블 보기' : '🔲 그리드 보기'}
+                                                        </button>
+                                                    </>
+                                                )}
                                                 <button
                                                     onClick={() => setActiveTab('artwork-register')}
                                                     className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium"
@@ -1176,7 +1292,20 @@
                                                     return matchesSearch && matchesStatus;
                                                 })
                                                 .map((artwork) => (
-                                                <div key={artwork.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+                                                <div key={artwork.id} className={`bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow ${isSelectMode && selectedArtworks.has(artwork.id) ? 'ring-2 ring-blue-500' : ''}`}>
+                                                    {isSelectMode && (
+                                                        <div className="p-2 bg-gray-50 border-b">
+                                                            <label className="flex items-center cursor-pointer">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={selectedArtworks.has(artwork.id)}
+                                                                    onChange={() => toggleArtworkSelection(artwork.id)}
+                                                                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                                                                />
+                                                                <span className="ml-2 text-sm text-gray-700">선택</span>
+                                                            </label>
+                                                        </div>
+                                                    )}
                                                     {artwork.image_url && (
                                                         <img 
                                                             src={artwork.image_url} 
@@ -1259,6 +1388,28 @@
                                             <table className="min-w-full divide-y divide-gray-200">
                                                 <thead className="bg-gray-50">
                                                     <tr>
+                                                        {isSelectMode && (
+                                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    onChange={(e) => {
+                                                                        if (e.target.checked) {
+                                                                            selectAllArtworks();
+                                                                        } else {
+                                                                            deselectAllArtworks();
+                                                                        }
+                                                                    }}
+                                                                    checked={selectedArtworks.size > 0 && selectedArtworks.size === artworks.filter(artwork => {
+                                                                        const matchesSearch = searchTerm === '' || 
+                                                                            artwork.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                                                            artwork.artist_name.toLowerCase().includes(searchTerm.toLowerCase());
+                                                                        const matchesStatus = filterStatus === 'all' || artwork.status === filterStatus;
+                                                                        return matchesSearch && matchesStatus;
+                                                                    }).length}
+                                                                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                                                                />
+                                                            </th>
+                                                        )}
                                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">이미지</th>
                                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">작품명</th>
                                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">작가</th>
@@ -1278,7 +1429,17 @@
                                                             return matchesSearch && matchesStatus;
                                                         })
                                                         .map((artwork) => (
-                                                        <tr key={artwork.id} className="hover:bg-gray-50">
+                                                        <tr key={artwork.id} className={`hover:bg-gray-50 ${isSelectMode && selectedArtworks.has(artwork.id) ? 'bg-blue-50' : ''}`}>
+                                                            {isSelectMode && (
+                                                                <td className="px-6 py-4 whitespace-nowrap">
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={selectedArtworks.has(artwork.id)}
+                                                                        onChange={() => toggleArtworkSelection(artwork.id)}
+                                                                        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                                                                    />
+                                                                </td>
+                                                            )}
                                                             <td className="px-6 py-4 whitespace-nowrap">
                                                                 {artwork.image_url ? (
                                                                     <img 
