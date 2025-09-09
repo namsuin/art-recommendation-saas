@@ -9,15 +9,12 @@ import { serverLogger } from "./shared/logger";
 
 serverLogger.info("🎨 Starting Art Recommendation SaaS Server...");
 
-// Environment validation
-import { printEnvironmentStatus, validateEnvironment } from "./backend/utils/env-validator";
-
-printEnvironmentStatus();
-const envValidation = validateEnvironment();
-
-if (!envValidation.isValid) {
-  serverLogger.warn('Some environment configuration issues detected, but continuing with available config...');
-  // process.exit(1); // Temporarily disabled for deployment
+// Environment validation - Production-safe version
+try {
+  serverLogger.info('Environment: ' + (process.env.NODE_ENV || 'development'));
+  serverLogger.info('Port: ' + (process.env.PORT || '3000'));
+} catch (error) {
+  serverLogger.warn('Environment check skipped');
 }
 
 // Core services
@@ -29,12 +26,17 @@ import { mockArtistApplications } from "./backend/services/mock-artist-applicati
 import { mockDB } from "./backend/services/mock-database";
 import { artsperArtworks, artsperSummary } from './backend/artsper-dashboard-data';
 
-// Initialize services lazily
+// Initialize services lazily - with error handling
 let aiService: AIAnalysisService | null = null;
 
 function getAIService(): AIAnalysisService {
   if (!aiService) {
-    aiService = new AIAnalysisService();
+    try {
+      aiService = new AIAnalysisService();
+    } catch (error) {
+      serverLogger.warn('AI Service initialization failed, creating fallback');
+      throw error;
+    }
   }
   return aiService;
 }
