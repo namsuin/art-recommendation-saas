@@ -17,25 +17,42 @@ try {
   serverLogger.warn('Environment check skipped');
 }
 
-// Core services
-import { testSupabaseConnection, supabase } from "./backend/services/supabase";
-import { AIAnalysisService } from "./backend/services/ai-analysis";
-import { AuthAPI } from "./backend/api/auth";
-import { ArtworkManagementAPI } from "./backend/api/artwork-management";
-import { mockArtistApplications } from "./backend/services/mock-artist-applications";
-import { mockDB } from "./backend/services/mock-database";
-import { artsperArtworks, artsperSummary } from './backend/artsper-dashboard-data';
+// Core services - Memory optimized for production  
+// Mock data loaded only when needed to save memory
+let mockData: any = null;
 
-// Initialize services lazily - with error handling
-let aiService: AIAnalysisService | null = null;
-
-function getAIService(): AIAnalysisService {
-  if (!aiService) {
+async function getMockData() {
+  if (!mockData) {
     try {
-      aiService = new AIAnalysisService();
+      const [artistApps, database] = await Promise.all([
+        import("./backend/services/mock-artist-applications"),
+        import("./backend/services/mock-database")
+      ]);
+      mockData = {
+        mockArtistApplications: artistApps.mockArtistApplications,
+        mockDB: database.mockDB
+      };
+      serverLogger.info('Mock data loaded');
     } catch (error) {
-      serverLogger.warn('AI Service initialization failed, creating fallback');
-      throw error;
+      serverLogger.warn('Mock data loading failed, using minimal fallback');
+      mockData = { mockArtistApplications: [], mockDB: { users: [], artworks: [] } };
+    }
+  }
+  return mockData;
+}
+
+// Lazy import AI services only when needed to save memory
+let aiService: any = null;
+
+async function getAIService() {
+  if (!aiService && process.env.NODE_ENV !== 'production') {
+    try {
+      const { AIAnalysisService } = await import("./backend/services/ai-analysis");
+      aiService = new AIAnalysisService();
+      serverLogger.info('AI Service loaded on demand');
+    } catch (error) {
+      serverLogger.warn('AI Service disabled to save memory');
+      return null;
     }
   }
   return aiService;
