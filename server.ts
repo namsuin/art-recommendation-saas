@@ -1985,9 +1985,14 @@ const server = Bun.serve({
         const totalImages = validAnalyses.length;
         const threshold = Math.max(2, Math.ceil(totalImages * 0.6)); // At least 60% of images
         
+        if (process.env.NODE_ENV === "development") {
+          serverLogger.info(`🔍 Keyword analysis: ${keywordAnalysis.size} total keywords found`);
+          serverLogger.info(`📊 Threshold: 67% = ${Math.ceil(totalImages * 0.67)}, 60% = ${threshold}`);
+        }
+        
         // Truly common keywords (appearing in majority of images)
         const trulyCommonKeywords = Array.from(keywordAnalysis.entries())
-          .filter(([keyword, data]) => data.images.size >= totalImages)
+          .filter(([keyword, data]) => data.images.size >= Math.max(2, Math.ceil(totalImages * 0.67)))
           .sort((a, b) => b[1].totalWeight - a[1].totalWeight)
           .slice(0, 10)
           .map(([keyword]) => keyword);
@@ -2001,7 +2006,7 @@ const server = Bun.serve({
         
         // Truly common colors
         const trulyCommonColors = Array.from(colorAnalysis.entries())
-          .filter(([color, data]) => data.images.size >= totalImages)
+          .filter(([color, data]) => data.images.size >= Math.max(2, Math.ceil(totalImages * 0.67)))
           .sort((a, b) => b[1].totalWeight - a[1].totalWeight)
           .slice(0, 5)
           .map(([color]) => color);
@@ -2018,6 +2023,11 @@ const server = Bun.serve({
           ...trulyCommonKeywords,
           ...frequentKeywords
         ].slice(0, 20);
+        
+        if (process.env.NODE_ENV === "development") {
+          serverLogger.info(`✨ Results: ${trulyCommonKeywords.length} truly common, ${frequentKeywords.length} frequent`);
+          serverLogger.info(`🎯 Final common keywords (${commonKeywords.length}): [${commonKeywords.join(', ')}]`);
+        }
         
         // Create final weighted color list
         const commonColors = [
