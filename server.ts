@@ -48,8 +48,11 @@ async function getService(serviceName: string) {
           };
           break;
         case 'ai':
+          serverLogger.info('🔄 Loading AI Analysis Service...');
           const { AIAnalysisService } = await import("./backend/services/ai-analysis");
+          serverLogger.info('✅ AI Analysis Service imported, initializing...');
           services[serviceName] = new AIAnalysisService();
+          serverLogger.info('🎯 AI Analysis Service initialized successfully');
           break;
       }
       serverLogger.info(`${serviceName} service loaded`);
@@ -1847,10 +1850,14 @@ const server = Bun.serve({
           
           try {
             const imageBuffer = Buffer.from(await imageFile.arrayBuffer());
+            serverLogger.info(`🔍 Requesting AI service for image ${i + 1}...`);
             const aiService = await getService('ai');
+            serverLogger.info(`🔍 AI service result: ${!!aiService}`);
             if (!aiService) {
+              serverLogger.error('❌ AI service is null - initialization failed');
               throw new Error('AI 서비스가 초기화되지 않았습니다.');
             }
+            serverLogger.info(`✅ AI service available, analyzing image ${i + 1}...`);
             const result = await aiService.analyzeImageAndRecommend(
               imageBuffer,
               userId || undefined,
@@ -2286,10 +2293,19 @@ const server = Bun.serve({
             headers: { "Content-Type": "application/json", ...corsHeaders }
           });
         } catch (error) {
-          serverLogger.error('Multi-image analysis error:', error);
+          serverLogger.error('❌ Multi-image analysis error:', {
+            message: error instanceof Error ? error.message : 'Unknown error',
+            stack: error instanceof Error ? error.stack : undefined,
+            userId: userId || 'anonymous',
+            imageCount: imageFiles?.length || 0
+          });
           return new Response(JSON.stringify({
             success: false,
-            error: error instanceof Error ? error.message : (language === "en" ? 'An error occurred during multi-image analysis.' : '다중 이미지 분석 중 오류가 발생했습니다.')
+            error: error instanceof Error ? error.message : (language === "en" ? 'An error occurred during multi-image analysis.' : '다중 이미지 분석 중 오류가 발생했습니다.'),
+            debug: process.env.NODE_ENV === 'development' ? {
+              errorType: error.constructor.name,
+              stack: error instanceof Error ? error.stack : undefined
+            } : undefined
           }), {
             status: 500,
             headers: { "Content-Type": "application/json", ...corsHeaders }
