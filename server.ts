@@ -17,45 +17,48 @@ try {
   serverLogger.warn('Environment check skipped');
 }
 
-// Core services - Memory optimized for production  
-// Mock data loaded only when needed to save memory
-let mockData: any = null;
+// Core services - Essential services with lazy loading
+let services: any = {};
 
-async function getMockData() {
-  if (!mockData) {
+// Lazy load essential services to save startup memory
+async function getService(serviceName: string) {
+  if (!services[serviceName]) {
     try {
-      const [artistApps, database] = await Promise.all([
-        import("./backend/services/mock-artist-applications"),
-        import("./backend/services/mock-database")
-      ]);
-      mockData = {
-        mockArtistApplications: artistApps.mockArtistApplications,
-        mockDB: database.mockDB
-      };
-      serverLogger.info('Mock data loaded');
+      switch (serviceName) {
+        case 'supabase':
+          const supabase = await import("./backend/services/supabase");
+          services[serviceName] = supabase;
+          break;
+        case 'auth':
+          const { AuthAPI } = await import("./backend/api/auth");
+          services[serviceName] = new AuthAPI();
+          break;
+        case 'artwork':
+          const { ArtworkManagementAPI } = await import("./backend/api/artwork-management");
+          services[serviceName] = new ArtworkManagementAPI();
+          break;
+        case 'mockData':
+          const [artistApps, database] = await Promise.all([
+            import("./backend/services/mock-artist-applications"),
+            import("./backend/services/mock-database")
+          ]);
+          services[serviceName] = {
+            mockArtistApplications: artistApps.mockArtistApplications,
+            mockDB: database.mockDB
+          };
+          break;
+        case 'ai':
+          const { AIAnalysisService } = await import("./backend/services/ai-analysis");
+          services[serviceName] = new AIAnalysisService();
+          break;
+      }
+      serverLogger.info(`${serviceName} service loaded`);
     } catch (error) {
-      serverLogger.warn('Mock data loading failed, using minimal fallback');
-      mockData = { mockArtistApplications: [], mockDB: { users: [], artworks: [] } };
+      serverLogger.warn(`${serviceName} service failed to load:`, error);
+      services[serviceName] = null;
     }
   }
-  return mockData;
-}
-
-// Lazy import AI services only when needed to save memory
-let aiService: any = null;
-
-async function getAIService() {
-  if (!aiService && process.env.NODE_ENV !== 'production') {
-    try {
-      const { AIAnalysisService } = await import("./backend/services/ai-analysis");
-      aiService = new AIAnalysisService();
-      serverLogger.info('AI Service loaded on demand');
-    } catch (error) {
-      serverLogger.warn('AI Service disabled to save memory');
-      return null;
-    }
-  }
-  return aiService;
+  return services[serviceName];
 }
 
 const server = Bun.serve({
@@ -101,8 +104,8 @@ const server = Bun.serve({
           status: "healthy",
           timestamp: new Date().toISOString(),
           services: {
-            supabase: await testSupabaseConnection(),
-            ai: !!getAIService(),
+            supabase: await (await getService('supabase'))?.testSupabaseConnection?.() || false,
+            ai: !!(await getService('ai')),
           }
         }), {
           headers: { "Content-Type": "application/json", ...corsHeaders }
@@ -230,7 +233,7 @@ const server = Bun.serve({
       // ======================
       // AUTH ENDPOINTS
       // ======================
-      const authAPI = new AuthAPI();
+      const authAPI = await getService('auth');
       const authEndpoints = ['/api/auth/signup', '/api/auth/signin', '/api/auth/login', '/api/auth/logout', '/api/auth/check', '/api/auth/user', '/api/auth/signout'];
       
       if (authEndpoints.includes(url.pathname)) {
@@ -576,7 +579,8 @@ const server = Bun.serve({
           }
           
           // Mock 데이터 사용 (Supabase 테이블이 아직 생성되지 않음)
-          const { data, error } = await mockArtistApplications.create({
+          const mockData = await getService('mockData');
+          const { data, error } = await mockData?.mockArtistApplications?.create?.({
             user_id: userId,
             email: email,
             artist_name: artistName,
@@ -634,8 +638,9 @@ const server = Bun.serve({
       if (url.pathname === "/api/admin/artist-applications" && method === "GET") {
         try {
           // Mock 데이터 사용 - getAll 메서드가 없으면 빈 배열 반환
-          const applications = mockArtistApplications?.getAll ? 
-            await mockArtistApplications.getAll() : 
+          const mockData = await getService('mockData');
+          const applications = mockData?.mockArtistApplications?.getAll ? 
+            await mockData.mockArtistApplications.getAll() : 
             { data: [], error: null };
           
           const { data, error } = applications;
@@ -688,7 +693,8 @@ const server = Bun.serve({
           const newStatus = action === 'approve' ? 'approved' : 'rejected';
 
           // Mock 데이터 업데이트
-          const { data: appData, error: appError } = await mockArtistApplications.updateStatus(
+          const mockData = await getService('mockData');
+          const { data: appData, error: appError } = await mockData?.mockArtistApplications?.updateStatus?.(
             applicationId,
             newStatus,
             reviewNotes
@@ -2391,7 +2397,8 @@ const server = Bun.serve({
       
       // 작품 등록 (예술가용)
       if (url.pathname === "/api/artwork/register" && method === "POST") {
-        const response = await ArtworkManagementAPI.registerArtwork(req);
+        const artworkAPI = await getService('artwork');
+        const response = await artworkAPI?.registerArtwork?.(req) || new Response('Service unavailable', { status: 503 });
         const responseBody = await response.text();
         
         return new Response(responseBody, {
@@ -2402,7 +2409,8 @@ const server = Bun.serve({
       
       // 작품 승인 (관리자용)
       if (url.pathname === "/api/artwork/approve" && method === "POST") {
-        const response = await ArtworkManagementAPI.approveArtwork(req);
+        const artworkAPI = await getService('artwork');
+        const response = await artworkAPI?.approveArtwork?.(req) || new Response('Service unavailable', { status: 503 });
         const responseBody = await response.text();
         
         return new Response(responseBody, {
@@ -2413,7 +2421,8 @@ const server = Bun.serve({
       
       // 작품 거부 (관리자용)
       if (url.pathname === "/api/artwork/reject" && method === "POST") {
-        const response = await ArtworkManagementAPI.rejectArtwork(req);
+        const artworkAPI = await getService('artwork');
+        const response = await artworkAPI?.rejectArtwork?.(req) || new Response('Service unavailable', { status: 503 });
         const responseBody = await response.text();
         
         return new Response(responseBody, {
@@ -2424,7 +2433,8 @@ const server = Bun.serve({
       
       // 승인된 작품 목록 (추천 시스템용)
       if (url.pathname === "/api/artwork/approved" && method === "GET") {
-        const response = await ArtworkManagementAPI.getApprovedArtworks(req);
+        const artworkAPI = await getService('artwork');
+        const response = await artworkAPI?.getApprovedArtworks?.(req) || new Response('Service unavailable', { status: 503 });
         const responseBody = await response.text();
         
         return new Response(responseBody, {
@@ -2435,7 +2445,8 @@ const server = Bun.serve({
       
       // 예술가의 작품 목록
       if (url.pathname === "/api/artwork/artist" && method === "GET") {
-        const response = await ArtworkManagementAPI.getArtistArtworks(req);
+        const artworkAPI = await getService('artwork');
+        const response = await artworkAPI?.getArtistArtworks?.(req) || new Response('Service unavailable', { status: 503 });
         const responseBody = await response.text();
         
         return new Response(responseBody, {
@@ -2446,7 +2457,8 @@ const server = Bun.serve({
       
       // 작품 통계 (관리자용)
       if (url.pathname === "/api/artwork/stats" && method === "GET") {
-        const response = await ArtworkManagementAPI.getArtworkStats(req);
+        const artworkAPI = await getService('artwork');
+        const response = await artworkAPI?.getArtworkStats?.(req) || new Response('Service unavailable', { status: 503 });
         const responseBody = await response.text();
         
         return new Response(responseBody, {
@@ -2459,7 +2471,8 @@ const server = Bun.serve({
       if (url.pathname.startsWith("/api/artwork/") && method === "PUT") {
         const artworkId = url.pathname.split('/').pop();
         if (artworkId && artworkId !== 'artwork') {
-          const response = await ArtworkManagementAPI.updateArtwork(req, artworkId);
+          const artworkAPI = await getService('artwork');
+          const response = await artworkAPI?.updateArtwork?.(req, artworkId) || new Response('Service unavailable', { status: 503 });
           const responseBody = await response.text();
           
           return new Response(responseBody, {
@@ -2473,7 +2486,8 @@ const server = Bun.serve({
       if (url.pathname.startsWith("/api/artwork/") && method === "DELETE") {
         const artworkId = url.pathname.split('/').pop();
         if (artworkId && artworkId !== 'artwork') {
-          const response = await ArtworkManagementAPI.deleteArtwork(req, artworkId);
+          const artworkAPI = await getService('artwork');
+          const response = await artworkAPI?.deleteArtwork?.(req, artworkId) || new Response('Service unavailable', { status: 503 });
           const responseBody = await response.text();
           
           return new Response(responseBody, {
