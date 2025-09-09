@@ -293,12 +293,15 @@ export class AIAnalysisService {
       // 2. Check Artsper dashboard artworks (second priority)
       let artsperRecommendations: Recommendation[] = [];
       try {
-        // Import artsper artworks from the dashboard-full JSON file
-        const artsperDataPath = Bun.resolveSync('./artsper-dashboard-full.json', process.cwd());
+        // Import artsper artworks from the compressed dashboard-full JSON file
+        const artsperDataPath = Bun.resolveSync('./artsper-dashboard-full.json.gz', process.cwd());
         const artsperFile = Bun.file(artsperDataPath);
         
         if (await artsperFile.exists()) {
-          const artsperData = await artsperFile.json();
+          const compressedData = await artsperFile.arrayBuffer();
+          const decompressed = Bun.gunzipSync(new Uint8Array(compressedData));
+          const jsonText = new TextDecoder().decode(decompressed);
+          const artsperData = JSON.parse(jsonText);
           const artsperArtworks = artsperData.artworks || [];
           
           // Filter and score Artsper artworks based on keywords

@@ -1438,14 +1438,17 @@ const server = Bun.serve({
             available: artwork.available
           }));
           
-          // Load Artsper artworks from JSON file
+          // Load Artsper artworks from compressed JSON file
           let artsperArtworks = [];
           try {
-            const artsperData = await Bun.file('./artsper-dashboard-full.json').json();
+            const compressedFile = await Bun.file('./artsper-dashboard-full.json.gz').arrayBuffer();
+            const decompressed = Bun.gunzipSync(new Uint8Array(compressedFile));
+            const jsonText = new TextDecoder().decode(decompressed);
+            const artsperData = JSON.parse(jsonText);
             artsperArtworks = artsperData.artworks || [];
-            serverLogger.info(`📊 Loaded ${artsperArtworks.length} Artsper artworks from dashboard-full`);
+            serverLogger.info(`📊 Loaded ${artsperArtworks.length} Artsper artworks from dashboard-full (compressed)`);
           } catch (error) {
-            serverLogger.warn('Could not load artsper-dashboard-full.json');
+            serverLogger.warn('Could not load artsper-dashboard-full.json.gz:', error);
           }
           
           // Transform Artsper artworks to match the expected format
