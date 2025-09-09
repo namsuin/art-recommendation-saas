@@ -116,6 +116,14 @@ monitor-*.sh
 *-monitor.log
 *-progress.log
 
+# Prevent large data files from being committed
+artsper-dashboard-*.ts
+artsper-dashboard-*.json
+*-full.json
+mock-database.json
+page-source.html
+*-summary.md
+
 # Script files
 check-*.js
 continue-*.js  

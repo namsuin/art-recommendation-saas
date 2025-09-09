@@ -2,6 +2,7 @@ import { GoogleVisionService } from '../integrations/google-vision';
 import { ClarifaiService } from '../integrations/clarifai';
 import { LocalClipService } from '../integrations/local-clip';
 import { StyleTransferService } from '../integrations/style-transfer';
+import { HuggingFaceCLIPService } from '../integrations/huggingface-clip';
 import type { 
   ImageAnalysis, 
   AIServiceConfig, 
@@ -17,6 +18,7 @@ export class AIEnsembleService {
   private clarifai: ClarifaiService;
   private localClip: LocalClipService;
   private styleTransfer: StyleTransferService;
+  private huggingfaceClip: HuggingFaceCLIPService;
   private config: AIServiceConfig;
   private errors: AIServiceError[] = [];
 
@@ -51,6 +53,13 @@ export class AIEnsembleService {
       this.styleTransfer = new StyleTransferService(); // Will be disabled internally
     }
 
+    try {
+      this.huggingfaceClip = new HuggingFaceCLIPService();
+    } catch (error) {
+      console.warn('⚠️ Hugging Face CLIP service failed to initialize:', error);
+      this.huggingfaceClip = new HuggingFaceCLIPService(); // Will be disabled internally
+    }
+
     // Default configuration - Google Vision and Clarifai both enabled
     this.config = {
       google_vision: {
@@ -72,6 +81,11 @@ export class AIEnsembleService {
         enabled: true,
         weight: 0.2,
         strength: 0.7
+      },
+      huggingface_clip: {
+        enabled: true,
+        weight: 0.2,
+        model: 'openai/clip-vit-base-patch32'
       },
       ...config
     };
@@ -124,16 +138,25 @@ export class AIEnsembleService {
       );
     }
 
+    if (this.config.huggingface_clip.enabled) {
+      analysisPromises.push(
+        this.runWithErrorHandling('huggingface_clip', () => 
+          this.huggingfaceClip.analyzeImage(imageBuffer)
+        )
+      );
+    }
+
     // Wait for all analyses to complete
     const results = await Promise.all(analysisPromises);
-    const [googleResult, clarifaiResult, localClipResult, styleTransferResult] = results;
+    const [googleResult, clarifaiResult, localClipResult, styleTransferResult, huggingfaceClipResult] = results;
 
     // Combine results using weighted ensemble
     const combinedAnalysis = this.combineResults({
       google_vision: googleResult as GoogleVisionResult,
       clarifai: clarifaiResult as ClarifaiResult,
       local_clip: localClipResult as LocalClipResult,
-      style_transfer: styleTransferResult as any
+      style_transfer: styleTransferResult as any,
+      huggingface_clip: huggingfaceClipResult as any
     });
 
     const processingTime = Date.now() - startTime;
@@ -167,6 +190,7 @@ export class AIEnsembleService {
     clarifai?: ClarifaiResult | null;
     local_clip?: LocalClipResult | null;
     style_transfer?: any | null;
+    huggingface_clip?: any | null;
   }): ImageAnalysis {
     
     const keywords = new Set<string>();
@@ -224,6 +248,25 @@ export class AIEnsembleService {
       }
       validResults++;
       totalConfidence += results.style_transfer.confidence;
+    }
+
+    // Process Hugging Face CLIP results
+    if (results.huggingface_clip) {
+      results.huggingface_clip.keywords.forEach(kw => keywords.add(kw));
+      results.huggingface_clip.colors.forEach(color => colors.add(color));
+      keywords.add(results.huggingface_clip.style);
+      
+      if (results.huggingface_clip.features && results.huggingface_clip.features.length > 0) {
+        combinedEmbeddings = this.combineEmbeddings(
+          combinedEmbeddings,
+          results.huggingface_clip.features,
+          this.config.huggingface_clip.weight
+        );
+      }
+      validResults++;
+      totalConfidence += results.huggingface_clip.confidence;
+      
+      aiLogger.info(`🎯 CLIP analysis added: ${results.huggingface_clip.keywords.length} keywords, style: ${results.huggingface_clip.style}`);
     }
 
     // Determine overall style and mood

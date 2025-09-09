@@ -112,11 +112,12 @@ NEVER proactively create documentation files (*.md) or README files. Only create
 
 # 🎨 Art Recommendation SaaS - 최신 상태
 
-## 🚀 서버 상태 (2025-08-11)
-- **메인 서버**: `server.ts` (프로덕션 준비 완료)
+## 🚀 서버 상태 (2025-09-09)
+- **메인 서버**: `server.ts` (메모리 최적화 완료)
 - **포트**: 3000
-- **상태**: 정상 운영 중 ✅
-- **시작 명령어**: `bun run start` 또는 `bun server.ts`
+- **상태**: 프로덕션 배포 중 ✅
+- **시작 명령어**: `bun run dev` (개발), `bun run start` (프로덕션)
+- **GTM 설치**: ✅ GTM-KXJJQWWN
 
 ## ✅ 완료된 핵심 기능
 
@@ -152,21 +153,30 @@ NEVER proactively create documentation files (*.md) or README files. Only create
 - **예술가 신청 관리 탭** (완전 구현)
 - 승인/거부 처리 with 실시간 업데이트
 
-## ✅ 기술 부채 완전 정리 (2025-08-11)
-### 파일 정리
-- ❌ 중복 서버 파일 제거 (`server-improved.ts`, `server-perfect.ts`, `stable-server.ts`)
-- ❌ 구버전 다중 이미지 API 제거 (`multi-image.ts` → `multi-image-refactored.ts` 유지)
-- ❌ 중복 소셜 기능 제거 (`social-features.ts` → `social-features-v2.ts` 유지)
-- ❌ 임시 테스트 파일들 제거 (`create-artist-table.ts`, `test-artist-table.ts` 등)
-- ❌ 구버전 문서 파일들 제거 (13개 파일)
-- ❌ 중복 성능 최적화 파일 제거
-- ❌ 로그 및 테스트 파일 정리
+## ✅ 기술 부채 완전 정리 (2025-09-09)
+### 메모리 최적화 및 대용량 파일 제거
+- ❌ **대용량 데이터 파일 제거** (총 ~70MB 절약)
+  - `artsper-dashboard-data.ts` (23MB) 
+  - `mock-database.json` (23MB)
+  - `artsper-dashboard-full.json` (24MB)
+- ❌ **미사용 스크립트 정리**
+  - `setup-social-tables.js`
+  - `create-artwork-table.ts` 
+  - `sync-mock-database.ts`
+- ❌ **임시/백업 파일 제거**
+  - `remaining-artworks.json.gz`
+  - `page-source.html`
+  - `archive/` 디렉토리
+  - 각종 마크다운 문서
 
-### 코드 품질 개선
-- ✅ 미사용 import 제거 (`RoleAuthService`)
-- ✅ 데이터베이스 의존성 제거 (완전 Mock 시스템)
-- ✅ 에러 핸들링 강화
-- ✅ 로깅 시스템 개선
+### 서버 아키텍처 개선
+- ✅ **메모리 효율적 서비스 로딩** - Lazy loading으로 512MB 제한 준수
+- ✅ **필수 서비스 복원** - testSupabaseConnection, AuthAPI 등
+- ✅ **에러 처리 강화** - Production 환경 안정성 개선
+- ✅ **GTM 통합** - Google Tag Manager (GTM-KXJJQWWN) 설치
+
+### .gitignore 개선
+- ✅ 대용량 데이터 파일 패턴 추가로 향후 문제 방지
 
 ## 🔧 활성 기능
 - AI 이미지 분석 (Google Vision + Clarifai)

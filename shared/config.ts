@@ -26,6 +26,15 @@ export const config = {
     clarifai: {
       apiKey: process.env.CLARIFAI_API_KEY || '',
     },
+    writingmate: {
+      apiKey: process.env.WRITINGMATE_API_KEY || '',
+      baseUrl: process.env.WRITINGMATE_BASE_URL || 'https://api.writingmate.ai',
+    },
+    huggingface: {
+      apiKey: process.env.HUGGINGFACE_API_KEY || '',
+      baseUrl: 'https://api-inference.huggingface.co',
+      clipModel: 'openai/clip-vit-base-patch32',
+    },
     smithsonian: {
       apiKey: process.env.SMITHSONIAN_API_KEY || 'DEMO_KEY',
     },
@@ -88,6 +97,10 @@ export function validateConfig(): { valid: boolean; warnings: string[] } {
 
   if (!config.services.googleVision.apiKey) {
     warnings.push('Google Vision API not configured');
+  }
+
+  if (!config.services.huggingface.apiKey) {
+    warnings.push('Hugging Face API not configured');
   }
 
 
