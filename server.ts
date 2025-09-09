@@ -1912,6 +1912,14 @@ const server = Bun.serve({
         const allStyles = validAnalyses.map(item => item.analysis.style).filter(Boolean);
         const allMoods = validAnalyses.map(item => item.analysis.mood).filter(Boolean);
         
+        if (process.env.NODE_ENV === "development") {
+          serverLogger.info('🎨 Individual image color analysis:');
+          validAnalyses.forEach((item, index) => {
+            const colors = item.analysis.colors || [];
+            serverLogger.info(`  Image ${index + 1}: [${colors.join(', ')}] (${colors.length} colors)`);
+          });
+        }
+        
         // Advanced keyword analysis with importance weighting
         const keywordAnalysis = new Map();
         validAnalyses.forEach((item, imageIndex) => {
@@ -2034,6 +2042,12 @@ const server = Bun.serve({
           ...trulyCommonColors,
           ...frequentColors
         ].slice(0, 10);
+        
+        if (process.env.NODE_ENV === "development") {
+          serverLogger.info(`🌈 Color analysis: ${colorAnalysis.size} total colors found`);
+          serverLogger.info(`🔍 Color results: ${trulyCommonColors.length} truly common, ${frequentColors.length} frequent`);
+          serverLogger.info(`🎯 Final common colors (${commonColors.length}): [${commonColors.join(', ')}]`);
+        }
         
         // Get dominant mood (style already calculated above)
         const moodCounts = new Map();
