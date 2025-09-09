@@ -1,5 +1,6 @@
 import React from 'react';
 import { X } from 'lucide-react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface ImagePreview {
   id: string;
@@ -18,17 +19,25 @@ export const ImagePreviewGrid: React.FC<ImagePreviewGridProps> = ({
   onRemoveImage,
   disabled = false
 }) => {
+  const { language } = useLanguage();
+  
   if (images.length === 0) return null;
 
   return (
     <div className="mt-4">
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-lg font-medium">
-          선택된 이미지 ({images.length}개)
+          {language === 'en' 
+            ? `Selected Images (${images.length})` 
+            : `선택된 이미지 (${images.length}개)`
+          }
         </h3>
         {images.length > 3 && (
           <span className="text-sm text-gray-600">
-            공통 키워드 분석 가능
+            {language === 'en' 
+              ? 'Common keyword analysis available'
+              : '공통 키워드 분석 가능'
+            }
           </span>
         )}
       </div>
