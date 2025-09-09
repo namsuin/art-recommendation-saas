@@ -1754,7 +1754,11 @@ const server = Bun.serve({
           if (process.env.NODE_ENV === "development") serverLogger.info('🖼️ Processing image:', imageFile.name, `(${imageFile.size} bytes)`);
           
           const imageBuffer = Buffer.from(await imageFile.arrayBuffer());
-          const result = await getAIService().analyzeImageAndRecommend(
+          const aiService = await getService('ai');
+          if (!aiService) {
+            throw new Error('AI 서비스가 초기화되지 않았습니다.');
+          }
+          const result = await aiService.analyzeImageAndRecommend(
             imageBuffer,
             userId || undefined,
             imageFile.name
@@ -1843,7 +1847,11 @@ const server = Bun.serve({
           
           try {
             const imageBuffer = Buffer.from(await imageFile.arrayBuffer());
-            const result = await getAIService().analyzeImageAndRecommend(
+            const aiService = await getService('ai');
+            if (!aiService) {
+              throw new Error('AI 서비스가 초기화되지 않았습니다.');
+            }
+            const result = await aiService.analyzeImageAndRecommend(
               imageBuffer,
               userId || undefined,
               language, // Pass language parameter
@@ -2139,7 +2147,11 @@ const server = Bun.serve({
             ].join(' ');
             
             serverLogger.info(`🔍 Enhanced multi-image search query: "${enhancedQuery}"`);
-            const recommendResult = await getAIService().getRecommendations(enhancedQuery, 15, language);
+            const aiService = await getService('ai');
+            if (!aiService) {
+              throw new Error('AI 서비스가 초기화되지 않았습니다.');
+            }
+            const recommendResult = await aiService.getRecommendations(enhancedQuery, 15, language);
             const externalRecommendations = recommendResult.recommendations || [];
             
             // Add external recommendations after registered ones
@@ -2160,7 +2172,11 @@ const server = Bun.serve({
             // Fallback to simple query
             try {
               const fallbackQuery = commonKeywords.slice(0, 3).join(' ');
-              const fallbackResult = await getAIService().getRecommendations(fallbackQuery, 10, language);
+              const aiService = await getService('ai');
+              if (!aiService) {
+                throw new Error('AI 서비스가 초기화되지 않았습니다.');
+              }
+              const fallbackResult = await aiService.getRecommendations(fallbackQuery, 10, language);
               recommendations = fallbackResult.recommendations || [];
             } catch (fallbackError) {
               serverLogger.error('Fallback recommendation failed:', fallbackError);
@@ -2175,7 +2191,11 @@ const server = Bun.serve({
             try {
               const individualQuery = allIndividualKeywords.slice(0, 5).join(' ');
               serverLogger.info(`🔍 Individual keywords search query: "${individualQuery}"`);
-              const individualResult = await getAIService().getRecommendations(individualQuery, 12, language);
+              const aiService = await getService('ai');
+              if (!aiService) {
+                throw new Error('AI 서비스가 초기화되지 않았습니다.');
+              }
+              const individualResult = await aiService.getRecommendations(individualQuery, 12, language);
               recommendations = individualResult.recommendations || [];
               serverLogger.info(`📊 Generated ${recommendations.length} recommendations from individual keywords`);
             } catch (error) {
