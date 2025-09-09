@@ -31,15 +31,21 @@ export interface ImageAnalysis {
 // AI Service Result types
 export interface GoogleVisionResult {
   detected: boolean;
-  labels?: string[];
-  colors?: string[];
+  labels?: { description: string; score: number }[];
+  objects?: { name: string; score: number }[];
+  colors?: { color: { red: number; green: number; blue: number }; score: number }[];
+  imageProperties?: {
+    dominantColors?: {
+      colors?: { color: { red: number; green: number; blue: number }; score: number }[];
+    };
+  };
   confidence?: number;
   error?: string;
 }
 
 export interface ClarifaiResult {
   detected: boolean;
-  concepts?: string[];
+  concepts?: { name: string; value: number }[];
   confidence?: number;
   error?: string;
 }

@@ -1443,6 +1443,7 @@ const server = Bun.serve({
           try {
             const artsperData = await Bun.file('./artsper-dashboard-full.json').json();
             artsperArtworks = artsperData.artworks || [];
+            serverLogger.info(`📊 Loaded ${artsperArtworks.length} Artsper artworks from dashboard-full`);
           } catch (error) {
             serverLogger.warn('Could not load artsper-dashboard-full.json');
           }
@@ -1850,29 +1851,78 @@ const server = Bun.serve({
           
           try {
             const imageBuffer = Buffer.from(await imageFile.arrayBuffer());
-            serverLogger.info(`🔍 Requesting AI service for image ${i + 1}...`);
-            const aiService = await getService('ai');
-            serverLogger.info(`🔍 AI service result: ${!!aiService}`);
-            if (!aiService) {
-              serverLogger.error('❌ AI service is null - initialization failed');
-              throw new Error('AI 서비스가 초기화되지 않았습니다.');
+            if (process.env.NODE_ENV === "development") serverLogger.info(`🔍 Processing image ${i + 1} with direct color extraction...`);
+            
+            // Direct AI service calls for color extraction (bypass Ensemble)
+            const startTime = Date.now();
+            
+            // Reuse service instances to avoid RESOURCE_EXHAUSTED
+            if (!global.googleVisionInstance) {
+              const { GoogleVisionService } = await import('./ai-service/integrations/google-vision');
+              global.googleVisionInstance = new GoogleVisionService();
             }
-            serverLogger.info(`✅ AI service available, analyzing image ${i + 1}...`);
-            const result = await aiService.analyzeImageAndRecommend(
-              imageBuffer,
-              userId || undefined,
-              language, // Pass language parameter
-              5 // Get some recommendations to improve analysis depth
-            );
+            if (!global.clarifaiInstance) {
+              const { ClarifaiService } = await import('./ai-service/integrations/clarifai');
+              global.clarifaiInstance = new ClarifaiService();
+            }
+            
+            const googleVision = global.googleVisionInstance;
+            const clarifai = global.clarifaiInstance;
+            
+            // Extract colors directly
+            const colors: string[] = [];
+            const keywords: string[] = [];
+            
+            // Google Vision colors and keywords
+            if (googleVision.isServiceEnabled()) {
+              const gvResult = await googleVision.analyzeImage(imageBuffer);
+              if (gvResult) {
+                const gvColors = googleVision.extractColors(gvResult);
+                const gvKeywords = googleVision.extractArtKeywords(gvResult);
+                colors.push(...gvColors);
+                keywords.push(...gvKeywords);
+                if (process.env.NODE_ENV === "development") {
+                  serverLogger.info(`🎨 Google Vision: ${gvColors.length} colors, ${gvKeywords.length} keywords`);
+                }
+              }
+            }
+            
+            // Clarifai colors and keywords  
+            if (clarifai.isServiceEnabled()) {
+              const clarifaiResult = await clarifai.analyzeImage(imageBuffer);
+              if (clarifaiResult) {
+                const clarifaiColors = clarifai.extractColors(clarifaiResult);
+                const clarifaiKeywords = clarifai.extractArtKeywords(clarifaiResult);
+                colors.push(...clarifaiColors);
+                keywords.push(...clarifaiKeywords);
+                if (process.env.NODE_ENV === "development") {
+                  serverLogger.info(`🎨 Clarifai: ${clarifaiColors.length} colors, ${clarifaiKeywords.length} keywords`);
+                }
+              }
+            }
+            
+            const processingTime = Date.now() - startTime;
+            
+            // Create simple analysis result
+            const analysis = {
+              keywords: [...new Set(keywords)].slice(0, 20),
+              colors: [...new Set(colors)].slice(0, 10),
+              style: keywords.includes('portrait') ? 'portrait' : 
+                     keywords.includes('landscape') ? 'landscape' : 
+                     keywords.includes('abstract') ? 'abstract' : 'mixed',
+              mood: keywords.includes('bright') ? 'bright' : 
+                    keywords.includes('dark') ? 'dark' : 'neutral',
+              confidence: colors.length > 0 ? 0.8 : 0.3
+            };
             
             individualAnalyses.push({
               image_name: imageFile.name,
               image_size: imageFile.size,
-              processing_time: result.processingTime || 0,
-              analysis: result.analysis
+              processing_time: processingTime,
+              analysis
             });
             
-            totalProcessingTime += result.processingTime || 0;
+            totalProcessingTime += processingTime;
           } catch (error) {
             serverLogger.error(`Failed to analyze ${imageFile.name}:`, error);
             individualAnalyses.push({

@@ -293,7 +293,7 @@ export class AIAnalysisService {
       // 2. Check Artsper dashboard artworks (second priority)
       let artsperRecommendations: Recommendation[] = [];
       try {
-        // Import artsper artworks from the JSON file
+        // Import artsper artworks from the dashboard-full JSON file
         const artsperDataPath = Bun.resolveSync('./artsper-dashboard-full.json', process.cwd());
         const artsperFile = Bun.file(artsperDataPath);
         

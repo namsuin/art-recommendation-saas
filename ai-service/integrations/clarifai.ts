@@ -214,6 +214,46 @@ export class ClarifaiService {
     }
   }
 
+  /**
+   * Extract colors from Clarifai result
+   */
+  extractColors(result: ClarifaiResult): string[] {
+    const colors: string[] = [];
+    
+    // Extract from concepts (tags that might be colors)
+    if (result.concepts) {
+      result.concepts.forEach(concept => {
+        if (concept.name) {
+          const colorKeywords = this.extractColorFromConcept(concept.name);
+          colors.push(...colorKeywords);
+        }
+      });
+    }
+    
+    return [...new Set(colors)]; // Remove duplicates
+  }
+
+  /**
+   * Extract color keywords from concept name
+   */
+  private extractColorFromConcept(conceptName: string): string[] {
+    const colors: string[] = [];
+    const colorKeywords = [
+      'red', 'blue', 'green', 'yellow', 'orange', 'purple', 'pink',
+      'brown', 'black', 'white', 'gray', 'grey', 'gold', 'silver',
+      'crimson', 'scarlet', 'azure', 'navy', 'emerald', 'jade', 'amber'
+    ];
+    
+    const lowerConcept = conceptName.toLowerCase();
+    colorKeywords.forEach(color => {
+      if (lowerConcept.includes(color)) {
+        colors.push(color);
+      }
+    });
+    
+    return colors;
+  }
+
   isServiceEnabled(): boolean {
     return this.isEnabled;
   }

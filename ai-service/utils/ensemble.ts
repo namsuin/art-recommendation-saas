@@ -203,6 +203,11 @@ export class AIEnsembleService {
     if (results.google_vision) {
       const gvKeywords = this.googleVision.extractArtKeywords(results.google_vision);
       gvKeywords.forEach(kw => keywords.add(kw));
+      
+      // Extract colors from Google Vision
+      const gvColors = this.googleVision.extractColors(results.google_vision);
+      gvColors.forEach(color => colors.add(color));
+      
       validResults++;
       totalConfidence += 0.8; // Google Vision confidence
     }
@@ -211,6 +216,11 @@ export class AIEnsembleService {
     if (results.clarifai) {
       const clarifaiKeywords = this.clarifai.extractArtKeywords(results.clarifai);
       clarifaiKeywords.forEach(kw => keywords.add(kw));
+      
+      // Extract colors from Clarifai
+      const clarifaiColors = this.clarifai.extractColors(results.clarifai);
+      clarifaiColors.forEach(color => colors.add(color));
+      
       validResults++;
       totalConfidence += 0.75; // Clarifai confidence
     }
@@ -223,7 +233,7 @@ export class AIEnsembleService {
       keywords.add(results.local_clip.artistic_style);
       keywords.add(results.local_clip.technique);
       
-      if (results.local_clip.embeddings.length > 0) {
+      if (results.local_clip.embeddings && results.local_clip.embeddings.length > 0) {
         combinedEmbeddings = this.combineEmbeddings(
           combinedEmbeddings,
           results.local_clip.embeddings,
@@ -353,7 +363,7 @@ export class AIEnsembleService {
 
     for (const [style, styleWords] of Object.entries(styleKeywords)) {
       const score = styleWords.reduce((acc, word) => {
-        return acc + keywords.filter(kw => kw.includes(word)).length;
+        return acc + keywords.filter(kw => kw && typeof kw === 'string' && kw.includes(word)).length;
       }, 0);
 
       if (score > maxScore) {

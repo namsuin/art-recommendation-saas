@@ -141,8 +141,9 @@ export class GoogleVisionService {
 
       return {
         labels: labels.slice(0, 20), // Limit to top 20 labels
-        objects: objects.slice(0, 10), // Limit to top 10 objects
+        objects: objects.slice(0, 10), // Limit to top 10 objects  
         colors: colors.slice(0, 5), // Limit to top 5 colors
+        imageProperties: imagePropertiesResult[0].imagePropertiesAnnotation || null,
       };
 
     } catch (error) {
@@ -241,6 +242,114 @@ export class GoogleVisionService {
       console.error('Google Vision test failed:', error);
       return false;
     }
+  }
+
+  /**
+   * Extract colors from Google Vision result
+   */
+  extractColors(result: GoogleVisionResult): string[] {
+    const colors: string[] = [];
+    
+    // Extract from image properties if available
+    if (result.imageProperties && result.imageProperties.dominantColors) {
+      result.imageProperties.dominantColors.colors?.forEach(colorInfo => {
+        if (colorInfo.color) {
+          const color = this.rgbToColorName(
+            colorInfo.color.red || 0,
+            colorInfo.color.green || 0,  
+            colorInfo.color.blue || 0
+          );
+          if (color) colors.push(color);
+        }
+      });
+    }
+    
+    // Extract from labels (color keywords)
+    if (result.labels) {
+      result.labels.forEach(label => {
+        const colorKeywords = this.extractColorFromLabel(label.description || '');
+        colors.push(...colorKeywords);
+      });
+    }
+    
+    return [...new Set(colors)]; // Remove duplicates
+  }
+
+  /**
+   * Convert RGB values to color name
+   */
+  private rgbToColorName(r: number, g: number, b: number): string | null {
+    // More detailed color mapping
+    if (r > 240 && g > 240 && b > 240) return 'white';
+    if (r < 30 && g < 30 && b < 30) return 'black';
+    
+    // Gray shades
+    if (Math.abs(r - g) < 30 && Math.abs(g - b) < 30 && Math.abs(r - b) < 30) {
+      if (r < 100) return 'dark gray';
+      if (r < 180) return 'gray';
+      return 'light gray';
+    }
+    
+    // Color detection with better thresholds
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    
+    if (r >= g && r >= b) {
+      if (r - g < 50 && g > b + 30) return 'orange';
+      if (r - g < 30 && r - b < 30) return 'pink';
+      return 'red';
+    }
+    
+    if (g >= r && g >= b) {
+      if (g - b < 50 && b > r + 20) return 'cyan';
+      if (g - r < 40 && r > 100) return 'lime';
+      return 'green';
+    }
+    
+    if (b >= r && b >= g) {
+      if (b - r < 50 && r > 80) return 'purple';
+      if (b - g < 30 && g > 100) return 'teal';
+      return 'blue';
+    }
+    
+    // Additional color combinations
+    if (r > 200 && g > 200 && b < 100) return 'yellow';
+    if (r > 150 && g < 100 && b > 150) return 'magenta';
+    if (r < 100 && g > 150 && b > 150) return 'turquoise';
+    
+    return 'brown';
+  }
+
+  /**
+   * Extract color keywords from label text
+   */
+  private extractColorFromLabel(label: string): string[] {
+    const colors: string[] = [];
+    const colorKeywords = [
+      'red', 'blue', 'green', 'yellow', 'orange', 'purple', 'pink',
+      'brown', 'black', 'white', 'gray', 'grey', 'gold', 'silver',
+      'crimson', 'scarlet', 'azure', 'navy', 'emerald', 'jade', 'amber',
+      'maroon', 'burgundy', 'coral', 'salmon', 'turquoise', 'cyan',
+      'magenta', 'violet', 'indigo', 'tan', 'beige', 'khaki'
+    ];
+    
+    const lowerLabel = label.toLowerCase();
+    colorKeywords.forEach(color => {
+      if (lowerLabel.includes(color)) {
+        colors.push(color);
+      }
+    });
+    
+    // Additional color inference from common objects
+    if (lowerLabel.includes('sky')) colors.push('blue');
+    if (lowerLabel.includes('grass') || lowerLabel.includes('leaf')) colors.push('green');
+    if (lowerLabel.includes('sun') || lowerLabel.includes('sunset')) colors.push('yellow', 'orange');
+    if (lowerLabel.includes('ocean') || lowerLabel.includes('water')) colors.push('blue');
+    if (lowerLabel.includes('fire') || lowerLabel.includes('flame')) colors.push('red', 'orange');
+    if (lowerLabel.includes('wood') || lowerLabel.includes('tree')) colors.push('brown');
+    if (lowerLabel.includes('snow') || lowerLabel.includes('cloud')) colors.push('white');
+    
+    return colors;
   }
 
   isServiceEnabled(): boolean {
