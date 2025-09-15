@@ -162,8 +162,15 @@ export class GoogleVisionService {
 
     // Process labels with confidence threshold
     result.labels.forEach(label => {
-      if (label.score > 0.3) { // Lowered threshold for more keywords
-        keywords.add(label.description.toLowerCase());
+      if (label.score > 0.2) { // Further lowered threshold for more keywords
+        const desc = label.description.toLowerCase();
+        keywords.add(desc);
+        
+        // Add art-specific mappings
+        if (desc.includes('paint') || desc.includes('canvas')) keywords.add('painting');
+        if (desc.includes('draw') || desc.includes('sketch')) keywords.add('drawing');
+        if (desc.includes('photograph') || desc.includes('photo')) keywords.add('realistic');
+        if (desc.includes('sculpture') || desc.includes('statue')) keywords.add('sculpture');
       }
     });
 

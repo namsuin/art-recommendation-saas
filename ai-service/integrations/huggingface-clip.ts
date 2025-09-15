@@ -181,11 +181,11 @@ export class HuggingFaceCLIPService {
         return result.scores;
       }
 
-      return texts.map(() => Math.random() * 0.3); // Fallback
+      return texts.map(() => Math.random() * 0.5); // Fallback
 
     } catch (error) {
       aiLogger.error('❌ Similarity calculation failed:', error);
-      return texts.map(() => Math.random() * 0.2); // Fallback
+      return texts.map(() => Math.random() * 0.5); // Fallback
     }
   }
 

@@ -34,75 +34,8 @@ class ArtworkRegistryService {
    * Load some initial mock artworks for testing
    */
   private loadMockArtworks() {
-    const mockArtworks: RegisteredArtwork[] = [
-      {
-        id: 'artwork-1',
-        title: 'Starry Night',
-        artist: 'Vincent van Gogh',
-        artist_bio: 'Dutch Post-Impressionist painter',
-        image_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/ea/Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg/1280px-Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg',
-        description: 'A swirling night sky over a village',
-        year: 1889,
-        medium: 'Oil on canvas',
-        style: 'Post-Impressionism',
-        keywords: ['night', 'stars', 'sky', 'village', 'swirl', 'blue', 'yellow', 'landscape', 'moon', 'cypress', 'green'],
-        colors: ['blue', 'yellow', 'black', 'white'],
-        analysis: {
-          labels: ['Night', 'Sky', 'Painting', 'Art'],
-          dominant_colors: ['#1e3a5f', '#f4e04d', '#2c5282']
-        },
-        created_at: new Date().toISOString(),
-        created_by: 'admin',
-        status: 'approved',
-        available: true
-      },
-      {
-        id: 'artwork-2',
-        title: 'The Great Wave',
-        artist: 'Katsushika Hokusai',
-        artist_bio: 'Japanese ukiyo-e artist',
-        image_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/0a/The_Great_Wave_off_Kanagawa.jpg/1280px-The_Great_Wave_off_Kanagawa.jpg',
-        description: 'A towering wave threatens boats off the coast of Kanagawa',
-        year: 1831,
-        medium: 'Woodblock print',
-        style: 'Ukiyo-e',
-        keywords: ['wave', 'ocean', 'sea', 'japan', 'mount fuji', 'boats', 'water', 'blue', 'foam', 'nature'],
-        colors: ['blue', 'white', 'beige'],
-        analysis: {
-          labels: ['Wave', 'Ocean', 'Art', 'Japanese Art'],
-          dominant_colors: ['#1e4e8b', '#f5f5dc', '#ffffff']
-        },
-        created_at: new Date().toISOString(),
-        created_by: 'admin',
-        status: 'approved',
-        available: true
-      },
-      {
-        id: 'artwork-3',
-        title: 'Girl with a Pearl Earring',
-        artist: 'Johannes Vermeer',
-        artist_bio: 'Dutch Baroque Period painter',
-        image_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/1665_Girl_with_a_Pearl_Earring.jpg/800px-1665_Girl_with_a_Pearl_Earring.jpg',
-        description: 'Portrait of a girl with a pearl earring and turban',
-        year: 1665,
-        medium: 'Oil on canvas',
-        style: 'Baroque',
-        keywords: ['portrait', 'girl', 'pearl', 'earring', 'turban', 'dutch', 'golden age', 'face', 'baroque'],
-        colors: ['blue', 'yellow', 'black', 'brown'],
-        analysis: {
-          labels: ['Portrait', 'Person', 'Painting', 'Art'],
-          dominant_colors: ['#1e3a5f', '#f4e04d', '#2c1810']
-        },
-        created_at: new Date().toISOString(),
-        created_by: 'admin',
-        status: 'approved',
-        available: true
-      }
-    ];
-
-    mockArtworks.forEach(artwork => {
-      this.artworks.set(artwork.id, artwork);
-    });
+    // Mock 샘플 작품들을 삭제 - 추천에서 실제 컬렉션만 표시
+    // 관리자가 등록한 실제 작품들만 추천 시스템에서 사용됨
   }
 
   /**
@@ -323,8 +256,10 @@ class ArtworkRegistryService {
     
     const matches: Array<{ artwork: RegisteredArtwork; score: number }> = [];
 
-    // Normalize user keywords
-    const normalizedUserKeywords = userKeywords.map(k => k.toLowerCase());
+    // Normalize user keywords (filter out undefined/null values)
+    const normalizedUserKeywords = userKeywords
+      .filter(k => k && typeof k === 'string')
+      .map(k => k.toLowerCase());
     logger.info(`🔤 [Artwork Registry] Normalized keywords: ${normalizedUserKeywords.join(', ')}`);
 
     // Calculate match scores for each approved and available artwork

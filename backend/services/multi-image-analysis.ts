@@ -179,7 +179,7 @@ export class MultiImageAnalysisService {
 
     // 키워드 정규화 (소문자, 공백 제거)
     const normalizeKeyword = (keyword: string) => 
-      keyword.toLowerCase().trim().replace(/[^\w\s]/g, '');
+      keyword && typeof keyword === 'string' ? keyword.toLowerCase().trim().replace(/[^\w\s]/g, '') : '';
 
     const normalizedSource = sourceKeywords.map(normalizeKeyword);
     const normalizedTarget = targetKeywords.map(normalizeKeyword);
@@ -234,6 +234,7 @@ export class MultiImageAnalysisService {
       ];
 
       allKeywords.forEach(keyword => {
+        if (!keyword || typeof keyword !== 'string') return;
         const normalizedKeyword = keyword.toLowerCase().trim();
         keywordFrequency[normalizedKeyword] = (keywordFrequency[normalizedKeyword] || 0) + 1;
       });

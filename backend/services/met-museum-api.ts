@@ -350,6 +350,7 @@ export class MetMuseumAPI {
 
     const mappedTerms: string[] = [];
     for (const keyword of keywords) {
+      if (!keyword || typeof keyword !== 'string') continue;
       const mapped = termMapping[keyword.toLowerCase()];
       if (mapped) {
         mappedTerms.push(...mapped);
@@ -377,7 +378,9 @@ export class MetMuseumAPI {
    */
   private calculateRelevanceScore(artwork: FormattedArtwork, searchKeywords: string[]): number {
     let score = 0;
-    const searchTerms = searchKeywords.map(k => k.toLowerCase());
+    const searchTerms = searchKeywords
+      .filter(k => k && typeof k === 'string')
+      .map(k => k.toLowerCase());
 
     // 제목 매칭 (높은 가중치)
     for (const term of searchTerms) {

@@ -104,7 +104,7 @@ export class HarvardMuseumsAPI {
             return mockResults.filter(artwork => {
                 const searchText = `${artwork.title} ${artwork.medium} ${artwork.classification}`.toLowerCase();
                 return keywords.some(keyword => 
-                    searchText.includes(keyword.toLowerCase())
+                    keyword && typeof keyword === 'string' && searchText.includes(keyword.toLowerCase())
                 );
             });
             
@@ -126,8 +126,10 @@ export class HarvardMuseumsAPI {
         // 키워드에서 분류 추출
         const matchingClassifications = classifications.filter(classification =>
             keywords.some(keyword =>
-                keyword.toLowerCase().includes(classification.toLowerCase().slice(0, -1)) ||
-                classification.toLowerCase().includes(keyword.toLowerCase())
+                keyword && typeof keyword === 'string' && (
+                    keyword.toLowerCase().includes(classification.toLowerCase().slice(0, -1)) ||
+                    classification.toLowerCase().includes(keyword.toLowerCase())
+                )
             )
         );
 

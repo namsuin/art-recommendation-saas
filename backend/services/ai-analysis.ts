@@ -111,6 +111,24 @@ export class AIAnalysisService {
       // Use AI Ensemble directly for image analysis
       const analysis = await this.aiEnsemble.analyzeImage(imageBuffer, language);
       
+      // 커스텀 모델 예측 추가 (실패해도 기존 분석 유지)
+      try {
+        const { standaloneAutoML } = await import('../../ai-service/standalone-automl');
+        const customPrediction = await standaloneAutoML.safePrediction(imageBuffer);
+        if (customPrediction.isCustomModel && customPrediction.predictions.length > 0) {
+          // 커스텀 모델 결과를 기존 키워드에 추가
+          const customKeywords = customPrediction.predictions
+            .filter(p => (p.classification?.score || 0) > 0.7)
+            .map(p => p.displayName)
+            .filter(Boolean);
+          
+          analysis.keywords = [...new Set([...analysis.keywords, ...customKeywords])];
+          aiLogger.info(`🎯 Enhanced with ${customKeywords.length} custom predictions`);
+        }
+      } catch (error) {
+        aiLogger.debug('커스텀 모델 사용 불가:', error);
+      }
+      
       aiLogger.info(`📊 Analysis complete. Found ${analysis.keywords.length} keywords`);
       aiLogger.info(`🎯 Style: ${analysis.style}, Confidence: ${analysis.confidence}`);
 
@@ -174,7 +192,7 @@ export class AIAnalysisService {
       // Use Supabase's vector similarity search
       const { data, error } = await supabase.rpc('vector_similarity_search', {
         query_embedding: analysis.embeddings,
-        similarity_threshold: 0.3, // Lowered from 0.5 for more recommendations
+        similarity_threshold: 0.5, // Minimum 50% similarity required
         match_count: limit * 2 // Get more results to filter and rank
       });
 
@@ -202,22 +220,24 @@ export class AIAnalysisService {
       }
 
       // Create recommendations with similarity scores
-      const recommendations: Recommendation[] = artworks.map(artwork => {
-        const similarityData = data.find((item: VectorSimilarityItem) => item.id === artwork.id);
-        const similarity = similarityData?.similarity || 0;
-        
-        const reasons = this.generateReasons(analysis, artwork, language);
+      const recommendations: Recommendation[] = artworks
+        .map(artwork => {
+          const similarityData = data.find((item: VectorSimilarityItem) => item.id === artwork.id);
+          const similarity = similarityData?.similarity || 0;
+          
+          const reasons = this.generateReasons(analysis, artwork, language);
 
-        return {
-          artwork: {
-            ...artwork,
-            embeddings: undefined // Don't send embeddings to frontend
-          },
-          similarity,
-          reasons,
-          confidence: similarity * analysis.confidence
-        };
-      });
+          return {
+            artwork: {
+              ...artwork,
+              embeddings: undefined // Don't send embeddings to frontend
+            },
+            similarity,
+            reasons,
+            confidence: similarity * analysis.confidence
+          };
+        })
+        .filter(rec => rec.similarity >= 0.5); // 50% 이하 유사도 제외
 
       // Filter out Bluethumb artworks and sort by similarity
       const filteredRecommendations = this.filterOutBluethumb(recommendations);
@@ -314,6 +334,7 @@ export class AIAnalysisService {
               
               // Check if any keyword matches title or artist
               return keywords.some(keyword => {
+                if (!keyword || typeof keyword !== 'string') return false;
                 const keywordLower = keyword.toLowerCase();
                 return titleLower.includes(keywordLower) || 
                        artistLower.includes(keywordLower) ||
@@ -329,6 +350,7 @@ export class AIAnalysisService {
               const artistLower = artwork.artist.toLowerCase();
               
               keywords.forEach(keyword => {
+                if (!keyword || typeof keyword !== 'string') return;
                 const keywordLower = keyword.toLowerCase();
                 if (titleLower.includes(keywordLower)) matchScore += 2;
                 if (artistLower.includes(keywordLower)) matchScore += 1.5;
@@ -366,7 +388,7 @@ export class AIAnalysisService {
                     match_score: matchScore
                   }
                 },
-                similarity: Math.min(0.9, 0.4 + (matchScore / keywords.length) * 0.15),
+                similarity: Math.max(0.5, Math.min(0.9, 0.5 + (matchScore / keywords.length) * 0.4)),
                 reasons,
                 confidence: 0.85
               };
@@ -624,6 +646,7 @@ export class AIAnalysisService {
       }
 
       const sortedRecommendations = filteredRecommendations
+        .filter(rec => rec.similarity >= 0.5) // 50% 이하 유사도 제외
         .sort((a, b) => b.similarity - a.similarity)
         .slice(0, limit);
 
@@ -644,10 +667,14 @@ export class AIAnalysisService {
   }
 
   private calculateKeywordSimilarity(userKeywords: string[], artworkKeywords: string[]): number {
-    if (!artworkKeywords || artworkKeywords.length === 0) return 0.3; // Increased base score from 0.1
+    if (!artworkKeywords || artworkKeywords.length === 0) return 0.5; // Minimum 50% similarity
     
-    const normalizedUserKeywords = userKeywords.map(k => k.toLowerCase());
-    const normalizedArtworkKeywords = artworkKeywords.map(k => k.toLowerCase());
+    const normalizedUserKeywords = userKeywords
+      .filter(k => k && typeof k === 'string')
+      .map(k => k.toLowerCase());
+    const normalizedArtworkKeywords = artworkKeywords
+      .filter(k => k && typeof k === 'string')
+      .map(k => k.toLowerCase());
     
     let matches = 0;
     for (const userKeyword of normalizedUserKeywords) {
@@ -681,9 +708,9 @@ export class AIAnalysisService {
             source: 'Met Museum'
           }
         },
-        similarity: 0.3,
+        similarity: 0.6,
         reasons: ['Museum highlight', 'Popular masterpiece'],
-        confidence: 0.3
+        confidence: 0.6
       }));
 
       return recommendations;

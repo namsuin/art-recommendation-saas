@@ -1,13 +1,15 @@
 // API Response Types
-export interface ApiResponse<T = any> {
+export interface ApiError {
+  code: string;
+  message: string;
+  details?: unknown[];
+}
+
+export interface ApiResponse<T = unknown> {
   success: boolean;
   status?: 'success' | 'error';
   data?: T;
-  error?: string | {
-    code: string;
-    message: string;
-    details?: any[];
-  };
+  error?: string | ApiError;
   message?: string;
   timestamp?: string;
   meta?: {

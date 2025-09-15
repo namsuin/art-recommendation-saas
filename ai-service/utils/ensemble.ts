@@ -96,6 +96,9 @@ export class AIEnsembleService {
   async analyzeImage(imageBuffer: Buffer, language: string = 'kr'): Promise<ImageAnalysis> {
     const startTime = Date.now();
     this.errors = []; // Reset errors
+    
+    // 이미지 버퍼를 전역 변수에 저장 (마스터 분류기에서 사용)
+    global.currentImageBuffer = imageBuffer;
 
     // Initialize local CLIP if needed
     if (this.config.local_clip.enabled && this.localClip.isServiceEnabled()) {
@@ -281,7 +284,7 @@ export class AIEnsembleService {
 
     // Determine overall style and mood
     const keywordArray = Array.from(keywords);
-    const style = this.determineOverallStyle(keywordArray);
+    const style = this.determineOverallStyle(keywordArray, Array.from(colors));
     const mood = this.determineOverallMood(keywordArray);
 
     // Enhanced color extraction from keywords
@@ -311,7 +314,7 @@ export class AIEnsembleService {
     aiLogger.info(`🔧 After color correction: ${Array.from(colors).join(', ')}`);
 
     // Calculate final confidence
-    const confidence = validResults > 0 ? totalConfidence / validResults : 0;
+    const confidence = validResults > 0 ? totalConfidence / validResults : 0.5;
 
     return {
       keywords: keywordArray,
@@ -347,15 +350,17 @@ export class AIEnsembleService {
     return existing.map((val, i) => val + (newEmbeddings[i] * weight));
   }
 
-  private determineOverallStyle(keywords: string[]): string {
+  private determineOverallStyle(keywords: string[], colors?: string[]): string {
     const styleKeywords = {
-      'abstract': ['abstract', 'geometric', 'non-representational'],
-      'realistic': ['realistic', 'photorealistic', 'detailed', 'portrait'],
-      'impressionist': ['impressionist', 'loose brushwork', 'light'],
-      'expressionist': ['expressionist', 'emotional', 'bold colors'],
-      'classical': ['classical', 'renaissance', 'traditional'],
-      'modern': ['modern', 'contemporary', 'minimalist'],
-      'surreal': ['surreal', 'dreamlike', 'fantastical']
+      'abstract': ['abstract', 'geometric', 'non-representational', 'minimalist', 'simple', 'shapes', 'pattern'],
+      'realistic': ['realistic', 'photorealistic', 'detailed', 'portrait', 'person', 'face', 'human', 'photograph', 'lifelike'],
+      'impressionist': ['impressionist', 'loose brushwork', 'light', 'outdoor', 'landscape', 'nature', 'soft', 'blurred'],
+      'expressionist': ['expressionist', 'emotional', 'bold colors', 'dramatic', 'intense', 'vibrant', 'striking'],
+      'classical': ['classical', 'renaissance', 'traditional', 'ancient', 'historical', 'old', 'vintage', 'antique'],
+      'modern': ['modern', 'contemporary', 'minimalist', 'clean', 'sleek', 'digital', 'new'],
+      'surreal': ['surreal', 'dreamlike', 'fantastical', 'weird', 'strange', 'unusual', 'bizarre', 'fantasy'],
+      'pop': ['pop', 'colorful', 'bright', 'comic', 'advertisement', 'commercial', 'popular'],
+      'sketch': ['sketch', 'drawing', 'pencil', 'charcoal', 'line', 'outline', 'draft']
     };
 
     let maxScore = 0;
@@ -369,6 +374,22 @@ export class AIEnsembleService {
       if (score > maxScore) {
         maxScore = score;
         dominantStyle = style;
+      }
+    }
+
+    // 고급 분석 시도 - 휴리스틱 분류기만 사용 (마스터 분류기는 별도 처리)
+    if (maxScore === 0 && colors) {
+      try {
+        // 폴백: 기존 휴리스틱 분류기
+        const { artStyleClassifier } = require('../integrations/style-classifier');
+        const advancedAnalysis = artStyleClassifier.analyzeKeywordsForStyle(keywords, colors);
+        
+        if (advancedAnalysis.confidence > 0.6) {
+          aiLogger.info(`🎨 Advanced style analysis: ${advancedAnalysis.style} (${advancedAnalysis.reasoning})`);
+          return advancedAnalysis.style;
+        }
+      } catch (error) {
+        aiLogger.debug('Advanced style analysis not available:', error);
       }
     }
 
@@ -389,7 +410,7 @@ export class AIEnsembleService {
 
     for (const [mood, moodWords] of Object.entries(moodKeywords)) {
       const score = moodWords.reduce((acc, word) => {
-        return acc + keywords.filter(kw => kw.includes(word)).length;
+        return acc + (keywords || []).filter(kw => kw && kw.includes(word)).length;
       }, 0);
 
       if (score > maxScore) {
@@ -465,7 +486,8 @@ export class AIEnsembleService {
       'sunset': ['sunset', 'sunrise', 'dawn', 'dusk']
     };
 
-    keywords.forEach(keyword => {
+    (keywords || []).forEach(keyword => {
+      if (!keyword || typeof keyword !== 'string') return;
       const lowerKeyword = keyword.toLowerCase();
       if (process.env.DEBUG_MODE === 'true') {
         aiLogger.info(`🔍 DEBUG: Processing keyword "${keyword}" → "${lowerKeyword}"`);
@@ -604,13 +626,13 @@ export class AIEnsembleService {
     });
     
     // Additional pattern-based inference
-    if (keywords.some(k => k.toLowerCase().includes('portrait'))) {
+    if (keywords.some(k => k && typeof k === 'string' && k.toLowerCase().includes('portrait'))) {
       colors.add('pink'); // skin tones
       colors.add('brown');
       colors.add('white');
     }
     
-    if (keywords.some(k => k.toLowerCase().includes('architecture'))) {
+    if (keywords.some(k => k && typeof k === 'string' && k.toLowerCase().includes('architecture'))) {
       colors.add('gray');
       colors.add('brown');
       colors.add('white');
@@ -621,7 +643,7 @@ export class AIEnsembleService {
    * Apply color correction based on common sense rules
    */
   private applyColorCorrection(keywords: string[], colors: Set<string>) {
-    const lowerKeywords = keywords.map(k => k.toLowerCase());
+    const lowerKeywords = keywords.filter(k => k && typeof k === 'string').map(k => k.toLowerCase());
     
     // Rule 1: If it's clearly a natural landscape, ensure blue and green are present
     const isLandscape = lowerKeywords.some(k => 

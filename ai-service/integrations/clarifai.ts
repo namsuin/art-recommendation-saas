@@ -133,8 +133,18 @@ export class ClarifaiService {
 
     // Process concepts with confidence threshold
     result.concepts.forEach(concept => {
-      if (concept.value > 0.3) { // Lowered threshold for more concepts
-        keywords.add(concept.name.toLowerCase());
+      if (concept.value > 0.2) { // Further lowered threshold for more concepts
+        const conceptName = concept.name.toLowerCase();
+        keywords.add(conceptName);
+        
+        // Add art style mappings
+        if (conceptName.includes('art') || conceptName.includes('artistic')) keywords.add('artistic');
+        if (conceptName.includes('painting')) keywords.add('painting');
+        if (conceptName.includes('illustration')) keywords.add('illustration');
+        if (conceptName.includes('vintage') || conceptName.includes('old')) keywords.add('classical');
+        if (conceptName.includes('modern') || conceptName.includes('contemporary')) keywords.add('modern');
+        if (conceptName.includes('abstract')) keywords.add('abstract');
+        if (conceptName.includes('portrait')) keywords.add('realistic');
       }
     });
 

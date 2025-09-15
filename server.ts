@@ -1915,7 +1915,7 @@ const server = Bun.serve({
                      keywords.includes('abstract') ? 'abstract' : 'mixed',
               mood: keywords.includes('bright') ? 'bright' : 
                     keywords.includes('dark') ? 'dark' : 'neutral',
-              confidence: colors.length > 0 ? 0.8 : 0.3
+              confidence: colors.length > 0 ? 0.8 : 0.5
             };
             
             individualAnalyses.push({
@@ -2111,8 +2111,10 @@ const server = Bun.serve({
           .sort((a, b) => b[1] - a[1])[0]?.[0] || 'neutral';
         
         // Calculate average confidence
-        const avgConfidence = validAnalyses.reduce((sum, item) => 
-          sum + (item.analysis.confidence || 0), 0) / validAnalyses.length;
+        const avgConfidence = validAnalyses.length > 0 
+          ? validAnalyses.reduce((sum, item) => 
+              sum + (item.analysis.confidence || 0.5), 0) / validAnalyses.length
+          : 0.5;
         
         // Enhanced similarity analysis between images
         const similarities = [];

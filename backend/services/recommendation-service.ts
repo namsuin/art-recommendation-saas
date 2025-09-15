@@ -241,7 +241,7 @@ export class RecommendationService {
    */
   filterHighQualityRecommendations(
     recommendations: RecommendationItem[], 
-    minSimilarity: number = 0.3
+    minSimilarity: number = 0.5
   ): RecommendationItem[] {
     return recommendations.filter(rec => {
       const similarity = rec.similarity_score?.total || rec.similarity || 0;
