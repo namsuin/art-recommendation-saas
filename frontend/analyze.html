@@ -606,7 +606,87 @@
 
             resultArea.classList.remove('hidden');
         }
+        <script>
+async function fetchEuropeanaArtworks(query) {
+    const apiKey = "othrookeed"; // Europeana에서 받은 API 키 (테스트용: api2demo)
+    const encodedQuery = encodeURIComponent(query);
+    const url = `https://api.europeana.eu/record/v2/search.json?wskey=${apiKey}&query=${encodedQuery}&media=true&rows=6`;
 
+    try {
+        const res = await fetch(url);
+        const data = await res.json();
+        console.log("🎨 Europeana 결과:", data);
+
+        if (!data.items || data.items.length === 0) {
+            return [];
+        }
+
+        return data.items.map(item => ({
+            id: `europeana_${item.id}`,
+            title: item.title?.[0] || "제목 없음",
+            artist: item.dataProvider?.[0] || "작가 미상",
+            image_url: item.edmPreview?.[0] || "",
+            link: item.guid || "",
+            source: "Europeana"
+        }));
+    } catch (err) {
+        console.error("❌ Europeana API 오류:", err);
+        return [];
+    }
+}
+
+// 기존 displayResults 함수 내에서 Europeana 작품 불러오기 추가
+async function displayResults(data) {
+    hideStates();
+
+    const analysisDetails = document.getElementById('analysisDetails');
+    analysisDetails.innerHTML = `
+        <div class="grid grid-cols-2 gap-4">
+            <div class="bg-blue-50 rounded-lg p-4">
+                <h4 class="font-bold text-blue-900 mb-2">🎨 스타일</h4>
+                <p class="text-blue-700">${data.analysis.style || '분석 중...'}</p>
+            </div>
+            <div class="bg-green-50 rounded-lg p-4">
+                <h4 class="font-bold text-green-900 mb-2">🌈 주요 색상</h4>
+                <p class="text-green-700">${data.analysis.colors?.join(', ') || '분석 중...'}</p>
+            </div>
+        </div>
+    `;
+
+    const recommendationsGrid = document.getElementById('recommendationsGrid');
+    recommendationsGrid.innerHTML = `<div class="text-gray-600 text-center">🔍 Europeana에서 유사 작품을 불러오는 중...</div>`;
+
+    // 🔍 Europeana API로 유사 작품 가져오기
+    const query = data.analysis.style || (data.analysis.keywords?.[0] ?? "painting");
+    const europeanaResults = await fetchEuropeanaArtworks(query);
+
+    if (europeanaResults.length > 0) {
+        recommendationsGrid.innerHTML = europeanaResults.map(artwork => `
+            <div class="recommendation-item bg-white rounded-lg p-4 border hover:shadow-md transition-all cursor-pointer"
+                onclick="window.open('${artwork.link}', '_blank')">
+                <div class="flex items-start space-x-4">
+                    ${artwork.image_url
+                        ? `<img src="${artwork.image_url}" alt="${artwork.title}" class="w-20 h-20 object-cover rounded-lg">`
+                        : `<div class="w-20 h-20 bg-gray-100 flex items-center justify-center text-gray-400 text-2xl">🎨</div>`
+                    }
+                    <div>
+                        <h4 class="font-bold text-gray-900 line-clamp-2">${artwork.title}</h4>
+                        <p class="text-sm text-gray-600">${artwork.artist}</p>
+                        <p class="text-xs text-purple-500 mt-1">${artwork.source}</p>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    } else {
+        recommendationsGrid.innerHTML = `<p class="text-gray-500 text-center">유사한 Europeana 작품을 찾지 못했습니다.</p>`;
+    }
+
+    resultArea.classList.remove('hidden');
+}
+</script>
+
+
+        
         // 사용자 상태 확인 및 예술가 버튼 표시
         let currentUser = null;
 
