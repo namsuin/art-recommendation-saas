@@ -157,6 +157,8 @@ export class GoogleVisionService {
         }
       };
       const aesthetic = AestheticAnalyzer.analyze(visionResult);
+
+      logger.info('🎨 Aesthetic analysis result:', aesthetic);
       
       return {
         ...visionResult,
