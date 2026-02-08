@@ -1,3 +1,4 @@
+import { AestheticAnalyzer } from '../../backend/services/AestheticAnalyzer';
 import { ImageAnnotatorClient } from '@google-cloud/vision';
 import type { GoogleVisionResult } from '../../shared/types';
 import { logger } from '../../shared/logger';
@@ -139,20 +140,30 @@ export class GoogleVisionService {
         return null;
       }
 
-      return {
+      const visionResult = {
         labels: labels.slice(0, 10),
         objects: objects.slice(0, 5),
         colors: [],
         imageProperties: null,
         visionFilter: {
           isSafe: true,
-          hasPerson: objects.some(obj => obj.name.toLowerCase().includes('person')),
+          hasPerson: objects.some(obj =>
+            obj.name.toLowerCase().includes('person')
+                                 ),
           isArtRelated: labels.some(label =>
             ['art', 'painting', 'drawing', 'illustration', 'photograph']
             .includes(label.description.toLowerCase())
                                    )
         }
       };
+      const aesthetic = AestheticAnalyzer.analyze(visionResult);
+      
+      return {
+        ...visionResult,
+        aesthetic
+      };
+
+
 
 
     } catch (error) {
