@@ -140,11 +140,20 @@ export class GoogleVisionService {
       }
 
       return {
-        labels: labels.slice(0, 20), // Limit to top 20 labels
-        objects: objects.slice(0, 10), // Limit to top 10 objects  
-        colors: colors.slice(0, 5), // Limit to top 5 colors
-        imageProperties: imagePropertiesResult[0].imagePropertiesAnnotation || null,
+        labels: labels.slice(0, 10),
+        objects: objects.slice(0, 5),
+        colors: [],
+        imageProperties: null,
+        visionFilter: {
+          isSafe: true,
+          hasPerson: objects.some(obj => obj.name.toLowerCase().includes('person')),
+          isArtRelated: labels.some(label =>
+            ['art', 'painting', 'drawing', 'illustration', 'photograph']
+            .includes(label.description.toLowerCase())
+                                   )
+        }
       };
+
 
     } catch (error) {
       console.error('❌ Google Vision API error:', {
