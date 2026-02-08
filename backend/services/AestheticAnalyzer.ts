@@ -1,71 +1,95 @@
-type VisionAnalysisResult = {
-  labels: string[];
-  dominantColors?: string[];
-  brightness?: number; // 0 ~ 100
-};
+// ai-service/analyzers/aesthetic-analyzer.ts
 
-export type AestheticProfile = {
-  mood: string[];
-  color_tone: string[];
-  composition: string[];
-  intensity: number; // 0~1
-  keywords: string[];
+import type { GoogleVisionResult } from '../../shared/types';
+
+export type AestheticAnalysisResult = {
+  aestheticScore: number;        // 0 ~ 100
+  styleTags: string[];           // e.g. ['abstract', 'minimal']
+  moodTags: string[];            // e.g. ['calm', 'dark']
+  complexity: 'low' | 'medium' | 'high';
+  isArtLike: boolean;
 };
 
 export class AestheticAnalyzer {
-  static analyze(vision: VisionAnalysisResult): AestheticProfile {
-    const moods: Set<string> = new Set();
-    const styles: Set<string> = new Set();
-    const colorTones: Set<string> = new Set();
+  static analyze(vision: GoogleVisionResult): AestheticAnalysisResult {
+    const labels = vision.labels ?? [];
+    const objects = vision.objects ?? [];
 
-    const labels = vision.labels.map(l => l.toLowerCase());
+    // -----------------------------
+    // 1. 스타일 태그 추출
+    // -----------------------------
+    const styleTags = new Set<string>();
 
-    // 1️⃣ 분위기 (Mood)
-    if (labels.some(l => ['portrait', 'face', 'person'].includes(l))) {
-      moods.add('introspective');
-    }
+    labels.forEach(l => {
+      const d = l.description.toLowerCase();
 
-    if (labels.some(l => ['nature', 'landscape', 'forest', 'sea'].includes(l))) {
-      moods.add('calm');
-    }
+      if (d.includes('abstract')) styleTags.add('abstract');
+      if (d.includes('minimal')) styleTags.add('minimal');
+      if (d.includes('surreal')) styleTags.add('surreal');
+      if (d.includes('illustration')) styleTags.add('illustration');
+      if (d.includes('painting')) styleTags.add('painting');
+      if (d.includes('sketch')) styleTags.add('sketch');
+      if (d.includes('photograph')) styleTags.add('photography');
+      if (d.includes('modern')) styleTags.add('modern');
+      if (d.includes('vintage')) styleTags.add('vintage');
+    });
 
-    if (vision.brightness !== undefined) {
-      if (vision.brightness < 40) moods.add('moody');
-      if (vision.brightness > 70) moods.add('bright');
-    }
+    // -----------------------------
+    // 2. 무드 태그 추출
+    // -----------------------------
+    const moodTags = new Set<string>();
 
-    // 2️⃣ 스타일 (Style)
-    if (labels.some(l => ['abstract', 'minimalism'].includes(l))) {
-      styles.add('minimal');
-    }
+    labels.forEach(l => {
+      const d = l.description.toLowerCase();
 
-    if (labels.some(l => ['modern', 'contemporary'].includes(l))) {
-      styles.add('contemporary');
-    }
+      if (d.includes('dark')) moodTags.add('dark');
+      if (d.includes('bright')) moodTags.add('bright');
+      if (d.includes('colorful')) moodTags.add('colorful');
+      if (d.includes('monochrome')) moodTags.add('monochrome');
+      if (d.includes('calm')) moodTags.add('calm');
+      if (d.includes('dramatic')) moodTags.add('dramatic');
+    });
 
-    if (labels.some(l => ['oil painting', 'watercolor'].includes(l))) {
-      styles.add('painterly');
-    }
+    // -----------------------------
+    // 3. 복잡도 판단
+    // -----------------------------
+    const signalCount = labels.length + objects.length;
 
-    // 3️⃣ 색감 톤 (Color Tone)
-    if (vision.dominantColors) {
-      if (vision.dominantColors.some(c => ['gray', 'beige', 'brown'].includes(c))) {
-        colorTones.add('muted');
-      }
+    let complexity: 'low' | 'medium' | 'high' = 'low';
+    if (signalCount > 12) complexity = 'high';
+    else if (signalCount > 6) complexity = 'medium';
 
-      if (vision.dominantColors.some(c => ['red', 'yellow', 'orange'].includes(c))) {
-        colorTones.add('warm');
-      }
+    // -----------------------------
+    // 4. 미적 점수 계산
+    // -----------------------------
+    let score = 50; // baseline
 
-      if (vision.dominantColors.some(c => ['blue', 'green', 'purple'].includes(c))) {
-        colorTones.add('cool');
-      }
-    }
+    // 예술 관련 신호
+    if (vision.visionFilter?.isArtRelated) score += 15;
 
+    // 사람 포함 → 예술성 가중치 약간 낮춤
+    if (vision.visionFilter?.hasPerson) score -= 5;
+
+    // 스타일/무드 다양성
+    score += styleTags.size * 3;
+    score += moodTags.size * 2;
+
+    // 복잡도 보정
+    if (complexity === 'high') score += 5;
+    if (complexity === 'low') score -= 3;
+
+    // 점수 클램프
+    score = Math.max(0, Math.min(100, score));
+
+    // -----------------------------
+    // 5. 최종 결과
+    // -----------------------------
     return {
-      moods: Array.from(moods),
-      styles: Array.from(styles),
-      colorTones: Array.from(colorTones),
+      aestheticScore: score,
+      styleTags: Array.from(styleTags),
+      moodTags: Array.from(moodTags),
+      complexity,
+      isArtLike: score >= 60
     };
   }
 }
