@@ -5,9 +5,11 @@ type VisionAnalysisResult = {
 };
 
 export type AestheticProfile = {
-  moods: string[];
-  styles: string[];
-  colorTones: string[];
+  mood: string[];
+  color_tone: string[];
+  composition: string[];
+  intensity: number; // 0~1
+  keywords: string[];
 };
 
 export class AestheticAnalyzer {
