@@ -143,9 +143,18 @@ export class AIAnalysisService {
         recommendations = await this.findSimilarByKeywords(analysis.keywords, limit, language);
       }
 
-      // 3. Store user upload if userId provided
+      // 3. Handle user vs guest flow
       if (userId) {
+        // ✅ 회원: 취향 누적
+        aiLogger.info('👤 Member detected - storing analysis for personalization', {
+          userId,
+          keywordCount: analysis.keywords.length
+        });
+        
         await this.storeUserUpload(userId, analysis, tasteGroupId);
+      } else {
+        // 👻 비회원: 분석만 제공 (저장 안 함)
+        aiLogger.info('👻 Guest user - analysis not persisted');
       }
 
       const processingTime = Date.now() - startTime;
