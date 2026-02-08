@@ -50,7 +50,7 @@ export class ArtworkManagementAPI {
         depth_cm: parseFloat(formData.get('depthCm') as string) || null,
         price_krw: parseInt(formData.get('priceKrw') as string) || null,
         is_for_sale: formData.get('isForSale') === 'true',
-        keywords: JSON.parse(formData.get('keywords') as string || '[]'),
+        aestheticKeywords: JSON.parse(formData.get('aestheticKeywords') as string || '[]'),
         tags: JSON.parse(formData.get('tags') as string || '[]'),
         status: formData.get('status') as 'draft' | 'pending' || 'draft',
         image_url: formData.get('imageUrl') as string
@@ -320,7 +320,10 @@ export class ArtworkManagementAPI {
   static async getApprovedArtworks(req: Request): Promise<Response> {
     try {
       const url = new URL(req.url);
-      const keywords = url.searchParams.get('keywords')?.split(',') || [];
+      // NOTE:
+      // 이 keywords는 Google Vision raw 결과가 아니라
+      // AestheticAnalyzer에서 해석된 감정/스타일 키워드여야 함
+      const aestheticKeywords = url.searchParams.get('aestheticKeywords')?.split(',') || [];
       const limit = parseInt(url.searchParams.get('limit') || '20');
 
       if (!supabase) {
@@ -341,8 +344,8 @@ export class ArtworkManagementAPI {
         .limit(limit);
 
       // 키워드 필터링 (키워드가 제공된 경우)
-      if (keywords.length > 0) {
-        query = query.overlaps('keywords', keywords);
+      if (aestheticKeywords.length > 0) {
+        query = query.overlaps('aestheticKeywords', aestheticKeywords);
       }
 
       const { data, error } = await query;
@@ -358,7 +361,7 @@ export class ArtworkManagementAPI {
         image_url: artwork.image_url,
         thumbnail_url: artwork.image_url,
         source_url: `/artwork/${artwork.id}`,
-        keywords: artwork.keywords || [],
+        aestheticKeywords: artwork.aestheticKeywords || [],
         tags: artwork.tags || [],
         category: artwork.category,
         medium: artwork.medium,
