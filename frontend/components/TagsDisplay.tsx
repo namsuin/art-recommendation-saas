@@ -1,6 +1,6 @@
 // components/TagsDisplay.tsx
 
-import React from 'react';
+import * as React from 'react';
 import { tagTranslations } from '../utils/translations';
 
 interface Props {
