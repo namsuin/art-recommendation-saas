@@ -1,45 +1,31 @@
 {
-  "name": "art-recommendation-saas",
-  "module": "backend/index.ts",
-  "type": "module",
+  "name": "image-analysis-app",
   "private": true,
+  "version": "0.1.0",
+  "type": "module",
   "scripts": {
-    "dev": "bun --hot server.ts",
-    "start": "bun server.ts",
-    "start:direct": "bun server.ts",
-    "build": "bun build frontend/index.html --outdir dist --minify || echo 'Build step skipped'",
-    "test": "bun test",
-    "env:check": "echo 'Environment check skipped'",
-    "validate": "echo 'Validation skipped'",
-    "health:check": "curl -f http://localhost:3000/api/health || echo 'Health check failed'",
-    "legacy:complex": "bun --hot backend/index.ts"
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "preview": "vite preview"
   },
   "dependencies": {
-    "@google-cloud/vision": "^5.3.3",
-    "@supabase/supabase-js": "^2.55.0",
-    "@tensorflow/tfjs": "^4.22.0",
-    "@tensorflow/tfjs-node": "^4.22.0",
-    "@types/cheerio": "^1.0.0",
-    "@types/react": "^18.3.12",
-    "@types/react-dom": "^18.3.1",
-    "axios": "^1.11.0",
-    "cheerio": "^1.1.2",
-    "lucide-react": "^0.539.0",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "react-dropzone": "^14.2.3",
-    "replicate": "^0.32.1",
-    "stripe": "^18.4.0"
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
   },
   "devDependencies": {
-    "@tailwindcss/typography": "^0.5.16",
-    "@types/bun": "^1.2.20",
-    "autoprefixer": "^10.4.21",
-    "postcss": "^8.5.6",
-    "tailwindcss": "^4.1.11",
-    "typescript": "^5.9.2"
-  },
-  "peerDependencies": {
-    "typescript": "^5"
+    "@types/react": "^18.2.43",
+    "@types/react-dom": "^18.2.17",
+    "@typescript-eslint/eslint-plugin": "^6.14.0",
+    "@typescript-eslint/parser": "^6.14.0",
+    "@vitejs/plugin-react": "^4.2.1",
+    "autoprefixer": "^10.4.16",
+    "eslint": "^8.55.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react-refresh": "^0.4.5",
+    "postcss": "^8.4.32",
+    "tailwindcss": "^3.3.6",
+    "typescript": "^5.2.2",
+    "vite": "^5.0.8"
   }
 }
