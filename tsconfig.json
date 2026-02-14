@@ -4,8 +4,9 @@
     "module": "ESNext",
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "jsx": "react-jsx",
-    "moduleResolution": "bundler",
+    "moduleResolution": "node",
     "allowImportingTsExtensions": true,
+    "isolatedModules": true,
     "noEmit": true,
     "strict": true,
     "esModuleInterop": true,
@@ -25,6 +26,7 @@
     "**/*.tsx",
     "**/*.js",
     "**/*.jsx"
+    "src"
   ],
   "exclude": [
     "node_modules",
