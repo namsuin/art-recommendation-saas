@@ -1,6 +1,6 @@
 // components/ColorAnalysis.tsx
 
-import React from 'react';
+import * as React from 'react';
 import { AestheticAnalysisResult } from '../types/aesthetic';
 import { paletteTranslations } from '../utils/translations';
 
