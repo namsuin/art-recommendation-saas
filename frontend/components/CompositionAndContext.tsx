@@ -1,6 +1,6 @@
 // components/CompositionAndContext.tsx
 
-import React from 'react';
+import * as React from 'react';
 import { AestheticAnalysisResult } from '../types/aesthetic';
 import { 
   categoryTranslations, 
